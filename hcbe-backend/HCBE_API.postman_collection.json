@@ -1,0 +1,1348 @@
+{
+	"info": {
+		"_postman_id": "hcbe-api-collection",
+		"name": "HCBE API",
+		"description": "Complete API collection for HCBE-Canada backend",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Register",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (response.success && response.data && response.data.token) {",
+									"        pm.environment.set(\"auth_token\", response.data.token);",
+									"        pm.environment.set(\"user_id\", response.data.user.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"user@example.com\",\n    \"password\": \"password123\",\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/register",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "register"]
+						}
+					}
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (response.success && response.data && response.data.token) {",
+									"        pm.environment.set(\"auth_token\", response.data.token);",
+									"        pm.environment.set(\"user_id\", response.data.user.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"admin@hcbe.ca\",\n    \"password\": \"hcbe@2025!\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "Get Current User",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/auth/me",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "me"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Members",
+			"item": [
+				{
+					"name": "Get All Members",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/members",
+							"host": ["{{base_url}}"],
+							"path": ["api", "members"]
+						}
+					}
+				},
+				{
+					"name": "Get Member by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/members/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "members", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{member_id}}"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Update Member Admin Status",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/members/:id/admin?isAdmin=true",
+							"host": ["{{base_url}}"],
+							"path": ["api", "members", ":id", "admin"],
+							"query": [
+								{
+									"key": "isAdmin",
+									"value": "true"
+								}
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{member_id}}"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Events",
+			"item": [
+				{
+					"name": "Get All Events",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/events",
+							"host": ["{{base_url}}"],
+							"path": ["api", "events"]
+						}
+					}
+				},
+				{
+					"name": "Get Event by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/events/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "events", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{event_id}}"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Event",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Nouvel événement\",\n    \"description\": \"Description de l'événement\",\n    \"date\": \"2025-12-15T10:00:00Z\",\n    \"location\": \"Montréal, QC\",\n    \"type\": \"Conférence\",\n    \"zone\": \"Zone 1\",\n    \"capacity\": 100,\n    \"registrationDeadline\": \"2025-12-10T23:59:59Z\",\n    \"meetingLink\": null,\n    \"status\": \"À venir\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/events",
+							"host": ["{{base_url}}"],
+							"path": ["api", "events"]
+						}
+					}
+				},
+				{
+					"name": "Update Event",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Événement mis à jour\",\n    \"description\": \"Description mise à jour\",\n    \"date\": \"2025-12-20T10:00:00Z\",\n    \"location\": \"Toronto, ON\",\n    \"type\": \"Atelier\",\n    \"zone\": \"Zone 1\",\n    \"capacity\": 150,\n    \"status\": \"En cours\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/events/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "events", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{event_id}}"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Event",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/events/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "events", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{event_id}}"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "News",
+			"item": [
+				{
+					"name": "Get All News",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/news",
+							"host": ["{{base_url}}"],
+							"path": ["api", "news"]
+						}
+					}
+				},
+				{
+					"name": "Get News by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/news/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "news", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{news_id}}"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create News",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Nouvel article\",\n    \"content\": \"Contenu de l'article\",\n    \"excerpt\": \"Résumé de l'article\",\n    \"imageUrl\": null,\n    \"author\": \"HCBE-Canada\",\n    \"category\": \"Général\",\n    \"publishedDate\": \"2025-12-01T00:00:00Z\",\n    \"status\": \"published\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/news",
+							"host": ["{{base_url}}"],
+							"path": ["api", "news"]
+						}
+					}
+				},
+				{
+					"name": "Update News",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Article mis à jour\",\n    \"content\": \"Contenu mis à jour\",\n    \"excerpt\": \"Résumé mis à jour\",\n    \"status\": \"published\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/news/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "news", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{news_id}}"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete News",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/news/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "news", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{news_id}}"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Projects",
+			"item": [
+				{
+					"name": "Get All Projects",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/projects",
+							"host": ["{{base_url}}"],
+							"path": ["api", "projects"]
+						}
+					}
+				},
+				{
+					"name": "Get Project by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/projects/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "projects", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{project_id}}"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Project",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Nouveau projet\",\n    \"location\": \"Montréal, QC\",\n    \"status\": \"En cours\",\n    \"description\": \"Description du projet\",\n    \"progress\": 50,\n    \"budget\": \"$50,000\",\n    \"startDate\": \"2025-01-01T00:00:00Z\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/projects",
+							"host": ["{{base_url}}"],
+							"path": ["api", "projects"]
+						}
+					}
+				},
+				{
+					"name": "Update Project",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Projet mis à jour\",\n    \"status\": \"Terminé\",\n    \"progress\": 100,\n    \"description\": \"Description mise à jour\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/projects/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "projects", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{project_id}}"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Update Project Progress",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/projects/:id/progress?progress=75",
+							"host": ["{{base_url}}"],
+							"path": ["api", "projects", ":id", "progress"],
+							"query": [
+								{
+									"key": "progress",
+									"value": "75"
+								}
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{project_id}}"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Project",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/projects/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "projects", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{project_id}}"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Documents",
+			"item": [
+				{
+					"name": "Get All Documents",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/documents",
+							"host": ["{{base_url}}"],
+							"path": ["api", "documents"]
+						}
+					}
+				},
+				{
+					"name": "Get Document by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/documents/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "documents", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{document_id}}"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Download Document",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/documents/:id/download",
+							"host": ["{{base_url}}"],
+							"path": ["api", "documents", ":id", "download"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{document_id}}"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Upload Document",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								},
+								{
+									"key": "name",
+									"value": "Document Name",
+									"type": "text"
+								},
+								{
+									"key": "category",
+									"value": "General",
+									"type": "text"
+								},
+								{
+									"key": "displayOrder",
+									"value": "0",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/documents",
+							"host": ["{{base_url}}"],
+							"path": ["api", "documents"]
+						}
+					}
+				},
+				{
+					"name": "Update Document",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "name",
+									"value": "Updated Document Name",
+									"type": "text"
+								},
+								{
+									"key": "category",
+									"value": "Updated Category",
+									"type": "text"
+								},
+								{
+									"key": "displayOrder",
+									"value": "1",
+									"type": "text"
+								},
+								{
+									"key": "isActive",
+									"value": "true",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/documents/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "documents", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{document_id}}"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Document",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/documents/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "documents", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{document_id}}"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Content",
+			"item": [
+				{
+					"name": "Get Page Sections",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/content/sections?page=home",
+							"host": ["{{base_url}}"],
+							"path": ["api", "content", "sections"],
+							"query": [
+								{
+									"key": "page",
+									"value": "home"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Services",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/content/services",
+							"host": ["{{base_url}}"],
+							"path": ["api", "content", "services"]
+						}
+					}
+				},
+				{
+					"name": "Update Page Section",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Updated Title\",\n    \"content\": \"Updated content\",\n    \"isActive\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/content/sections/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "content", "sections", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{section_id}}"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Update Service Content",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Updated Service Title\",\n    \"description\": \"Updated description\",\n    \"isActive\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/content/services/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "content", "services", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{service_id}}"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Statistics",
+			"item": [
+				{
+					"name": "Get All Statistics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/statistics",
+							"host": ["{{base_url}}"],
+							"path": ["api", "statistics"]
+						}
+					}
+				},
+				{
+					"name": "Update Statistic",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/statistics/:key?value=100",
+							"host": ["{{base_url}}"],
+							"path": ["api", "statistics", ":key"],
+							"query": [
+								{
+									"key": "value",
+									"value": "100"
+								}
+							],
+							"variable": [
+								{
+									"key": "key",
+									"value": "total_members"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Settings",
+			"item": [
+				{
+					"name": "Get All Settings",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/settings",
+							"host": ["{{base_url}}"],
+							"path": ["api", "settings"]
+						}
+					}
+				},
+				{
+					"name": "Update Setting",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/settings/:key?value=New Value",
+							"host": ["{{base_url}}"],
+							"path": ["api", "settings", ":key"],
+							"query": [
+								{
+									"key": "value",
+									"value": "New Value"
+								}
+							],
+							"variable": [
+								{
+									"key": "key",
+									"value": "site_name"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Navigation",
+			"item": [
+				{
+					"name": "Get All Navigation Items",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/navigation",
+							"host": ["{{base_url}}"],
+							"path": ["api", "navigation"]
+						}
+					}
+				},
+				{
+					"name": "Create Navigation Item",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"label\": \"Nouvelle page\",\n    \"url\": \"/new-page\",\n    \"displayOrder\": 5,\n    \"isActive\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/navigation",
+							"host": ["{{base_url}}"],
+							"path": ["api", "navigation"]
+						}
+					}
+				},
+				{
+					"name": "Update Navigation Item",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"label\": \"Page mise à jour\",\n    \"url\": \"/updated-page\",\n    \"displayOrder\": 3,\n    \"isActive\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/navigation/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "navigation", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{navigation_id}}"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Navigation Item",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/navigation/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "navigation", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{navigation_id}}"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Footer",
+			"item": [
+				{
+					"name": "Get All Footer Links",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/footer",
+							"host": ["{{base_url}}"],
+							"path": ["api", "footer"]
+						}
+					}
+				},
+				{
+					"name": "Create Footer Link",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"label\": \"Nouveau lien\",\n    \"url\": \"https://example.com\",\n    \"category\": \"Social\",\n    \"displayOrder\": 1,\n    \"isActive\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/footer",
+							"host": ["{{base_url}}"],
+							"path": ["api", "footer"]
+						}
+					}
+				},
+				{
+					"name": "Update Footer Link",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"label\": \"Lien mis à jour\",\n    \"url\": \"https://updated.com\",\n    \"category\": \"Legal\",\n    \"displayOrder\": 2,\n    \"isActive\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/footer/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "footer", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{footer_id}}"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Footer Link",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/footer/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "footer", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{footer_id}}"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Notifications",
+			"item": [
+				{
+					"name": "Get Notifications",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/notifications",
+							"host": ["{{base_url}}"],
+							"path": ["api", "notifications"]
+						}
+					}
+				},
+				{
+					"name": "Get Unread Count",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/notifications/unread-count",
+							"host": ["{{base_url}}"],
+							"path": ["api", "notifications", "unread-count"]
+						}
+					}
+				},
+				{
+					"name": "Mark Notification as Read",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"isRead\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/notifications/:id/read",
+							"host": ["{{base_url}}"],
+							"path": ["api", "notifications", ":id", "read"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{notification_id}}"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Mark All Notifications as Read",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/notifications/mark-all-read",
+							"host": ["{{base_url}}"],
+							"path": ["api", "notifications", "mark-all-read"]
+						}
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:5049",
+			"type": "string"
+		},
+		{
+			"key": "auth_token",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
+

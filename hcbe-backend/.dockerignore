@@ -1,0 +1,71 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+docs/
+DEPLOYMENT.md
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Build artifacts
+bin/
+obj/
+*.user
+*.suo
+*.cache
+
+# Test files
+Tests/
+*.Tests.csproj
+**/test/**
+**/tests/**
+
+# Database files (will be created in container)
+*.db
+*.db-shm
+*.db-wal
+
+# Docker
+docker-compose*.yml
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Environment files
+.env
+.env.local
+.env.*.local
+appsettings.Development.json
+
+# Azure deployment artifacts (not needed for Fly.io)
+deploy*.zip
+deploy*.tar.gz
+
+# Postman
+*.postman_collection.json
+*.postman_environment.json
+
+# Uploads (will be mounted as volume)
+wwwroot/uploads/*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp

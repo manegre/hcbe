@@ -1,0 +1,22 @@
+# Root development artifacts
+.codex-build/
+.repo-backups/
+*.log
+
+# Local databases and runtime state
+*.db
+*.db-shm
+*.db-wal
+.db-initialized
+
+# Environment files and secrets
+.env
+.env.*
+!.env.example
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+

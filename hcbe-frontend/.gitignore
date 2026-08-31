@@ -1,0 +1,19 @@
+node_modules
+dist
+out
+.DS_Store
+.env
+.env.*
+.superpowers/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+coverage
+playwright-report/
+test-results/
+.vite
+.vercel
+
+# Export de maquettes Stitch (référence de design, hors dépôt)
+stitch_hcbe_canada_institutional_portal/

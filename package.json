@@ -1,0 +1,19 @@
+{
+  "name": "hcbe-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "HCBE Canada full-stack monorepo",
+  "scripts": {
+    "dev:frontend": "npm --prefix hcbe-frontend run dev",
+    "restore:backend": "dotnet restore hcbe-backend/HcbeApi.sln",
+    "build:backend": "dotnet build hcbe-backend/HcbeApi.sln --configuration Release --no-restore",
+    "test:backend": "dotnet test hcbe-backend/HcbeApi.sln --configuration Release --no-build",
+    "typecheck:frontend": "npm --prefix hcbe-frontend run typecheck",
+    "build:frontend": "npm --prefix hcbe-frontend run build",
+    "test:e2e": "npm --prefix hcbe-frontend run test:e2e",
+    "verify": "npm run typecheck:frontend && npm run build:frontend && npm run test:backend",
+    "compose:up": "docker compose up --build",
+    "compose:down": "docker compose down"
+  }
+}
+

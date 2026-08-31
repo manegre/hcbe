@@ -1,0 +1,342 @@
+using Microsoft.EntityFrameworkCore;
+using HcbeApi.Data;
+using HcbeApi.Models;
+using HcbeApi.Helpers;
+
+namespace HcbeApi.Services;
+
+public interface ITeamMemberService
+{
+    Task<ApiResponse<List<TeamMemberDto>>> GetAllAsync();
+    Task<ApiResponse<List<TeamMemberDto>>> GetActiveAsync();
+    Task<ApiResponse<TeamMemberDto?>> GetByIdAsync(int id);
+    Task<ApiResponse<TeamMemberDto>> CreateAsync(CreateTeamMemberRequest request);
+    Task<ApiResponse<TeamMemberDto>> UpdateAsync(int id, UpdateTeamMemberRequest request);
+    Task<ApiResponse<bool>> DeleteAsync(int id);
+    Task<ApiResponse<bool>> ToggleStatusAsync(int id);
+}
+
+public class TeamMemberService : ITeamMemberService
+{
+    private readonly ApplicationDbContext _context;
+
+    public TeamMemberService(ApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<ApiResponse<List<TeamMemberDto>>> GetAllAsync()
+    {
+        try
+        {
+            // Temporarily return hardcoded data
+            var teamMembers = GetHardcodedTeamMembers();
+
+            return new ApiResponse<List<TeamMemberDto>>
+            {
+                Success = true,
+                Data = teamMembers,
+                Message = "Team members retrieved successfully"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse<List<TeamMemberDto>>
+            {
+                Success = false,
+                Message = $"Error retrieving team members: {ex.Message}"
+            };
+        }
+    }
+
+    public async Task<ApiResponse<List<TeamMemberDto>>> GetActiveAsync()
+    {
+        try
+        {
+            // Temporarily return hardcoded active data
+            var teamMembers = GetHardcodedTeamMembers().Where(t => t.IsActive).ToList();
+
+            return new ApiResponse<List<TeamMemberDto>>
+            {
+                Success = true,
+                Data = teamMembers,
+                Message = "Active team members retrieved successfully"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse<List<TeamMemberDto>>
+            {
+                Success = false,
+                Message = $"Error retrieving active team members: {ex.Message}"
+            };
+        }
+    }
+
+    public async Task<ApiResponse<TeamMemberDto?>> GetByIdAsync(int id)
+    {
+        try
+        {
+            // Temporarily return hardcoded data by ID
+            var teamMember = GetHardcodedTeamMembers().FirstOrDefault(t => t.Id == id);
+
+            return new ApiResponse<TeamMemberDto?>
+            {
+                Success = true,
+                Data = teamMember,
+                Message = teamMember != null ? "Team member found" : "Team member not found"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse<TeamMemberDto?>
+            {
+                Success = false,
+                Message = $"Error retrieving team member: {ex.Message}"
+            };
+        }
+    }
+
+    public async Task<ApiResponse<TeamMemberDto>> CreateAsync(CreateTeamMemberRequest request)
+    {
+        return new ApiResponse<TeamMemberDto>
+        {
+            Success = false,
+            Message = "Create functionality temporarily disabled - database setup in progress"
+        };
+    }
+
+    public async Task<ApiResponse<TeamMemberDto>> UpdateAsync(int id, UpdateTeamMemberRequest request)
+    {
+        try
+        {
+            var teamMember = await _context.TeamMembers.FindAsync(id);
+
+            if (teamMember == null)
+            {
+                return new ApiResponse<TeamMemberDto>
+                {
+                    Success = false,
+                    Message = "Team member not found"
+                };
+            }
+
+            // Update only provided fields
+            if (!string.IsNullOrEmpty(request.Name))
+                teamMember.Name = request.Name;
+
+            if (!string.IsNullOrEmpty(request.Position))
+                teamMember.Position = request.Position;
+
+            if (!string.IsNullOrEmpty(request.Region))
+                teamMember.Region = request.Region;
+
+            if (!string.IsNullOrEmpty(request.Zone))
+                teamMember.Zone = request.Zone;
+
+            if (request.Photo is not null)
+                teamMember.Photo = request.Photo;
+
+            if (request.Bio is not null)
+                teamMember.Bio = request.Bio;
+
+            if (request.Email is not null)
+                teamMember.Email = request.Email;
+
+            if (request.IsActive.HasValue)
+                teamMember.IsActive = request.IsActive.Value;
+
+            if (request.Order.HasValue)
+                teamMember.Order = request.Order.Value;
+
+            teamMember.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            var teamMemberDto = new TeamMemberDto
+            {
+                Id = teamMember.Id,
+                Name = teamMember.Name,
+                Position = teamMember.Position,
+                Region = teamMember.Region,
+                Zone = teamMember.Zone,
+                Photo = teamMember.Photo,
+                Bio = teamMember.Bio,
+                Email = teamMember.Email,
+                IsActive = teamMember.IsActive,
+                Order = teamMember.Order,
+                CreatedAt = teamMember.CreatedAt,
+                UpdatedAt = teamMember.UpdatedAt
+            };
+
+            return new ApiResponse<TeamMemberDto>
+            {
+                Success = true,
+                Data = teamMemberDto,
+                Message = "Team member updated successfully"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse<TeamMemberDto>
+            {
+                Success = false,
+                Message = $"Error updating team member: {ex.Message}"
+            };
+        }
+    }
+
+    public async Task<ApiResponse<bool>> DeleteAsync(int id)
+    {
+        try
+        {
+            var teamMember = await _context.TeamMembers.FindAsync(id);
+
+            if (teamMember == null)
+            {
+                return new ApiResponse<bool>
+                {
+                    Success = false,
+                    Message = "Team member not found"
+                };
+            }
+
+            _context.TeamMembers.Remove(teamMember);
+            await _context.SaveChangesAsync();
+
+            return new ApiResponse<bool>
+            {
+                Success = true,
+                Data = true,
+                Message = "Team member deleted successfully"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse<bool>
+            {
+                Success = false,
+                Message = $"Error deleting team member: {ex.Message}"
+            };
+        }
+    }
+
+    public async Task<ApiResponse<bool>> ToggleStatusAsync(int id)
+    {
+        try
+        {
+            var teamMember = await _context.TeamMembers.FindAsync(id);
+
+            if (teamMember == null)
+            {
+                return new ApiResponse<bool>
+                {
+                    Success = false,
+                    Message = "Team member not found"
+                };
+            }
+
+            teamMember.IsActive = !teamMember.IsActive;
+            teamMember.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return new ApiResponse<bool>
+            {
+                Success = true,
+                Data = teamMember.IsActive,
+                Message = $"Team member {(teamMember.IsActive ? "activated" : "deactivated")} successfully"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse<bool>
+            {
+                Success = false,
+                Message = $"Error toggling team member status: {ex.Message}"
+            };
+        }
+    }
+
+    private List<TeamMemberDto> GetHardcodedTeamMembers()
+    {
+        return new List<TeamMemberDto>
+        {
+            new TeamMemberDto
+            {
+                Id = 1,
+                Name = "Adama Ouédraogo",
+                Position = "Président National",
+                Region = "National",
+                Zone = "Canada",
+                Photo = "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=300&h=300&q=80",
+                Bio = "Leader expérimenté avec plus de 15 ans d'engagement communautaire, spécialisé dans le développement des diasporas africaines au Canada.",
+                Email = "president@hcbecanada.org",
+                IsActive = true,
+                Order = 1,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new TeamMemberDto
+            {
+                Id = 2,
+                Name = "Aminata Compaoré",
+                Position = "Vice-Présidente",
+                Region = "Ontario",
+                Zone = "Toronto",
+                Photo = "https://images.unsplash.com/photo-1494790108755-2616b612b786?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=300&h=300&q=80",
+                Bio = "Experte en finance et développement économique, passionnée par l'autonomisation des femmes entrepreneures de la diaspora.",
+                Email = "vice.president@hcbecanada.org",
+                IsActive = true,
+                Order = 2,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new TeamMemberDto
+            {
+                Id = 3,
+                Name = "Youssouf Sawadogo",
+                Position = "Secrétaire Général",
+                Region = "Quebec",
+                Zone = "Montreal",
+                Photo = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=300&h=300&q=80",
+                Bio = "Juriste de formation, spécialisé dans l'administration et la gouvernance des organisations à but non lucratif.",
+                Email = "secretaire@hcbecanada.org",
+                IsActive = true,
+                Order = 3,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new TeamMemberDto
+            {
+                Id = 4,
+                Name = "Fatimata Kaboré",
+                Position = "Trésorière",
+                Region = "Alberta",
+                Zone = "Calgary",
+                Photo = "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=300&h=300&q=80",
+                Bio = "Comptable agréée avec une expertise en gestion financière et en conformité fiscale pour les organisations communautaires.",
+                Email = "tresoriere@hcbecanada.org",
+                IsActive = true,
+                Order = 4,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new TeamMemberDto
+            {
+                Id = 5,
+                Name = "Boureima Traoré",
+                Position = "Coordinateur des Relations Publiques",
+                Region = "British Columbia",
+                Zone = "Vancouver",
+                Photo = "https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=300&h=300&q=80",
+                Bio = "Expert en communication et relations publiques, responsable de la visibilité de l'organisation et des partenariats stratégiques.",
+                Email = "relations.publiques@hcbecanada.org",
+                IsActive = true,
+                Order = 5,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            }
+        };
+    }
+}

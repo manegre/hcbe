@@ -1,0 +1,67 @@
+export default {
+  'public.contact.hero.badge': 'We are here to listen',
+  'public.contact.hero.title': 'Contact HCBE Canada.',
+  'public.contact.hero.subtitle':
+    'Have a question, need guidance or want to propose a collaboration? Send us your message with the relevant details.',
+  'public.contact.hero.card.label': 'Response',
+  'public.contact.hero.card.title': 'Your request will be routed to the right contact.',
+  'public.contact.hero.card.description':
+    'To speed up processing, choose a specific subject and briefly describe the context.',
+  'public.contact.form.title': 'Send us a message',
+  'public.contact.form.fields.firstName': 'First name',
+  'public.contact.form.fields.lastName': 'Last name',
+  'public.contact.form.fields.email': 'Email',
+  'public.contact.form.fields.phone': 'Phone',
+  'public.contact.form.fields.subject': 'Subject',
+  'public.contact.form.fields.message': 'Message',
+  'public.contact.form.subject.placeholder': 'Select a subject',
+  'public.contact.form.subject.membership': 'HCBE membership',
+  'public.contact.form.subject.services': 'Committee services',
+  'public.contact.form.subject.events': 'Events and activities',
+  'public.contact.form.subject.projects': 'Community projects',
+  'public.contact.form.subject.volunteer': 'Volunteering',
+  'public.contact.form.subject.partnership': 'Partnership',
+  'public.contact.form.subject.other': 'Other',
+  'public.contact.form.message.placeholder': 'Describe your request...',
+  'public.contact.form.charCount': '{{count}}/500 characters',
+  'public.contact.form.validation.messageTooLong': 'The message cannot exceed 500 characters.',
+  'public.contact.form.success.title': 'Message sent!',
+  'public.contact.form.success.message':
+    'We have received your message and will respond as soon as possible.',
+  'public.contact.form.error.title': 'Send error',
+  'public.contact.form.error.message': 'An error occurred. Please try again later.',
+  'public.contact.form.submit.loading': 'Sending...',
+  'public.contact.form.submit.label': 'Send message',
+  'public.contact.coordinates.title': 'Contact details',
+  'public.contact.coordinates.email': 'Email',
+  'public.contact.coordinates.phone': 'Phone',
+  'public.contact.coordinates.address': 'Address',
+  'public.contact.coordinates.country': 'Canada',
+  'public.contact.links.title': 'Useful links',
+  'public.contact.links.embassy': 'Embassy of Burkina Faso in Canada',
+  'public.contact.links.ircc': 'Immigration, Refugees and Citizenship Canada',
+  'public.contact.links.govCanada': 'Government of Canada services',
+  'public.contact.social.title': 'Follow us',
+  'public.contact.social.intro':
+    'Follow HCBE Canada news, initiatives and upcoming activities on our social channels.',
+  'public.contact.faq.title': 'Frequently asked questions',
+  'public.contact.faq.subtitle': 'Quickly find answers to your questions',
+  'public.contact.faq.items.membership.q': 'How do I become a member of HCBE Canada?',
+  'public.contact.faq.items.membership.a':
+    'To become a member, fill out the membership application form on the Become a member page. Your application will be reviewed by our committee and you should receive a response within two weeks.',
+  'public.contact.faq.items.fees.q': 'What are the membership fees?',
+  'public.contact.faq.items.fees.a':
+    'Membership in HCBE Canada is free. We believe our services should be accessible to all members of the Burkinabè diaspora in Canada.',
+  'public.contact.faq.items.committees.q': 'How can I benefit from committee services?',
+  'public.contact.faq.items.committees.a':
+    'Once you are a member, you can contact committees directly via their respective email addresses. Some services are free; others may require fees (especially the Legal Committee).',
+  'public.contact.faq.items.projects.q': 'How can I contribute to community projects?',
+  'public.contact.faq.items.projects.a':
+    'You can contribute in several ways: financial donations, volunteering, sharing skills, or taking part in fundraising events. See the Community Engagement section for more details.',
+  'public.contact.faq.items.events.q': 'Does HCBE Canada organize events?',
+  'public.contact.faq.items.events.a':
+    'Yes, we regularly organize cultural, educational and networking events. Check our calendar in the News and Events section to stay informed.',
+  'public.contact.faq.items.passport.q': 'How can I renew my Burkinabè passport?',
+  'public.contact.faq.items.passport.a':
+    'For passport renewal, you must contact the Embassy of Burkina Faso in Canada. We can guide you and provide information, but the process is handled directly with the Embassy.',
+};

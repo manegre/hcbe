@@ -1,0 +1,366 @@
+export default {
+  // Services — main hero
+  'public.services.hero.badge': 'Services and Resources',
+  'public.services.hero.title': 'Our support services',
+  'public.services.hero.subtitle':
+    'HCBE Canada offers a full range of services to support your journey in Canada and contribute to Burkina Faso\'s development',
+
+  // Services — index page
+  'public.services.page.section.title': 'Our Services and Resources',
+  'public.services.page.section.subtitle':
+    'Discover our services to support you throughout your journey in Canada',
+  'public.services.page.cards.documents.title': 'Official Documents',
+  'public.services.page.cards.documents.description':
+    'View and download HCBE Canada bylaws, regulations and official documents',
+  'public.services.page.cards.comites.title': 'Our Specialized Committees',
+  'public.services.page.cards.comites.description':
+    'Four dedicated committees to meet your needs: legal, HR, SONGRÉ and finance',
+  'public.services.page.cards.bourses.title': 'Grants and Subsidies',
+  'public.services.page.cards.bourses.description':
+    'Discover our financial support programs for your educational and entrepreneurial projects',
+
+  // Services — grants
+  'public.grants.badge': 'Grants and subsidies',
+  'public.grants.heroTitle': 'Funding opportunities to move forward.',
+  'public.grants.heroSubtitle':
+    'HCBE Canada supports students, professionals and project leaders with grant and subsidy programs tailored to each journey.',
+  'public.grants.cta.view': 'View programs',
+  'public.grants.cta.ask': 'Ask a question',
+  'public.grants.remember.label': 'Key points',
+  'public.grants.remember.eligibility.title': 'Eligibility',
+  'public.grants.remember.eligibility.description':
+    'Each program lists its criteria and who can apply.',
+  'public.grants.remember.support.title': 'Support',
+  'public.grants.remember.support.description':
+    'The team can help you prepare your application file.',
+  'public.grants.remember.process.title': 'Process',
+  'public.grants.remember.process.description':
+    'Review the details, then apply online or via the listed contact.',
+  'public.grants.sectionBadge': 'Funding',
+  'public.grants.sectionTitle': 'Up-to-date grant and subsidy programs.',
+  'public.grants.sectionSubtitle':
+    'Published opportunities are grouped here for easy browsing. Each program shows amount, duration and criteria when available.',
+  'public.grants.amount': 'Amount',
+  'public.grants.duration': 'Duration',
+  'public.grants.criteriaTitle': 'Eligibility criteria',
+  'public.grants.apply': 'Apply',
+  'public.grants.helpTitle': 'Need help with your application?',
+  'public.grants.helpText':
+    'Our team is available to help you prepare your application and answer any questions about our grant and subsidy programs.',
+  'public.grants.contact': 'Contact us',
+  'public.grants.helpContact': 'Contact the team',
+  'public.grants.helpBack': 'Back to services',
+  'public.grants.errorLoad': 'Unable to load programs at this time.',
+  'public.grants.empty': 'No programs available at this time.',
+  'public.grants.emptyTitle': 'No programs published yet.',
+  'public.grants.emptyText':
+    'Grant and subsidy programs will appear here as soon as they become available.',
+
+  // Services — committees
+  'public.services.comites.badge': 'Services and resources',
+  'public.services.comites.title': 'Specialized committees to guide every request.',
+  'public.services.comites.subtitle':
+    'Legal, career, solidarity and finance: each committee provides targeted support to community members.',
+
+  // Services — official documents
+  'public.services.documents.badge': 'Official documents',
+  'public.services.documents.title': 'HCBE Canada reference documents.',
+  'public.services.documents.subtitle':
+    'View bylaws, regulations and administrative resources to understand how HCBE Canada operates and its official frameworks.',
+  'public.services.documents.cta.view': 'View documents',
+  'public.services.documents.cta.ask': 'Ask for clarification',
+  'public.services.documents.remember.label': 'Key points',
+  'public.services.documents.remember.validity.title': 'Validity',
+  'public.services.documents.remember.validity.description': 'Documents published by HCBE Canada.',
+  'public.services.documents.remember.access.title': 'Access',
+  'public.services.documents.remember.access.description':
+    'Direct download when the file is available.',
+  'public.services.documents.remember.support.title': 'Support',
+  'public.services.documents.remember.support.description':
+    'Questions handled by the team via the contact page.',
+  'public.services.documents.sectionBadge': 'Official library',
+  'public.services.documents.sectionTitle': 'Up-to-date bylaws, regulations and resources.',
+  'public.services.documents.sectionSubtitle':
+    'Documents are grouped here for easy consultation. Each file can be downloaded directly when its version is available.',
+  'public.services.documents.errorUnavailable': 'Documents are not available at the moment.',
+  'public.services.documents.errorLoad': 'Unable to load official documents.',
+  'public.services.documents.errorDownload': 'Download failed. Please try again or contact us.',
+  'public.services.documents.defaultCategory': 'Official document',
+  'public.services.documents.active': 'Active',
+  'public.services.documents.searchPlaceholder': 'Search for a document...',
+  'public.services.documents.filterAllCategories': 'All categories',
+  'public.services.documents.filterCategoryLabel': 'Filter by category',
+  'public.services.documents.columnName': 'Document name',
+  'public.services.documents.columnCategory': 'Category',
+  'public.services.documents.columnDate': 'Date',
+  'public.services.documents.columnAction': 'Action',
+  'public.services.documents.format': 'Format',
+  'public.services.documents.size': 'Size',
+  'public.services.documents.pages': 'Pages',
+  'public.services.documents.sizeUnknown': 'Not specified',
+  'public.services.documents.pagesUnknown': 'N/A',
+  'public.services.documents.downloads': '{{count}} download',
+  'public.services.documents.downloads_other': '{{count}} downloads',
+  'public.services.documents.download': 'Download',
+  'public.services.documents.emptyTitle': 'No documents published yet.',
+  'public.services.documents.emptyText':
+    'Official documents will appear here as soon as they become available.',
+  'public.services.documents.helpTitle': 'Need clarification?',
+  'public.services.documents.helpText':
+    'If a document is missing, a version looks outdated, or you need an explanation, send a message to the HCBE Canada team.',
+  'public.services.documents.helpContact': 'Contact the team',
+  'public.services.documents.helpBack': 'Back to services',
+
+  // News — main hero
+  'public.news.hero.badge': 'News and Events',
+  'public.news.hero.title': 'Stay informed and connected',
+  'public.news.hero.subtitle':
+    'Discover the latest news, upcoming events and memorable moments of the Burkinabè community in Canada',
+  'public.news.hero.cta.events': 'View Events',
+  'public.news.hero.cta.announcements': 'Read Announcements',
+
+  // News — index page
+  'public.news.page.section.title': 'Explore Our News',
+  'public.news.page.section.subtitle':
+    'Stay connected with the Burkinabè community in Canada through our events, announcements and shared memories',
+  'public.news.page.cards.events.title': 'Upcoming Events',
+  'public.news.page.cards.events.description':
+    'Discover our upcoming events and join the community',
+  'public.news.page.cards.announcements.title': 'Announcements and Press Releases',
+  'public.news.page.cards.announcements.description':
+    'Stay informed of the latest news and official announcements',
+  'public.news.page.cards.memories.title': 'Memories from Our Events',
+  'public.news.page.cards.memories.description':
+    'Relive the highlights of our community in pictures',
+  'public.news.page.agenda.title': 'Upcoming events',
+  'public.news.page.agenda.viewAll': 'View all events',
+  'public.news.page.annonces.title': 'Latest announcements',
+  'public.news.page.annonces.viewAll': 'View all announcements',
+
+  // News — announcements
+  'public.news.annonces.badge': 'News',
+  'public.news.annonces.title': 'Announcements and press releases',
+  'public.news.annonces.subtitle':
+    'Official information, calls and important news published by HCBE Canada and its partners.',
+  'public.news.annonces.remember.label': 'Key points',
+  'public.news.annonces.remember.title': 'Browse recent press releases and filter by topic.',
+  'public.news.annonces.remember.description':
+    'Pinned announcements remain visible at the top of the list.',
+  'public.news.annonces.filter.label': 'Filter by category',
+  'public.news.annonces.cta.title': 'Have information to share?',
+  'public.news.annonces.cta.description':
+    'To suggest an announcement or report useful information for the community, contact the HCBE Canada team.',
+  'public.news.annonces.pinned': 'Pinned',
+  'public.news.annonces.readMore': 'Read announcement',
+  'public.news.annonces.attachments': 'Attachments',
+  'public.news.annonces.photos': 'Photos',
+  'public.news.annonces.photos.previous': 'Previous photo',
+  'public.news.annonces.photos.next': 'Next photo',
+  'public.news.annonces.photos.counter': '{{current}} / {{total}}',
+  'public.news.annonces.photos.goTo': 'Go to photo {{index}}',
+  'public.news.annonces.photos.openLightbox': 'Enlarge photo',
+  'public.news.annonces.photos.lightbox': 'Photo viewer',
+  'public.news.annonces.download': 'Download',
+  'public.news.annonces.askQuestion': 'Ask a question',
+  'public.news.annonces.viewEvents': 'View events',
+  'public.news.annonces.backToList': 'Back to announcements',
+  'public.news.annonces.notFound': 'Announcement not found',
+  'public.news.annonces.errorLoad': 'Unable to load announcements at this time.',
+  'public.news.annonces.emptyCategory': 'No announcements in this category',
+  'public.news.annonces.emptyCategoryHint': 'Try another category or check back soon.',
+  'public.common.close': 'Close',
+
+  // News — categories
+  'public.news.categories.all.label': 'All',
+  'public.news.categories.all.fullLabel': 'All categories',
+  'public.news.categories.official.label': 'Official',
+  'public.news.categories.official.fullLabel': 'Official press releases',
+  'public.news.categories.education.label': 'Education',
+  'public.news.categories.education.fullLabel': 'Education',
+  'public.news.categories.event.label': 'Events',
+  'public.news.categories.event.fullLabel': 'Events',
+  'public.news.categories.service.label': 'Services',
+  'public.news.categories.service.fullLabel': 'Services',
+  'public.news.categories.solidarity.label': 'Solidarity',
+  'public.news.categories.solidarity.fullLabel': 'Solidarity',
+  'public.news.categories.training.label': 'Training',
+  'public.news.categories.training.fullLabel': 'Training',
+  'public.news.categories.announcement.label': 'Announcements',
+  'public.news.categories.announcement.fullLabel': 'Announcements',
+  'public.news.categories.partnership.label': 'Partnerships',
+  'public.news.categories.partnership.fullLabel': 'Partnerships',
+
+  // News — events
+  'public.news.evenements.badge': 'News and events',
+  'public.news.evenements.title': 'Community events',
+  'public.news.evenements.subtitle':
+    'Meetings, workshops and community moments to stay close to the Burkinabè network in Canada.',
+  'public.news.evenements.backToList': 'Back to events',
+  'public.news.evenements.filter.current': 'Upcoming & ongoing',
+  'public.news.evenements.filter.past': 'Past',
+  'public.news.evenements.filter.all': 'All',
+  'public.news.evenements.filter.allMonths': 'All months',
+  'public.news.evenements.error.unavailable': 'Events are not available at the moment.',
+  'public.news.evenements.error.load': 'Unable to load events.',
+  'public.news.evenements.empty.title': 'No events found',
+  'public.news.evenements.empty.current': 'No upcoming or ongoing events at the moment.',
+  'public.news.evenements.empty.past': 'No past events to display.',
+  'public.news.evenements.empty.all':
+    'Check this page regularly so you don\'t miss any events.',
+  'public.news.evenements.status.upcoming': 'Upcoming',
+  'public.news.evenements.status.ongoing': 'Ongoing',
+  'public.news.evenements.status.past': 'Past',
+  'public.news.evenements.status.virtual': 'Virtual',
+  'public.news.evenements.pastNotice': 'This event has ended.',
+  'public.news.evenements.attachments': 'Documents',
+  'public.news.evenements.cta.details': 'Details',
+  'public.news.evenements.cta.recap': 'View recap',
+  'public.news.evenements.cta.register': 'Register',
+
+  // News — memories
+  'public.news.souvenirs.badge': 'Memories',
+  'public.news.souvenirs.title': 'Moments that tell our community\'s story.',
+  'public.news.souvenirs.subtitle':
+    'Relive HCBE Canada highlights through photos and videos from past events.',
+  'public.news.souvenirs.archivesBadge': 'Community archives',
+  'public.news.souvenirs.archivesIntro':
+    'Each album is linked to a past event. Open a page to browse photos and videos.',
+  'public.news.souvenirs.share.title': 'Share your photos',
+  'public.news.souvenirs.share.description':
+    'Did you attend one of our events and want to share your photos? Write to us at',
+  'public.news.souvenirs.empty.title': 'No memories published yet',
+  'public.news.souvenirs.empty.description':
+    'Galleries will appear here once a past event has photos or videos.',
+  'public.news.souvenirs.empty.error': 'Unable to load memories.',
+  'public.news.souvenirs.photoCount': '{{count}} photo',
+  'public.news.souvenirs.photoCount_plural': '{{count}} photos',
+  'public.news.souvenirs.videoCount': '{{count}} video',
+  'public.news.souvenirs.videoCount_plural': '{{count}} videos',
+  'public.news.souvenirs.gallery.title': 'Gallery',
+  'public.news.souvenirs.gallery.close': 'Close',
+  'public.news.souvenirs.gallery.previous': 'Previous photo',
+  'public.news.souvenirs.gallery.next': 'Next photo',
+  'public.news.souvenirs.gallery.counter': '{{current}} / {{total}}',
+  'public.news.souvenirs.gallery.video': 'Video',
+  'public.news.souvenirs.gallery.openExternal': 'Open video',
+
+  // Engagement — main hero
+  'public.engagement.hero.badge': 'Community Engagement',
+  'public.engagement.hero.title': "Together, let's build the future",
+  'public.engagement.hero.subtitle':
+    'Your engagement makes a difference. Join us to strengthen our community and contribute to Burkina Faso\'s development',
+
+  // Engagement — index page
+  'public.engagement.page.section.title': 'How to Get Involved',
+  'public.engagement.page.section.subtitle':
+    'Choose the area that interests you and discover how to contribute to our shared mission',
+  'public.engagement.page.cards.associations.title': 'Association Directory',
+  'public.engagement.page.cards.associations.description':
+    'Discover all active Burkinabè associations in Canada, their missions, contacts and how to join them.',
+  'public.engagement.page.cards.associations.stats': '15+ listed associations',
+  'public.engagement.page.cards.associations.features.search': 'Search by province',
+  'public.engagement.page.cards.associations.features.details': 'Detailed information',
+  'public.engagement.page.cards.associations.features.contacts': 'Direct contacts',
+  'public.engagement.page.cards.projects.title': 'Our Projects',
+  'public.engagement.page.cards.projects.description':
+    'Follow our development initiatives in Burkina Faso and our community integration projects in Canada.',
+  'public.engagement.page.cards.projects.stats': '8 active projects',
+  'public.engagement.page.cards.projects.features.burkina': 'Projects in Burkina',
+  'public.engagement.page.cards.projects.features.local': 'Local initiatives',
+  'public.engagement.page.cards.projects.features.tracking': 'Real-time tracking',
+  'public.engagement.page.cards.consultations.title': 'Your Opinion Matters',
+  'public.engagement.page.cards.consultations.description':
+    'Take part in consultations and surveys to shape our community\'s future and improve our services.',
+  'public.engagement.page.cards.consultations.stats': 'Your voice matters',
+  'public.engagement.page.cards.consultations.features.surveys': 'Regular surveys',
+  'public.engagement.page.cards.consultations.features.public': 'Public consultations',
+  'public.engagement.page.cards.consultations.features.feedback': 'Community feedback',
+  'public.engagement.page.cards.explore': 'Explore this section',
+  'public.engagement.page.cta.title': 'Ready to Get Involved?',
+  'public.engagement.page.cta.subtitle':
+    'Your participation strengthens our community. Every contribution, big or small, brings us closer to our shared goals.',
+  'public.engagement.page.cta.contact': 'Contact Us',
+  'public.engagement.page.cta.member': 'Become a Member',
+
+  // Engagement — projects
+  'public.engagement.projets.badge': 'Community engagement',
+  'public.engagement.projets.title': 'Community projects in Canada and Burkina Faso.',
+  'public.engagement.projets.subtitle':
+    'Follow community-led initiatives, their progress and meaningful ways to contribute.',
+  'public.engagement.projets.sectionBadge': 'Active projects',
+  'public.engagement.projets.sectionTitle': 'Community projects',
+  'public.engagement.projets.sectionSubtitle':
+    'Discover our development initiatives in Burkina Faso and Canada',
+  'public.engagement.projets.errorLoad': 'Error loading projects',
+  'public.engagement.projets.progress': 'Progress',
+  'public.engagement.projets.budget': 'Budget',
+  'public.engagement.projets.raised': 'Raised',
+  'public.engagement.projets.beneficiaries': 'Beneficiaries',
+  'public.engagement.projets.period': 'Period',
+  'public.engagement.projets.ongoing': 'Ongoing',
+  'public.engagement.projets.partners': 'Partners',
+  'public.engagement.projets.contribute': 'Contribute',
+  'public.engagement.projets.details': 'Details',
+  'public.engagement.projets.back': 'Back to projects',
+  'public.engagement.projets.notFound': 'Project not found',
+  'public.engagement.projets.loading': 'Loading project...',
+  'public.engagement.projets.descriptionTitle': 'Project description',
+  'public.engagement.projets.keyFigures': 'Key figures',
+  'public.engagement.projets.timeline': 'Timeline',
+  'public.engagement.projets.start': 'Start',
+  'public.engagement.projets.end': 'Expected end',
+  'public.engagement.projets.contributeCta': 'Contribute to this project',
+  'public.engagement.projets.status.En cours': 'In progress',
+  'public.engagement.projets.status.Actif': 'Active',
+  'public.engagement.projets.status.Planification': 'Planning',
+  'public.engagement.projets.status.Terminé': 'Completed',
+  'public.engagement.projets.type.Développement au Burkina': 'Development in Burkina Faso',
+  'public.engagement.projets.type.Initiative Locale': 'Local initiative',
+  'public.engagement.projets.filter.statusLabel': 'Filter by status',
+  'public.engagement.projets.filter.typeLabel': 'Filter by type',
+  'public.engagement.projets.filter.all': 'All',
+  'public.engagement.projets.empty.title': 'No projects to show',
+  'public.engagement.projets.empty.description': 'Adjust your filters or check back later.',
+
+  // Engagement — directory
+  'public.engagement.annuaire.badge': 'Association directory',
+  'public.engagement.annuaire.title': 'Burkinabè associations in Canada',
+  'public.engagement.annuaire.subtitle':
+    'Discover and connect with Burkinabè associations across Canada',
+  'public.engagement.annuaire.searchPlaceholder': 'Search by name, city or domain...',
+  'public.engagement.annuaire.filterAllProvinces': 'All provinces',
+  'public.engagement.annuaire.emptyTitle': 'No associations found',
+  'public.engagement.annuaire.emptyAll': 'No associations are currently listed.',
+  'public.engagement.annuaire.emptyFilter': 'No associations for the selected province.',
+  'public.engagement.annuaire.errorLoad': 'Error loading associations',
+  'public.engagement.annuaire.members': '{{count}} members',
+  'public.engagement.annuaire.founded': 'Founded in {{year}}',
+  'public.engagement.annuaire.contact': 'Contact',
+  'public.engagement.annuaire.contactEmail': 'Send an email',
+  'public.engagement.annuaire.contactPhone': 'Call',
+  'public.engagement.annuaire.visitWebsite': 'Visit website',
+  'public.engagement.annuaire.resultCount_one': '{{count}} association',
+  'public.engagement.annuaire.resultCount_other': '{{count}} associations',
+  'public.engagement.annuaire.president': 'President',
+
+  // Engagement — consultations
+  'public.engagement.consultations.badge': 'Consultations',
+  'public.engagement.consultations.title': 'Your opinion should guide our priorities.',
+  'public.engagement.consultations.subtitle':
+    'Surveys, suggestions and public consultations help align services with the community\'s real needs.',
+  'public.engagement.consultations.sectionBadge': 'Community listening',
+  'public.engagement.consultations.sectionTitle': 'Consultations and surveys',
+  'public.engagement.consultations.sectionSubtitle':
+    'Share your opinions, suggestions and recommendations to improve our services and guide our actions.',
+  'public.engagement.consultations.errorLoad': 'Error loading consultations',
+  'public.engagement.consultations.empty': 'No consultations available at the moment.',
+  'public.engagement.consultations.ctaTitle': 'Your voice matters',
+  'public.engagement.consultations.ctaSubtitle':
+    'HCBE Canada listens to its community. Your opinions, suggestions and recommendations help us serve you better and guide our actions to meet your needs.',
+  'public.engagement.consultations.ctaContact': 'Contact us',
+  'public.engagement.consultations.ctaEvents': 'Book an appointment',
+  'public.engagement.consultations.status.open': 'Open',
+  'public.engagement.consultations.status.closed': 'Closed',
+  'public.engagement.consultations.participate': 'Participate',
+  'public.engagement.consultations.viewResults': 'View results',
+};
