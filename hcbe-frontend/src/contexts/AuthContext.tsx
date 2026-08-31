@@ -8,6 +8,7 @@ interface AuthContextType {
   isAdmin: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  googleAdminLogin: (credential: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
   checkAuth: () => Promise<void>;
 }
@@ -50,6 +51,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error('Login error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Login failed';
       return { success: false, message: errorMessage };
+    }
+  };
+
+  const storeSession = (token: string, authenticatedUser: User) => {
+    localStorage.setItem('hcbe_token', token);
+    localStorage.setItem('hcbe_user', JSON.stringify(authenticatedUser));
+    setUser(authenticatedUser);
+  };
+
+  const googleAdminLogin = async (credential: string) => {
+    try {
+      const response = await authApi.googleAdminLogin(credential);
+      if (response.success && response.data) {
+        storeSession(response.data.token, response.data.user);
+        return { success: true };
+      }
+
+      return { success: false, message: response.message || 'Google sign-in failed' };
+    } catch (error) {
+      console.error('Google login error:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Google sign-in failed',
+      };
     }
   };
 
@@ -107,6 +132,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isAdmin,
     isLoading,
     login,
+    googleAdminLogin,
     logout,
     checkAuth
   };

@@ -13,6 +13,8 @@ public record LoginRequest(
     [Required] [EmailAddress] string Email,
     [Required] string Password);
 
+public record GoogleLoginRequest([Required] string Credential);
+
 public record RequestPasswordResetRequest([Required] [EmailAddress] string Email);
 public record ConfirmPasswordResetRequest(
     [Required] string Token,

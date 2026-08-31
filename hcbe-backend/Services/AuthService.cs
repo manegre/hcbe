@@ -97,6 +97,37 @@ public class AuthService : IAuthService
         return user == null ? null : await CreateRefreshSessionAsync(user, accessToken, ipAddress);
     }
 
+    public async Task<AuthSession?> CreateExternalSessionAsync(
+        string email,
+        string? firstName,
+        string? lastName,
+        bool requireAdmin,
+        string? ipAddress)
+    {
+        var normalizedEmail = email.Trim().ToLowerInvariant();
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == normalizedEmail);
+        if (user == null || !user.IsActive || (requireAdmin && !user.IsAdmin))
+        {
+            return null;
+        }
+
+        if (string.IsNullOrWhiteSpace(user.FirstName) && !string.IsNullOrWhiteSpace(firstName))
+        {
+            user.FirstName = firstName.Trim();
+        }
+
+        if (string.IsNullOrWhiteSpace(user.LastName) && !string.IsNullOrWhiteSpace(lastName))
+        {
+            user.LastName = lastName.Trim();
+        }
+
+        user.FailedLoginAttempts = 0;
+        user.LockoutEndUtc = null;
+        user.LastLoginAtUtc = DateTime.UtcNow;
+
+        return await CreateRefreshSessionAsync(user, CreateToken(user), ipAddress);
+    }
+
     public async Task<AuthSession?> RotateRefreshTokenAsync(string refreshToken, string? ipAddress)
     {
         if (string.IsNullOrWhiteSpace(refreshToken)) return null;

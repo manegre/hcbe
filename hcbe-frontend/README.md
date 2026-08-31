@@ -34,6 +34,7 @@ Ces variables influencent le build et le comportement (voir [vite.config.ts](vit
 - `IS_PREVIEW`: Active un mode "preview" (booléen).
 - `PROJECT_ID`, `VERSION_ID`: Métadonnées utilisées au build.
 - `VITE_API_URL`: URL du backend API (par défaut: `http://localhost:8080` pour Docker)
+- `VITE_GOOGLE_CLIENT_ID`: identifiant public du client Web Google Identity Services. Le même identifiant doit être configuré côté API dans `Authentication__Google__ClientId`.
 
 Utilisation en local:
 ```bash
@@ -54,6 +55,7 @@ Pour changer l'URL de l'API, créez un fichier `.env` à la racine du projet fro
 ```bash
 # .env
 VITE_API_URL=http://localhost:8080
+VITE_GOOGLE_CLIENT_ID=your-google-web-client-id.apps.googleusercontent.com
 ```
 
 Assurez-vous que le backend Docker est démarré:

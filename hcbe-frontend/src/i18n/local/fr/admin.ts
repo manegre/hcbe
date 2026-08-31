@@ -222,6 +222,10 @@ export default {
   'admin.login.invalidCredentials': 'Courriel ou mot de passe incorrect',
   'admin.login.emailPlaceholder': 'vous@exemple.com',
   'admin.login.passwordPlaceholder': 'Mot de passe',
+  'admin.login.orEmail': 'ou avec votre courriel',
+  'admin.login.googleFailed': 'La connexion Google a échoué. Veuillez réessayer.',
+  'admin.login.googleUnavailable': 'La connexion Google est temporairement indisponible.',
+  'admin.login.googleNotAuthorized': 'Ce compte Google n’est pas autorisé à accéder à l’administration.',
 
   'admin.dashboard.title': 'Tableau de bord',
   'admin.dashboard.badge': 'Administration',

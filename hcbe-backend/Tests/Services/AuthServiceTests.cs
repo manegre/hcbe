@@ -191,6 +191,54 @@ public class AuthServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task CreateExternalSessionAsync_AllowsOnlyExistingActiveAdminWhenRequired()
+    {
+        var admin = new User
+        {
+            Email = "admin@example.com",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("UnusedPassword123!"),
+            IsAdmin = true,
+            IsActive = true
+        };
+        var member = new User
+        {
+            Email = "member@example.com",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("UnusedPassword123!"),
+            IsAdmin = false,
+            IsActive = true
+        };
+        _context.Users.AddRange(admin, member);
+        await _context.SaveChangesAsync();
+
+        var adminSession = await _service.CreateExternalSessionAsync(
+            "ADMIN@example.com",
+            "Google",
+            "Admin",
+            requireAdmin: true,
+            "127.0.0.1");
+        var memberSession = await _service.CreateExternalSessionAsync(
+            member.Email,
+            null,
+            null,
+            requireAdmin: true,
+            "127.0.0.1");
+        var unknownSession = await _service.CreateExternalSessionAsync(
+            "unknown@example.com",
+            null,
+            null,
+            requireAdmin: true,
+            "127.0.0.1");
+
+        adminSession.Should().NotBeNull();
+        adminSession!.User.Id.Should().Be(admin.Id);
+        adminSession.User.FirstName.Should().Be("Google");
+        adminSession.User.LastName.Should().Be("Admin");
+        adminSession.User.LastLoginAtUtc.Should().NotBeNull();
+        memberSession.Should().BeNull();
+        unknownSession.Should().BeNull();
+    }
+
+    [Fact]
     public async Task GetUserByIdAsync_WhenUserExists_ShouldReturnUser()
     {
         // Arrange

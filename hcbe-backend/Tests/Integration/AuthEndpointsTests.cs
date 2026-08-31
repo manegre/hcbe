@@ -109,6 +109,19 @@ public class AuthEndpointsTests : IClassFixture<CustomWebApplicationFactory>, ID
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
+    [Fact]
+    public async Task GoogleAdminLogin_WhenNotConfigured_ShouldReturnServiceUnavailable()
+    {
+        var response = await _client.PostAsJsonAsync(
+            "/api/auth/google/admin",
+            new GoogleLoginRequest("untrusted-token"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
+        var apiResponse = await response.Content.ReadFromJsonAsync<ApiResponse<AuthResponse>>();
+        apiResponse.Should().NotBeNull();
+        apiResponse!.Success.Should().BeFalse();
+    }
+
     public void Dispose()
     {
         _client?.Dispose();

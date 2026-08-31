@@ -40,6 +40,8 @@ JwtSettings__Secret=<generate-and-seal-at-least-64-random-characters>
 Cors__AllowedOrigins__0=https://${{frontend.RAILWAY_PUBLIC_DOMAIN}}
 PublicAppUrl=https://${{frontend.RAILWAY_PUBLIC_DOMAIN}}
 PublicApiUrl=https://${{RAILWAY_PUBLIC_DOMAIN}}
+Authentication__Google__Enabled=true
+Authentication__Google__ClientId=<google-web-client-id.apps.googleusercontent.com>
 ObjectStorage__Provider=S3Compatible
 ObjectStorage__ServiceUrl=${{Bucket.ENDPOINT}}
 ObjectStorage__BucketName=${{Bucket.BUCKET}}
@@ -71,11 +73,12 @@ Set this before building the frontend image:
 
 ```text
 VITE_API_URL=https://${{api.RAILWAY_PUBLIC_DOMAIN}}
+VITE_GOOGLE_CLIENT_ID=<same-google-web-client-id.apps.googleusercontent.com>
 VITE_ENABLE_MEMBER_LOGIN=true
 VITE_ENABLE_ADMIN_TEAM_MEMBERS=true
 ```
 
-Vite embeds `VITE_*` variables at build time, so changing one requires a frontend redeploy.
+Vite embeds `VITE_*` variables at build time, so changing one requires a frontend redeploy. The Google Cloud web client must authorize the frontend's exact HTTPS origin plus `http://localhost:3000` for local development. No Google client secret is used by the browser ID-token flow.
 
 ## 4. First release
 

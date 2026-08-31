@@ -296,6 +296,7 @@ else
     builder.Services.AddSingleton<IFileStorageService, FileStorageService>();
 }
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddSingleton<IGoogleIdentityTokenValidator, GoogleIdentityTokenValidator>();
 builder.Services.AddScoped<IMemberService, MemberService>();
 builder.Services.AddScoped<IEventService, EventService>();
 builder.Services.AddScoped<IAssociationService, AssociationService>();

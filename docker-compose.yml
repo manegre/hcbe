@@ -17,6 +17,7 @@ services:
       context: ./hcbe-frontend
       args:
         VITE_API_URL: http://localhost:8080
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
     ports:
       - "3000:8080"
     depends_on:
@@ -25,4 +26,3 @@ services:
 
 volumes:
   hcbe-api-data:
-

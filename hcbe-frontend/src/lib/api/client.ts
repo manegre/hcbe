@@ -72,7 +72,9 @@ export class ApiClient {
 
   private async handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
     // For login endpoint, 401 is expected with wrong credentials, so don't redirect
-    const isLoginEndpoint = response.url.includes('/api/auth/login');
+    const isLoginEndpoint =
+      response.url.includes('/api/auth/login') ||
+      response.url.includes('/api/auth/google/admin');
     
     if (response.status === 401 && !isLoginEndpoint) {
       // Unauthorized - clear token and redirect to login (but not for login endpoint itself)
@@ -104,7 +106,9 @@ export class ApiClient {
       if (response.status === 401 && isLoginEndpoint) {
         return {
           success: false,
-          message: 'Invalid email or password',
+          message: response.url.includes('/api/auth/google/admin')
+            ? errorMessage
+            : 'Invalid email or password',
           data: null,
           errors: null
         } as ApiResponse<T>;

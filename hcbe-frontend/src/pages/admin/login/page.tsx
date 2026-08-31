@@ -3,6 +3,7 @@ import { LanguageSwitcher } from '../../../components/admin/LanguageSwitcher';
 import { HcbeLogoMark } from '../../../components/brand/HcbeLogo';
 import { Button, Field } from '../../../components/ui';
 import ThemeToggle from '../../../components/feature/ThemeToggle';
+import { GoogleSignInButton } from './GoogleSignInButton';
 
 const loginInputClasses =
   'min-h-[52px] w-full rounded-xl border border-green/15 bg-surface-container py-3 pl-12 pr-4 text-body-md text-ink transition-[background-color,border-color,box-shadow] duration-200 placeholder:text-ink-variant/50 hover:border-green/35 focus:border-green focus:bg-surface focus:outline-none focus:ring-4 focus:ring-green/10';
@@ -21,19 +22,41 @@ const mapLoginError = (message: string | undefined, t: (key: string) => string) 
   return t('admin.login.failed');
 };
 
+const mapGoogleLoginError = (message: string | undefined, t: (key: string) => string) => {
+  const normalized = (message ?? '').toLowerCase();
+  if (normalized.includes('not authorized')) return t('admin.login.googleNotAuthorized');
+  if (normalized.includes('not configured') || normalized.includes('503')) {
+    return t('admin.login.googleUnavailable');
+  }
+  return t('admin.login.googleFailed');
+};
+
 export const AdminLoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { t } = useTranslation();
 
-  const { login, logout } = useAuth();
+  const { login, googleAdminLogin, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/admin/dashboard';
+
+  const finishAdminLogin = () => {
+    const storedUser = localStorage.getItem('hcbe_user');
+    const loggedInUser = storedUser ? JSON.parse(storedUser) : null;
+    if (!loggedInUser?.isAdmin) {
+      logout();
+      setError(t('admin.login.notAdmin'));
+      return;
+    }
+
+    navigate(from, { replace: true });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,16 +67,7 @@ export const AdminLoginPage = () => {
       const result = await login(email.trim(), password);
 
       if (result.success) {
-        const storedUser = localStorage.getItem('hcbe_user');
-        const loggedInUser = storedUser ? JSON.parse(storedUser) : null;
-
-        if (!loggedInUser?.isAdmin) {
-          logout();
-          setError(t('admin.login.notAdmin'));
-          return;
-        }
-
-        navigate(from, { replace: true });
+        finishAdminLogin();
       } else {
         setError(mapLoginError(result.message, t));
       }
@@ -63,6 +77,24 @@ export const AdminLoginPage = () => {
       setIsLoading(false);
     }
   };
+
+  const handleGoogleCredential = useCallback(async (credential: string) => {
+    setError('');
+    setIsGoogleLoading(true);
+    try {
+      const result = await googleAdminLogin(credential);
+      if (result.success) finishAdminLogin();
+      else setError(mapGoogleLoginError(result.message, t));
+    } catch {
+      setError(t('admin.login.googleFailed'));
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  }, [from, googleAdminLogin, logout, navigate, t]);
+
+  const handleGoogleUnavailable = useCallback(() => {
+    setError(t('admin.login.googleUnavailable'));
+  }, [t]);
 
   return (
     <div className="min-h-screen bg-surface-container lg:grid lg:grid-cols-[minmax(0,1.08fr)_minmax(480px,0.92fr)]">
@@ -169,6 +201,20 @@ export const AdminLoginPage = () => {
                   </div>
                 )}
 
+                <GoogleSignInButton
+                  disabled={isLoading || isGoogleLoading}
+                  onCredential={handleGoogleCredential}
+                  onUnavailable={handleGoogleUnavailable}
+                />
+
+                {import.meta.env.VITE_GOOGLE_CLIENT_ID && (
+                  <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.14em] text-ink-variant/65">
+                    <span className="h-px flex-1 bg-line" aria-hidden="true" />
+                    <span>{t('admin.login.orEmail')}</span>
+                    <span className="h-px flex-1 bg-line" aria-hidden="true" />
+                  </div>
+                )}
+
                 <Field label={t('admin.common.email')} htmlFor="email" required>
                   <div className="relative">
                     <i className="ri-mail-line pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-lg text-green/55" aria-hidden="true" />
@@ -212,7 +258,7 @@ export const AdminLoginPage = () => {
                   </div>
                 </Field>
 
-                <Button type="submit" variant="primary" disabled={isLoading} className="mt-1 w-full py-3.5 shadow-[0_12px_30px_rgba(255,205,0,.22)]">
+                <Button type="submit" variant="primary" disabled={isLoading || isGoogleLoading} className="mt-1 w-full py-3.5 shadow-[0_12px_30px_rgba(255,205,0,.22)]">
                   {isLoading ? (
                     <>
                       <i className="ri-loader-4-line animate-spin" aria-hidden="true" />
