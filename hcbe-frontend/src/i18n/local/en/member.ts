@@ -7,11 +7,11 @@ export default {
   'public.member.hero.badge': 'HCBE Community',
   'public.member.hero.title': 'Become a member of HCBE Canada.',
   'public.member.hero.subtitle':
-    'Submit your membership application. Once approved, you will be able to enjoy services, events and resources reserved for members.',
+    'Create your account instantly with Google and access member services, events and resources.',
   'public.member.hero.card.label': 'Membership',
   'public.member.hero.card.title': 'Membership is free and open to the Burkinabè diaspora in Canada.',
   'public.member.hero.card.description':
-    'Your application will be reviewed by the team and you should receive a response within about two weeks.',
+    'With Google, there is no approval delay: your member space is created on your first sign-in.',
   'public.member.advantages.label': 'Benefits',
   'public.member.advantages.title': 'What membership gives you',
   'public.member.advantages.items.events': 'Priority access to events and training',
@@ -59,7 +59,8 @@ export default {
   'public.member.login.title': 'Existing member area',
   'public.member.login.subtitle': 'Access your account with Google or with your email.',
   'public.member.login.orEmail': 'Or use your email',
-  'public.member.login.googleNotLinked': 'This Google account is not linked to an approved membership yet. Use the email from your application or wait for approval.',
+  'public.member.login.googleSignupHint': 'First time here? Your free member account will be created automatically.',
+  'public.member.login.googleAccountBlocked': 'This Google account cannot be activated. Contact the HCBE team if you believe this is an error.',
   'public.member.login.googleUnavailable': 'Google sign-in is temporarily unavailable. Use your email and password instead.',
   'public.member.login.googleError': 'We could not verify this Google account. Please try again.',
   'public.member.login.email': 'Email address',

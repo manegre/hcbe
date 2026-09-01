@@ -135,15 +135,28 @@ public class AuthService : IAuthService
         string? ipAddress)
     {
         var normalizedEmail = email.Trim().ToLowerInvariant();
-        var member = await _context.Members
+        var user = await _context.Users
             .FirstOrDefaultAsync(item => item.Email.ToLower() == normalizedEmail);
-        if (member == null)
+        if (user is { IsActive: false })
         {
             return null;
         }
 
-        var user = await _context.Users
+        var member = await _context.Members
             .FirstOrDefaultAsync(item => item.Email.ToLower() == normalizedEmail);
+        if (member == null)
+        {
+            var fallbackName = normalizedEmail.Split('@', 2)[0];
+            member = new Member
+            {
+                Email = normalizedEmail,
+                FirstName = string.IsNullOrWhiteSpace(firstName) ? fallbackName : firstName.Trim(),
+                LastName = string.IsNullOrWhiteSpace(lastName) ? string.Empty : lastName.Trim(),
+                IsAdmin = false
+            };
+            _context.Members.Add(member);
+        }
+
         if (user == null)
         {
             // Google-only accounts receive an unguessable password. A member can still
@@ -162,7 +175,7 @@ public class AuthService : IAuthService
         }
         else
         {
-            if (!user.IsActive || (user.MemberId.HasValue && user.MemberId != member.Id))
+            if (user.MemberId.HasValue && user.MemberId != member.Id)
             {
                 return null;
             }

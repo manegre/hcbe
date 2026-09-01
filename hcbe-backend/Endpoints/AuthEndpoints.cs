@@ -121,7 +121,7 @@ public static class AuthEndpoints
             {
                 return Results.Json(
                     ApiResponse<AuthResponse>.ErrorResponse(
-                        "This Google account is not linked to an approved HCBE membership"),
+                        "This Google account could not be activated as an HCBE member"),
                     statusCode: StatusCodes.Status403Forbidden);
             }
 

@@ -69,8 +69,8 @@ const MemberLoginForm = () => {
     if (!result.success) {
       const normalized = (result.message ?? '').toLowerCase();
       setStatus(
-        normalized.includes('approved hcbe membership') || normalized.includes('403')
-          ? t('public.member.login.googleNotLinked')
+        normalized.includes('could not be activated') || normalized.includes('403')
+          ? t('public.member.login.googleAccountBlocked')
           : normalized.includes('not configured') || normalized.includes('503')
             ? t('public.member.login.googleUnavailable')
             : t('public.member.login.googleError'),
@@ -189,6 +189,12 @@ const MemberLoginForm = () => {
         onCredential={handleGoogleCredential}
         onUnavailable={handleGoogleUnavailable}
       />
+
+      {import.meta.env.VITE_GOOGLE_CLIENT_ID && (
+        <p className="mt-3 text-center text-xs leading-5 text-ink-variant">
+          {t('public.member.login.googleSignupHint')}
+        </p>
+      )}
 
       {import.meta.env.VITE_GOOGLE_CLIENT_ID && (
         <div className="my-5 flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.14em] text-ink-variant/65">

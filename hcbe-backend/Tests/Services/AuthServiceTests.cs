@@ -293,16 +293,43 @@ public class AuthServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task CreateOrLinkMemberExternalSessionAsync_RejectsEmailWithoutApprovedMember()
+    public async Task CreateOrLinkMemberExternalSessionAsync_CreatesMemberForNewGoogleAccount()
     {
         var session = await _service.CreateOrLinkMemberExternalSessionAsync(
-            "pending@example.com",
-            "Pending",
-            "Applicant",
+            "new.member@example.com",
+            "New",
+            "Member",
+            "127.0.0.1");
+
+        session.Should().NotBeNull();
+        session!.User.IsAdmin.Should().BeFalse();
+        session.User.MemberId.Should().NotBeNull();
+        var member = await _context.Members.SingleAsync();
+        member.Email.Should().Be("new.member@example.com");
+        member.FirstName.Should().Be("New");
+        member.LastName.Should().Be("Member");
+        session.User.MemberId.Should().Be(member.Id);
+    }
+
+    [Fact]
+    public async Task CreateOrLinkMemberExternalSessionAsync_RejectsInactiveAccount()
+    {
+        _context.Users.Add(new User
+        {
+            Email = "inactive@example.com",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("UnusedPassword123!"),
+            IsActive = false
+        });
+        await _context.SaveChangesAsync();
+
+        var session = await _service.CreateOrLinkMemberExternalSessionAsync(
+            "inactive@example.com",
+            "Inactive",
+            "Member",
             "127.0.0.1");
 
         session.Should().BeNull();
-        (await _context.Users.AnyAsync()).Should().BeFalse();
+        (await _context.Members.AnyAsync()).Should().BeFalse();
     }
 
     [Fact]

@@ -7,11 +7,11 @@ export default {
   'public.member.hero.badge': 'Communauté HCBE',
   'public.member.hero.title': 'Devenez membre du HCBE Canada.',
   'public.member.hero.subtitle':
-    "Soumettez votre demande d'adhésion. Une fois approuvée, vous pourrez profiter des services, événements et ressources réservés aux membres.",
+    'Créez votre compte instantanément avec Google et accédez aux services, événements et ressources réservés aux membres.',
   'public.member.hero.card.label': 'Adhésion',
   'public.member.hero.card.title': "L'adhésion est gratuite et ouverte à la diaspora burkinabè au Canada.",
   'public.member.hero.card.description':
-    "Votre dossier sera examiné par l'équipe et vous recevrez une réponse sous environ deux semaines.",
+    "Avec Google, aucun délai d'approbation : votre espace membre est créé dès votre première connexion.",
   'public.member.advantages.label': 'Avantages',
   'public.member.advantages.title': "Ce que l'adhésion vous apporte",
   'public.member.advantages.items.events': 'Accès prioritaire aux événements et formations',
@@ -60,7 +60,8 @@ export default {
   'public.member.login.title': 'Espace membre existant',
   'public.member.login.subtitle': 'Accédez à votre compte avec Google ou avec votre courriel.',
   'public.member.login.orEmail': 'Ou avec votre courriel',
-  'public.member.login.googleNotLinked': "Ce compte Google ne correspond pas encore à une adhésion approuvée. Utilisez l’adresse courriel de votre demande ou attendez sa validation.",
+  'public.member.login.googleSignupHint': 'Première connexion ? Votre compte membre gratuit sera créé automatiquement.',
+  'public.member.login.googleAccountBlocked': "Ce compte Google ne peut pas être activé. Communiquez avec l'équipe du HCBE si vous pensez qu'il s'agit d'une erreur.",
   'public.member.login.googleUnavailable': 'La connexion Google est momentanément indisponible. Utilisez votre courriel et votre mot de passe.',
   'public.member.login.googleError': 'Impossible de vérifier ce compte Google. Veuillez réessayer.',
   'public.member.login.email': 'Adresse courriel',
