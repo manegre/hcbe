@@ -122,6 +122,19 @@ public class AuthEndpointsTests : IClassFixture<CustomWebApplicationFactory>, ID
         apiResponse!.Success.Should().BeFalse();
     }
 
+    [Fact]
+    public async Task GoogleMemberLogin_WhenNotConfigured_ShouldReturnServiceUnavailable()
+    {
+        var response = await _client.PostAsJsonAsync(
+            "/api/auth/google/member",
+            new GoogleLoginRequest("untrusted-token"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
+        var apiResponse = await response.Content.ReadFromJsonAsync<ApiResponse<AuthResponse>>();
+        apiResponse.Should().NotBeNull();
+        apiResponse!.Success.Should().BeFalse();
+    }
+
     public void Dispose()
     {
         _client?.Dispose();

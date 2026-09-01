@@ -9,6 +9,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
   googleAdminLogin: (credential: string) => Promise<{ success: boolean; message?: string }>;
+  googleMemberLogin: (credential: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
   checkAuth: () => Promise<void>;
 }
@@ -78,6 +79,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const googleMemberLogin = async (credential: string) => {
+    try {
+      const response = await authApi.googleMemberLogin(credential);
+      if (response.success && response.data) {
+        storeSession(response.data.token, response.data.user);
+        return { success: true };
+      }
+
+      return { success: false, message: response.message || 'Google sign-in failed' };
+    } catch (error) {
+      console.error('Google member login error:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Google sign-in failed',
+      };
+    }
+  };
+
   const logout = () => {
     authApi.logout();
     setUser(null);
@@ -133,6 +152,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isLoading,
     login,
     googleAdminLogin,
+    googleMemberLogin,
     logout,
     checkAuth
   };

@@ -3,7 +3,7 @@ import { LanguageSwitcher } from '../../../components/admin/LanguageSwitcher';
 import { HcbeLogoMark } from '../../../components/brand/HcbeLogo';
 import { Button, Field } from '../../../components/ui';
 import ThemeToggle from '../../../components/feature/ThemeToggle';
-import { GoogleSignInButton } from './GoogleSignInButton';
+import { GoogleSignInButton } from '../../../components/auth/GoogleSignInButton';
 
 const loginInputClasses =
   'min-h-[52px] w-full rounded-xl border border-green/15 bg-surface-container py-3 pl-12 pr-4 text-body-md text-ink transition-[background-color,border-color,box-shadow] duration-200 placeholder:text-ink-variant/50 hover:border-green/35 focus:border-green focus:bg-surface focus:outline-none focus:ring-4 focus:ring-green/10';

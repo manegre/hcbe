@@ -1,3 +1,6 @@
+import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
+
 interface GoogleCredentialResponse {
   credential?: string;
 }
@@ -18,7 +21,7 @@ interface GoogleIdentityServices {
           theme: 'outline';
           size: 'large';
           text: 'continue_with';
-          shape: 'rectangular';
+          shape: 'pill';
           logo_alignment: 'left';
           width: number;
           locale: string;
@@ -74,7 +77,7 @@ export const GoogleSignInButton = ({
         theme: 'outline',
         size: 'large',
         text: 'continue_with',
-        shape: 'rectangular',
+        shape: 'pill',
         logo_alignment: 'left',
         width: Math.min(400, Math.max(240, container.clientWidth)),
         locale: i18n.resolvedLanguage?.startsWith('en') ? 'en' : 'fr',
@@ -110,8 +113,15 @@ export const GoogleSignInButton = ({
   if (!clientId) return null;
 
   return (
-    <div className={`relative flex min-h-11 justify-center transition-opacity ${disabled ? 'opacity-55' : ''}`}>
-      <div ref={containerRef} className="flex min-h-11 w-full justify-center" />
+    <div
+      className={`group relative overflow-hidden rounded-2xl border border-line/80 bg-surface-container p-2.5 shadow-[0_16px_38px_-30px_rgba(8,52,29,0.9)] transition-[border-color,box-shadow,opacity] duration-300 hover:border-green/25 hover:shadow-[0_18px_42px_-28px_rgba(8,52,29,0.95)] ${disabled ? 'opacity-55' : ''}`}
+      aria-busy={disabled}
+    >
+      <span
+        className="pointer-events-none absolute -right-10 -top-12 h-24 w-24 rounded-full bg-gold/10 blur-2xl transition-transform duration-500 group-hover:scale-125"
+        aria-hidden="true"
+      />
+      <div ref={containerRef} className="relative flex min-h-11 w-full justify-center overflow-hidden rounded-full" />
       {disabled && <span className="absolute inset-0 cursor-wait" aria-hidden="true" />}
     </div>
   );

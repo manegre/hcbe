@@ -89,6 +89,56 @@ public static class AuthEndpoints
         .Produces(401)
         .Produces(503);
 
+        group.MapPost("/google/member", async (
+            GoogleLoginRequest request,
+            HttpContext context,
+            IGoogleIdentityTokenValidator googleTokenValidator,
+            IAuthService authService,
+            IWebHostEnvironment environment,
+            CancellationToken cancellationToken) =>
+        {
+            if (!googleTokenValidator.IsConfigured)
+            {
+                return Results.Json(
+                    ApiResponse<AuthResponse>.ErrorResponse("Google sign-in is not configured"),
+                    statusCode: StatusCodes.Status503ServiceUnavailable);
+            }
+
+            var identity = await googleTokenValidator.ValidateAsync(request.Credential, cancellationToken);
+            if (identity == null)
+            {
+                return Results.Json(
+                    ApiResponse<AuthResponse>.ErrorResponse("Google sign-in could not be verified"),
+                    statusCode: StatusCodes.Status401Unauthorized);
+            }
+
+            var session = await authService.CreateOrLinkMemberExternalSessionAsync(
+                identity.Email,
+                identity.FirstName,
+                identity.LastName,
+                context.Connection.RemoteIpAddress?.ToString());
+            if (session == null)
+            {
+                return Results.Json(
+                    ApiResponse<AuthResponse>.ErrorResponse(
+                        "This Google account is not linked to an approved HCBE membership"),
+                    statusCode: StatusCodes.Status403Forbidden);
+            }
+
+            SetRefreshCookie(context, environment, session.RefreshToken, session.RefreshTokenExpiresAtUtc);
+            var user = session.User;
+            return Results.Ok(ApiResponse<AuthResponse>.SuccessResponse(new AuthResponse(
+                session.AccessToken,
+                new UserDto(user.Id, user.Email, user.FirstName, user.LastName, user.IsAdmin, user.MemberId))));
+        })
+        .WithName("GoogleMemberLogin")
+        .AllowAnonymous()
+        .RequireRateLimiting("Authentication")
+        .Produces<ApiResponse<AuthResponse>>()
+        .Produces(401)
+        .Produces(403)
+        .Produces(503);
+
         group.MapPost("/refresh", async (
             HttpContext context,
             IAuthService authService,

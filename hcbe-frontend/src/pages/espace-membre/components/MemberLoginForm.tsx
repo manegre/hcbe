@@ -6,10 +6,11 @@ import { memberAccountApi } from '../../../lib/api/member-account';
 import type { MemberDto } from '../../../lib/api/types';
 import { authApi } from '../../../lib/api/auth';
 import MemberCommunityWorkspace from './MemberCommunityWorkspace';
+import { GoogleSignInButton } from '../../../components/auth/GoogleSignInButton';
 
 const MemberLoginForm = () => {
   const { t } = useTranslation();
-  const { user, login, logout } = useAuth();
+  const { user, login, googleMemberLogin, logout } = useAuth();
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [member, setMember] = useState<MemberDto | null>(null);
   const [status, setStatus] = useState<string | null>(null);
@@ -60,6 +61,27 @@ const MemberLoginForm = () => {
     }
     setSubmitting(false);
   };
+
+  const handleGoogleCredential = useCallback(async (credential: string) => {
+    setSubmitting(true);
+    setStatus(null);
+    const result = await googleMemberLogin(credential);
+    if (!result.success) {
+      const normalized = (result.message ?? '').toLowerCase();
+      setStatus(
+        normalized.includes('approved hcbe membership') || normalized.includes('403')
+          ? t('public.member.login.googleNotLinked')
+          : normalized.includes('not configured') || normalized.includes('503')
+            ? t('public.member.login.googleUnavailable')
+            : t('public.member.login.googleError'),
+      );
+    }
+    setSubmitting(false);
+  }, [googleMemberLogin, t]);
+
+  const handleGoogleUnavailable = useCallback(() => {
+    setStatus(t('public.member.login.googleUnavailable'));
+  }, [t]);
 
   const handleForgotPassword = async () => {
     if (!loginData.email.trim()) {
@@ -161,6 +183,20 @@ const MemberLoginForm = () => {
         <h2 className="mt-3 font-display text-headline-md text-green">{t('public.member.login.title')}</h2>
         <p className="mt-2 text-body-md text-ink-variant">{t('public.member.login.subtitle')}</p>
       </div>
+
+      <GoogleSignInButton
+        disabled={submitting}
+        onCredential={handleGoogleCredential}
+        onUnavailable={handleGoogleUnavailable}
+      />
+
+      {import.meta.env.VITE_GOOGLE_CLIENT_ID && (
+        <div className="my-5 flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.14em] text-ink-variant/65">
+          <span className="h-px flex-1 bg-line" aria-hidden="true" />
+          <span>{t('public.member.login.orEmail')}</span>
+          <span className="h-px flex-1 bg-line" aria-hidden="true" />
+        </div>
+      )}
 
       <form className="space-y-5" onSubmit={handleSubmit}>
         <Field label={t('public.member.login.email')} htmlFor="login-email">

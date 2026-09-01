@@ -19,6 +19,10 @@ export const authApi = {
     return apiClient.post<AuthResponse>('/api/auth/google/admin', { credential }, false);
   },
 
+  async googleMemberLogin(credential: string): Promise<ApiResponse<AuthResponse>> {
+    return apiClient.post<AuthResponse>('/api/auth/google/member', { credential }, false);
+  },
+
   async requestPasswordReset(email: string): Promise<ApiResponse<void>> {
     return apiClient.post<void>('/api/auth/password-reset/request', { email }, false);
   },

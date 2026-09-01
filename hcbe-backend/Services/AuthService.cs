@@ -128,6 +128,63 @@ public class AuthService : IAuthService
         return await CreateRefreshSessionAsync(user, CreateToken(user), ipAddress);
     }
 
+    public async Task<AuthSession?> CreateOrLinkMemberExternalSessionAsync(
+        string email,
+        string? firstName,
+        string? lastName,
+        string? ipAddress)
+    {
+        var normalizedEmail = email.Trim().ToLowerInvariant();
+        var member = await _context.Members
+            .FirstOrDefaultAsync(item => item.Email.ToLower() == normalizedEmail);
+        if (member == null)
+        {
+            return null;
+        }
+
+        var user = await _context.Users
+            .FirstOrDefaultAsync(item => item.Email.ToLower() == normalizedEmail);
+        if (user == null)
+        {
+            // Google-only accounts receive an unguessable password. A member can still
+            // enable password login later through the existing password-reset flow.
+            user = new User
+            {
+                Email = normalizedEmail,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(CreateSecureToken()),
+                FirstName = string.IsNullOrWhiteSpace(firstName) ? member.FirstName : firstName.Trim(),
+                LastName = string.IsNullOrWhiteSpace(lastName) ? member.LastName : lastName.Trim(),
+                MemberId = member.Id,
+                IsAdmin = false,
+                IsActive = true
+            };
+            _context.Users.Add(user);
+        }
+        else
+        {
+            if (!user.IsActive || (user.MemberId.HasValue && user.MemberId != member.Id))
+            {
+                return null;
+            }
+
+            user.MemberId = member.Id;
+            if (string.IsNullOrWhiteSpace(user.FirstName) && !string.IsNullOrWhiteSpace(firstName))
+            {
+                user.FirstName = firstName.Trim();
+            }
+            if (string.IsNullOrWhiteSpace(user.LastName) && !string.IsNullOrWhiteSpace(lastName))
+            {
+                user.LastName = lastName.Trim();
+            }
+        }
+
+        user.FailedLoginAttempts = 0;
+        user.LockoutEndUtc = null;
+        user.LastLoginAtUtc = DateTime.UtcNow;
+
+        return await CreateRefreshSessionAsync(user, CreateToken(user), ipAddress);
+    }
+
     public async Task<AuthSession?> RotateRefreshTokenAsync(string refreshToken, string? ipAddress)
     {
         if (string.IsNullOrWhiteSpace(refreshToken)) return null;

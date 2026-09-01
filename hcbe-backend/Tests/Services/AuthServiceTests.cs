@@ -239,6 +239,73 @@ public class AuthServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task CreateOrLinkMemberExternalSessionAsync_CreatesAccountForApprovedMember()
+    {
+        var member = new Member
+        {
+            Email = "approved@example.com",
+            FirstName = "Awa",
+            LastName = "Traore"
+        };
+        _context.Members.Add(member);
+        await _context.SaveChangesAsync();
+
+        var session = await _service.CreateOrLinkMemberExternalSessionAsync(
+            "APPROVED@example.com",
+            "Awa",
+            "Traore",
+            "127.0.0.1");
+
+        session.Should().NotBeNull();
+        session!.User.MemberId.Should().Be(member.Id);
+        session.User.IsAdmin.Should().BeFalse();
+        session.User.LastLoginAtUtc.Should().NotBeNull();
+        BCrypt.Net.BCrypt.Verify("", session.User.PasswordHash).Should().BeFalse();
+        (await _context.RefreshTokens.CountAsync(token => token.UserId == session.User.Id)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task CreateOrLinkMemberExternalSessionAsync_LinksExistingAccount()
+    {
+        var member = new Member
+        {
+            Email = "member@example.com",
+            FirstName = "Mariam",
+            LastName = "Ouedraogo"
+        };
+        var user = new User
+        {
+            Email = member.Email,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("ExistingPassword123!")
+        };
+        _context.AddRange(member, user);
+        await _context.SaveChangesAsync();
+
+        var session = await _service.CreateOrLinkMemberExternalSessionAsync(
+            member.Email,
+            null,
+            null,
+            "127.0.0.1");
+
+        session.Should().NotBeNull();
+        session!.User.Id.Should().Be(user.Id);
+        session.User.MemberId.Should().Be(member.Id);
+    }
+
+    [Fact]
+    public async Task CreateOrLinkMemberExternalSessionAsync_RejectsEmailWithoutApprovedMember()
+    {
+        var session = await _service.CreateOrLinkMemberExternalSessionAsync(
+            "pending@example.com",
+            "Pending",
+            "Applicant",
+            "127.0.0.1");
+
+        session.Should().BeNull();
+        (await _context.Users.AnyAsync()).Should().BeFalse();
+    }
+
+    [Fact]
     public async Task GetUserByIdAsync_WhenUserExists_ShouldReturnUser()
     {
         // Arrange
