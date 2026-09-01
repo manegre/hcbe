@@ -23,9 +23,9 @@ export default {
   'public.privacy.newsletterTitle': 'Newsletter',
   'public.privacy.newsletterBody':
     'Lorsque vous vous inscrivez à la newsletter, nous collectons votre nom et votre prénom, votre adresse courriel et votre préférence linguistique afin de vous envoyer des communications liées aux activités du HCBE Canada. Votre consentement est enregistré avec la date d’acceptation.',
-  'public.privacy.analyticsTitle': 'Statistiques de fréquentation',
+  'public.privacy.analyticsTitle': 'Données techniques',
   'public.privacy.analyticsBody':
-    'Nous utilisons Vercel Web Analytics pour mesurer anonymement la fréquentation du site (pages consultées, tendances dans le temps). Ces mesures ne servent pas à la publicité et n’utilisent pas de cookies publicitaires.',
+    'Nous ne déposons pas de cookies publicitaires et aucun outil tiers de mesure d’audience n’est actuellement actif. Des journaux techniques limités peuvent être conservés pour assurer la sécurité et la fiabilité du service.',
   'public.privacy.retentionTitle': 'Conservation',
   'public.privacy.retentionBody':
     'Vos informations sont conservées tant que votre abonnement est actif. Vous pouvez demander la désactivation en écrivant à contact@hcbecanada.org.',
