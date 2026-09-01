@@ -320,6 +320,7 @@ builder.Services.AddScoped<IPublicSubmissionService, PublicSubmissionService>();
 builder.Services.AddScoped<IMemberAccountService, MemberAccountService>();
 builder.Services.AddScoped<IEmailSender, ConfiguredEmailSender>();
 builder.Services.AddScoped<IEmailOutbox, EmailOutbox>();
+builder.Services.AddSingleton<IEmailTemplateRenderer, EmailTemplateRenderer>();
 builder.Services.AddHostedService<EmailOutboxWorker>();
 builder.Services.AddScoped<INewsletterCampaignService, NewsletterCampaignService>();
 builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();

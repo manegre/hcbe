@@ -7,12 +7,30 @@ import type { MemberDto } from '../../../lib/api/types';
 import { authApi } from '../../../lib/api/auth';
 import MemberCommunityWorkspace from './MemberCommunityWorkspace';
 import { GoogleSignInButton } from '../../../components/auth/GoogleSignInButton';
+import { memberProfessionalDomains, memberProvinces } from '../memberProfileOptions';
 
-const MemberLoginForm = () => {
+const isMemberProfileComplete = (member: MemberDto) => [
+  member.firstName,
+  member.lastName,
+  member.phone,
+  member.city,
+  member.province,
+  member.profession,
+  member.expertise,
+  member.interests,
+].every((value) => Boolean(value?.trim()));
+
+interface MemberLoginFormProps {
+  mode?: 'login' | 'signup';
+  embedded?: boolean;
+}
+
+const MemberLoginForm = ({ mode = 'login', embedded = false }: MemberLoginFormProps) => {
   const { t } = useTranslation();
   const { user, login, googleMemberLogin, logout } = useAuth();
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [member, setMember] = useState<MemberDto | null>(null);
+  const [memberLoading, setMemberLoading] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [resetPassword, setResetPassword] = useState('');
@@ -26,25 +44,33 @@ const MemberLoginForm = () => {
   useEffect(() => {
     if (!user?.memberId) {
       setMember(null);
+      setMemberLoading(false);
       return;
     }
 
-    memberAccountApi.getMe().then((response) => {
-      if (response.success && response.data) {
-        setMember(response.data);
-        setProfileData({
-          firstName: response.data.firstName,
-          lastName: response.data.lastName,
-          phone: response.data.phone || '',
-          city: response.data.city || '',
-          province: response.data.province || '',
-          profession: response.data.profession || '',
-          expertise: response.data.expertise || '',
-          interests: response.data.interests || '',
-          availability: response.data.availability || '',
-        });
-      }
-    });
+    setMemberLoading(true);
+    setStatus(null);
+    memberAccountApi.getMe()
+      .then((response) => {
+        if (response.success && response.data) {
+          setMember(response.data);
+          setProfileData({
+            firstName: response.data.firstName,
+            lastName: response.data.lastName,
+            phone: response.data.phone || '',
+            city: response.data.city || '',
+            province: response.data.province || '',
+            profession: response.data.profession || '',
+            expertise: response.data.expertise || '',
+            interests: response.data.interests || '',
+            availability: response.data.availability || '',
+          });
+        } else {
+          setStatus(response.message || t('public.member.login.error'));
+        }
+      })
+      .catch(() => setStatus(t('public.member.login.error')))
+      .finally(() => setMemberLoading(false));
   }, [user?.memberId]);
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -106,18 +132,56 @@ const MemberLoginForm = () => {
 
   const handleProfileSave = async (event: React.FormEvent) => {
     event.preventDefault();
+    const completingOnboarding = member ? !isMemberProfileComplete(member) : false;
     setSubmitting(true);
     setStatus(null);
     const response = await memberAccountApi.updateMe(profileData);
     if (response.success && response.data) {
       setMember(response.data);
       setEditingProfile(false);
-      setStatus(t('public.member.login.profileSaved'));
+      setStatus(t(completingOnboarding ? 'public.member.onboarding.complete' : 'public.member.login.profileSaved'));
     } else {
       setStatus(response.message || t('public.member.login.error'));
     }
     setSubmitting(false);
   };
+
+  const profileFields = (
+    <div className="grid gap-5 md:grid-cols-2">
+      <Field label={t('public.member.form.fields.firstName')} htmlFor="member-profile-first-name" required>
+        <input id="member-profile-first-name" className={inputClasses} required autoComplete="given-name" value={profileData.firstName} onChange={(e) => setProfileData({ ...profileData, firstName: e.target.value })} />
+      </Field>
+      <Field label={t('public.member.form.fields.lastName')} htmlFor="member-profile-last-name" required>
+        <input id="member-profile-last-name" className={inputClasses} required autoComplete="family-name" value={profileData.lastName} onChange={(e) => setProfileData({ ...profileData, lastName: e.target.value })} />
+      </Field>
+      <Field label={t('public.member.form.fields.phone')} htmlFor="member-profile-phone" required>
+        <input id="member-profile-phone" type="tel" className={inputClasses} required autoComplete="tel" value={profileData.phone} onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })} />
+      </Field>
+      <Field label={t('public.member.form.fields.city')} htmlFor="member-profile-city" required>
+        <input id="member-profile-city" className={inputClasses} required autoComplete="address-level2" value={profileData.city} onChange={(e) => setProfileData({ ...profileData, city: e.target.value })} />
+      </Field>
+      <Field label={t('public.member.form.fields.province')} htmlFor="member-profile-province" required>
+        <select id="member-profile-province" className={`${inputClasses} cursor-pointer`} required value={profileData.province} onChange={(e) => setProfileData({ ...profileData, province: e.target.value })}>
+          <option value="">{t('public.member.form.select')}</option>
+          {memberProvinces.map((province) => <option key={province} value={province}>{province}</option>)}
+        </select>
+      </Field>
+      <Field label={t('public.member.form.fields.profession')} htmlFor="member-profile-profession" required>
+        <input id="member-profile-profession" className={inputClasses} required value={profileData.profession} onChange={(e) => setProfileData({ ...profileData, profession: e.target.value })} />
+      </Field>
+      <Field label={t('public.member.form.fields.domain')} htmlFor="member-profile-expertise" required>
+        <select id="member-profile-expertise" className={`${inputClasses} cursor-pointer`} required value={profileData.expertise} onChange={(e) => setProfileData({ ...profileData, expertise: e.target.value })}>
+          <option value="">{t('public.member.form.select')}</option>
+          {memberProfessionalDomains.map((domain) => <option key={domain} value={domain}>{domain}</option>)}
+        </select>
+      </Field>
+      <div className="md:col-span-2">
+        <Field label={t('public.member.form.fields.motivation')} htmlFor="member-profile-interests" required hint={t('public.member.form.charCount', { count: profileData.interests.length })}>
+          <textarea id="member-profile-interests" rows={4} maxLength={500} required className={`${inputClasses} resize-none`} value={profileData.interests} onChange={(e) => setProfileData({ ...profileData, interests: e.target.value })} />
+        </Field>
+      </div>
+    </div>
+  );
 
   if (resetToken) {
     return (
@@ -138,33 +202,96 @@ const MemberLoginForm = () => {
   }
 
   if (user?.memberId) {
+    if (memberLoading) {
+      return (
+        <div className="rounded-2xl border border-line bg-surface p-10 text-center shadow-[0_18px_55px_rgba(0,59,27,.08)]">
+          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green/10 text-xl text-green">
+            <i className="ri-loader-4-line animate-spin" aria-hidden="true" />
+          </span>
+          <p className="mt-4 text-sm text-ink-variant">{t('public.member.login.loading')}</p>
+          {status && <p className="mt-3 text-sm text-error">{status}</p>}
+        </div>
+      );
+    }
+
+    if (!member) {
+      return (
+        <div className="rounded-2xl border border-error/25 bg-surface p-8 text-center">
+          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-error/10 text-xl text-error">
+            <i className="ri-user-unfollow-line" aria-hidden="true" />
+          </span>
+          <p className="mt-4 text-sm text-ink-variant">{status || t('public.member.login.error')}</p>
+          <Button type="button" variant="secondary" className="mt-5" onClick={logout}>{t('public.member.onboarding.signOut')}</Button>
+        </div>
+      );
+    }
+
+    if (!isMemberProfileComplete(member)) {
+      return (
+        <section className="overflow-hidden rounded-[24px] border border-line bg-surface shadow-[0_24px_80px_rgba(0,59,27,.12)]">
+          <div className="relative overflow-hidden bg-green-deep px-6 py-8 text-white sm:px-10 sm:py-10">
+            <div className="absolute -right-14 -top-16 h-48 w-48 rounded-full border-[34px] border-gold/[0.09]" aria-hidden="true" />
+            <div className="relative max-w-3xl">
+              <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-gold">{t('public.member.onboarding.eyebrow')}</p>
+              <h2 className="mt-3 font-display text-3xl font-bold sm:text-4xl">{t('public.member.onboarding.title')}</h2>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-green-dim">{t('public.member.onboarding.intro')}</p>
+            </div>
+          </div>
+
+          <div className="grid border-b border-line sm:grid-cols-2">
+            <div className="flex items-center gap-4 border-b border-line px-6 py-5 sm:border-b-0 sm:border-r sm:px-10">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-green text-sm font-bold text-white">
+                <i className="ri-check-line" aria-hidden="true" />
+              </span>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-green">{t('public.member.onboarding.stepOne')}</p>
+                <p className="mt-1 text-sm text-ink-variant">{member.email}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 bg-gold/[0.07] px-6 py-5 sm:px-10">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gold text-sm font-bold text-green-deep">2</span>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-red-link">{t('public.member.onboarding.stepTwo')}</p>
+                <p className="mt-1 text-sm text-ink-variant">{t('public.member.onboarding.requiredHint')}</p>
+              </div>
+            </div>
+          </div>
+
+          <form className="px-6 py-8 sm:px-10 sm:py-10" onSubmit={handleProfileSave}>
+            {profileFields}
+            {status && <p className="mt-6 border-l-2 border-error bg-error/5 px-4 py-3 text-sm text-error">{status}</p>}
+            <div className="mt-8 flex flex-col gap-3 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between">
+              <button type="button" onClick={logout} className="text-left text-[11px] font-bold uppercase tracking-[0.14em] text-ink-variant transition-colors hover:text-red-link">
+                {t('public.member.onboarding.signOut')}
+              </button>
+              <Button type="submit" variant="primary" disabled={submitting} className="sm:min-w-64">
+                {submitting ? <i className="ri-loader-4-line animate-spin" aria-hidden="true" /> : <i className="ri-arrow-right-line" aria-hidden="true" />}
+                {t(submitting ? 'public.member.onboarding.submitting' : 'public.member.onboarding.submit')}
+              </Button>
+            </div>
+          </form>
+        </section>
+      );
+    }
+
     return (
       <div className="space-y-7">
-      <div className="border border-line bg-surface p-6">
+      <div className="rounded-2xl border border-line bg-surface p-6 shadow-[0_16px_45px_rgba(0,59,27,.07)]">
         <p className="text-label-md uppercase text-red-link">{t('public.member.login.accountBadge')}</p>
-        <h2 className="mt-3 font-display text-headline-md text-green">
-          {member ? `${member.firstName} ${member.lastName}` : t('public.member.login.loading')}
-        </h2>
-        {member && !editingProfile && (
+        <h2 className="mt-3 font-display text-headline-md text-green">{member.firstName} {member.lastName}</h2>
+        {!editingProfile && (
           <div className="mt-4 space-y-2 text-body-md text-ink-variant">
             <p>{member.email}</p>
             <p>{[member.city, member.province].filter(Boolean).join(', ')}</p>
             <p>{member.profession}</p>
           </div>
         )}
-        {member && editingProfile && (
-          <form className="mt-5 space-y-4" onSubmit={handleProfileSave}>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label={t('public.member.form.firstName')} htmlFor="member-profile-first-name"><input id="member-profile-first-name" className={inputClasses} required value={profileData.firstName} onChange={(e) => setProfileData({ ...profileData, firstName: e.target.value })} /></Field>
-              <Field label={t('public.member.form.lastName')} htmlFor="member-profile-last-name"><input id="member-profile-last-name" className={inputClasses} required value={profileData.lastName} onChange={(e) => setProfileData({ ...profileData, lastName: e.target.value })} /></Field>
-              <Field label={t('public.member.form.phone')} htmlFor="member-profile-phone"><input id="member-profile-phone" className={inputClasses} value={profileData.phone} onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })} /></Field>
-              <Field label={t('public.member.form.city')} htmlFor="member-profile-city"><input id="member-profile-city" className={inputClasses} value={profileData.city} onChange={(e) => setProfileData({ ...profileData, city: e.target.value })} /></Field>
-              <Field label={t('public.member.form.province')} htmlFor="member-profile-province"><input id="member-profile-province" className={inputClasses} value={profileData.province} onChange={(e) => setProfileData({ ...profileData, province: e.target.value })} /></Field>
-              <Field label={t('public.member.form.profession')} htmlFor="member-profile-profession"><input id="member-profile-profession" className={inputClasses} value={profileData.profession} onChange={(e) => setProfileData({ ...profileData, profession: e.target.value })} /></Field>
-            </div>
-            <Field label={t('public.member.form.expertise')} htmlFor="member-profile-expertise"><textarea id="member-profile-expertise" rows={2} className={inputClasses} value={profileData.expertise} onChange={(e) => setProfileData({ ...profileData, expertise: e.target.value })} /></Field>
-            <Field label={t('public.member.login.interests')} htmlFor="member-profile-interests"><textarea id="member-profile-interests" rows={2} className={inputClasses} value={profileData.interests} onChange={(e) => setProfileData({ ...profileData, interests: e.target.value })} /></Field>
-            <Field label={t('public.member.login.availability')} htmlFor="member-profile-availability"><input id="member-profile-availability" className={inputClasses} value={profileData.availability} onChange={(e) => setProfileData({ ...profileData, availability: e.target.value })} /></Field>
+        {editingProfile && (
+          <form className="mt-6 space-y-6 border-t border-line pt-6" onSubmit={handleProfileSave}>
+            {profileFields}
+            <Field label={t('public.member.login.availability')} htmlFor="member-profile-availability">
+              <input id="member-profile-availability" className={inputClasses} value={profileData.availability} onChange={(e) => setProfileData({ ...profileData, availability: e.target.value })} />
+            </Field>
             <div className="flex gap-3"><Button type="submit" variant="primary" disabled={submitting}>{t('public.member.login.saveProfile')}</Button><Button type="button" variant="tertiary" onClick={() => setEditingProfile(false)}>{t('admin.common.cancel')}</Button></div>
           </form>
         )}
@@ -176,12 +303,14 @@ const MemberLoginForm = () => {
     );
   }
 
+  const signupMode = mode === 'signup';
+
   return (
-    <div className="border border-line bg-surface p-6">
+    <div className={embedded ? '' : 'border border-line bg-surface p-6'}>
       <div className="mb-6">
-        <p className="text-label-md uppercase text-red-link">{t('public.member.login.badge')}</p>
-        <h2 className="mt-3 font-display text-headline-md text-green">{t('public.member.login.title')}</h2>
-        <p className="mt-2 text-body-md text-ink-variant">{t('public.member.login.subtitle')}</p>
+        <p className="text-label-md uppercase text-red-link">{t(signupMode ? 'public.member.gateway.signupEyebrow' : 'public.member.login.badge')}</p>
+        <h2 className="mt-3 font-display text-[30px] font-bold leading-tight text-green">{t(signupMode ? 'public.member.gateway.signupTitle' : 'public.member.login.title')}</h2>
+        <p className="mt-2 max-w-xl text-body-md leading-7 text-ink-variant">{t(signupMode ? 'public.member.gateway.signupIntro' : 'public.member.login.subtitle')}</p>
       </div>
 
       <GoogleSignInButton
@@ -192,11 +321,11 @@ const MemberLoginForm = () => {
 
       {import.meta.env.VITE_GOOGLE_CLIENT_ID && (
         <p className="mt-3 text-center text-xs leading-5 text-ink-variant">
-          {t('public.member.login.googleSignupHint')}
+          {t(signupMode ? 'public.member.gateway.googleSignupHint' : 'public.member.login.googleSignupHint')}
         </p>
       )}
 
-      {import.meta.env.VITE_GOOGLE_CLIENT_ID && (
+      {!signupMode && import.meta.env.VITE_GOOGLE_CLIENT_ID && (
         <div className="my-5 flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.14em] text-ink-variant/65">
           <span className="h-px flex-1 bg-line" aria-hidden="true" />
           <span>{t('public.member.login.orEmail')}</span>
@@ -204,7 +333,7 @@ const MemberLoginForm = () => {
         </div>
       )}
 
-      <form className="space-y-5" onSubmit={handleSubmit}>
+      {!signupMode && <form className="space-y-5" onSubmit={handleSubmit}>
         <Field label={t('public.member.login.email')} htmlFor="login-email">
           <input
             type="email"
@@ -247,7 +376,9 @@ const MemberLoginForm = () => {
           <i className="ri-login-circle-line" aria-hidden="true"></i>
           {submitting ? t('public.member.login.submitting') : t('public.member.login.submit')}
         </Button>
-      </form>
+      </form>}
+
+      {signupMode && status && <p className="mt-5 border border-error/30 bg-error/5 p-3 text-sm text-error">{status}</p>}
     </div>
   );
 };

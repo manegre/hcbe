@@ -8,8 +8,21 @@ namespace HcbeApi.Services;
 public class MemberAccountService : IMemberAccountService
 {
     private readonly ApplicationDbContext _context;
+    private readonly IEmailOutbox? _emailOutbox;
+    private readonly IEmailTemplateRenderer? _emailTemplates;
+    private readonly IConfiguration? _configuration;
 
-    public MemberAccountService(ApplicationDbContext context) => _context = context;
+    public MemberAccountService(
+        ApplicationDbContext context,
+        IEmailOutbox? emailOutbox = null,
+        IEmailTemplateRenderer? emailTemplates = null,
+        IConfiguration? configuration = null)
+    {
+        _context = context;
+        _emailOutbox = emailOutbox;
+        _emailTemplates = emailTemplates;
+        _configuration = configuration;
+    }
 
     public async Task<ApiResponse<MemberDto>> GetAsync(Guid userId)
     {
@@ -39,6 +52,8 @@ public class MemberAccountService : IMemberAccountService
             return ApiResponse<MemberDto>.ErrorResponse("Member profile not found");
         }
 
+        var profileWasComplete = GetMissingRequiredFields(member).Count == 0;
+
         if (request.FirstName is not null) member.FirstName = request.FirstName.Trim();
         if (request.LastName is not null) member.LastName = request.LastName.Trim();
         if (request.Phone is not null) member.Phone = Normalize(request.Phone);
@@ -49,8 +64,22 @@ public class MemberAccountService : IMemberAccountService
         if (request.Interests is not null) member.Interests = Normalize(request.Interests);
         if (request.Availability is not null) member.Availability = Normalize(request.Availability);
 
+        var missingFields = GetMissingRequiredFields(member);
+        if (missingFields.Count > 0)
+        {
+            return ApiResponse<MemberDto>.ErrorResponse(
+                "Complete all required member profile fields",
+                missingFields.Select(field => $"The {field} field is required.").ToList());
+        }
+
         user.FirstName = member.FirstName;
         user.LastName = member.LastName;
+        if (!profileWasComplete && _emailOutbox is not null && _emailTemplates is not null)
+        {
+            var publicUrl = (_configuration?["PublicAppUrl"] ?? "http://localhost:3000").TrimEnd('/');
+            var email = _emailTemplates.MemberWelcome(member.FirstName, $"{publicUrl}/espace-membre");
+            _emailOutbox.Enqueue(member.Email, email.Subject, email.HtmlBody, nameof(Member), member.Id);
+        }
         await _context.SaveChangesAsync();
         return ApiResponse<MemberDto>.SuccessResponse(Map(member));
     }
@@ -61,4 +90,24 @@ public class MemberAccountService : IMemberAccountService
         member.Interests, member.Availability, member.Zone, member.IsAdmin, member.CreatedAt);
 
     private static string? Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static List<string> GetMissingRequiredFields(Member member)
+    {
+        var requiredFields = new (string Name, string? Value)[]
+        {
+            ("first name", member.FirstName),
+            ("last name", member.LastName),
+            ("phone", member.Phone),
+            ("city", member.City),
+            ("province", member.Province),
+            ("profession", member.Profession),
+            ("professional field", member.Expertise),
+            ("membership motivation", member.Interests)
+        };
+
+        return requiredFields
+            .Where(field => string.IsNullOrWhiteSpace(field.Value))
+            .Select(field => field.Name)
+            .ToList();
+    }
 }

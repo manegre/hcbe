@@ -7,6 +7,7 @@ import DocumentLanguageSync from "./components/DocumentLanguageSync";
 import ScrollToTop from "./components/ScrollToTop";
 import BackToTopButton from "./components/feature/BackToTopButton";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import CookieConsent from "./components/feature/CookieConsent";
 
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
             <ScrollToTop />
             <AppRoutes />
             <BackToTopButton />
+            <CookieConsent />
           </BrowserRouter>
         </AuthProvider>
       </I18nextProvider>

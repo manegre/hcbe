@@ -1,4 +1,3 @@
-using System.Net;
 using HcbeApi.Data;
 using HcbeApi.Helpers;
 using HcbeApi.Models;
@@ -10,12 +9,18 @@ public class NewsletterCampaignService : INewsletterCampaignService
 {
     private readonly ApplicationDbContext _context;
     private readonly IEmailOutbox _emailOutbox;
+    private readonly IEmailTemplateRenderer _emailTemplates;
     private readonly IConfiguration _configuration;
 
-    public NewsletterCampaignService(ApplicationDbContext context, IEmailOutbox emailOutbox, IConfiguration configuration)
+    public NewsletterCampaignService(
+        ApplicationDbContext context,
+        IEmailOutbox emailOutbox,
+        IEmailTemplateRenderer emailTemplates,
+        IConfiguration configuration)
     {
         _context = context;
         _emailOutbox = emailOutbox;
+        _emailTemplates = emailTemplates;
         _configuration = configuration;
     }
 
@@ -67,9 +72,8 @@ public class NewsletterCampaignService : INewsletterCampaignService
             var subject = useEnglish && !string.IsNullOrWhiteSpace(campaign.SubjectEn) ? campaign.SubjectEn : campaign.Subject;
             var body = useEnglish && !string.IsNullOrWhiteSpace(campaign.BodyEn) ? campaign.BodyEn : campaign.Body;
             var unsubscribeUrl = $"{publicApiUrl}/api/newsletter/unsubscribe?token={Uri.EscapeDataString(subscriber.UnsubscribeToken)}";
-            var linkLabel = useEnglish ? "Unsubscribe" : "Se désabonner";
-            var html = $"<div style=\"font-family:Arial,sans-serif;line-height:1.6\">{WebUtility.HtmlEncode(body).Replace("\n", "<br>")}<hr><p style=\"font-size:12px;color:#666\"><a href=\"{unsubscribeUrl}\">{linkLabel}</a></p></div>";
-            _emailOutbox.Enqueue(subscriber.Email, subject!, html, nameof(NewsletterCampaign), campaign.Id);
+            var email = _emailTemplates.Newsletter(subject!, body!, unsubscribeUrl, useEnglish);
+            _emailOutbox.Enqueue(subscriber.Email, email.Subject, email.HtmlBody, nameof(NewsletterCampaign), campaign.Id);
         }
 
         await _context.SaveChangesAsync(cancellationToken);

@@ -7,6 +7,7 @@ import NewsletterSignup from './NewsletterSignup';
 import { SOCIAL_LINKS } from '../../lib/social-links';
 import { siteContentApi } from '../../lib/api/site-content';
 import type { FooterLinkDto } from '../../lib/api/types';
+import { openCookieSettings } from '../../lib/cookie-consent';
 
 const linkClasses =
   'group flex min-h-[34px] items-center gap-2 text-sm text-white/70 transition-colors hover:text-white';
@@ -120,6 +121,9 @@ const Footer = () => {
               <Link to="/confidentialite" className="transition-colors hover:text-gold">
                 {t('public.newsletter.privacyLink')}
               </Link>
+              <button type="button" onClick={openCookieSettings} className="transition-colors hover:text-gold">
+                {t('public.cookies.manage')}
+              </button>
             </div>
           </div>
         </div>

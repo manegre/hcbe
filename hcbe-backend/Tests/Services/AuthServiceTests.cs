@@ -312,6 +312,23 @@ public class AuthServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task CreateOrLinkMemberExternalSessionAsync_QueuesOnboardingEmailOnlyForFirstGoogleLogin()
+    {
+        var outbox = new EmailOutbox(_context);
+        var templates = new EmailTemplateRenderer(_configuration);
+        var service = new AuthService(_context, _configuration, outbox, templates);
+
+        await service.CreateOrLinkMemberExternalSessionAsync(
+            "onboarding@example.com", "Awa", "Traore", "127.0.0.1");
+        await service.CreateOrLinkMemberExternalSessionAsync(
+            "onboarding@example.com", "Awa", "Traore", "127.0.0.1");
+
+        var message = await _context.EmailOutboxMessages.SingleAsync();
+        message.Subject.Should().Contain("Complete your profile");
+        message.HtmlBody.Should().Contain("/espace-membre");
+    }
+
+    [Fact]
     public async Task CreateOrLinkMemberExternalSessionAsync_RejectsInactiveAccount()
     {
         _context.Users.Add(new User

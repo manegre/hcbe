@@ -4,6 +4,7 @@ using HcbeApi.Models;
 using HcbeApi.Services;
 using HcbeApi.Tests.Helpers;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace HcbeApi.Tests.Services;
 
@@ -72,6 +73,24 @@ public sealed class MembershipApplicationServiceTests : IDisposable
         (await _context.MembershipApplications.CountAsync()).Should().Be(0);
     }
 
+    [Fact]
+    public async Task SubmitAsync_QueuesBrandedWelcomeEmail()
+    {
+        var configuration = EmailConfiguration();
+        var service = new MembershipApplicationService(
+            _context,
+            new EmailOutbox(_context),
+            new EmailTemplateRenderer(configuration),
+            configuration);
+
+        var result = await service.SubmitAsync(CreateRequest("welcome@example.org", "MemberPassword!23"));
+
+        result.Success.Should().BeTrue();
+        var message = await _context.EmailOutboxMessages.SingleAsync();
+        message.Subject.Should().Contain("Welcome");
+        message.HtmlBody.Should().Contain("https://hcbe.ca/espace-membre");
+    }
+
     private static CreateMembershipApplicationRequest CreateRequest(string email, string password) =>
         new(
             "Awa",
@@ -84,6 +103,14 @@ public sealed class MembershipApplicationServiceTests : IDisposable
             "Technology",
             "Contribute to the HCBE community.",
             password);
+
+    private static IConfiguration EmailConfiguration() => new ConfigurationBuilder()
+        .AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["PublicAppUrl"] = "https://hcbe.ca",
+            ["Email:ContactAddress"] = "contact@hcbe.ca"
+        })
+        .Build();
 
     public void Dispose() => _context.Dispose();
 }

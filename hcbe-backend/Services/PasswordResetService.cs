@@ -1,4 +1,3 @@
-using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using HcbeApi.Data;
@@ -13,19 +12,25 @@ public class PasswordResetService : IPasswordResetService
     private const string GenericMessage = "If the account exists, password reset instructions have been sent.";
     private readonly ApplicationDbContext _context;
     private readonly IEmailOutbox _emailOutbox;
+    private readonly IEmailTemplateRenderer _emailTemplates;
     private readonly IConfiguration _configuration;
 
-    public PasswordResetService(ApplicationDbContext context, IEmailOutbox emailOutbox, IConfiguration configuration)
+    public PasswordResetService(
+        ApplicationDbContext context,
+        IEmailOutbox emailOutbox,
+        IEmailTemplateRenderer emailTemplates,
+        IConfiguration configuration)
     {
         _context = context;
         _emailOutbox = emailOutbox;
+        _emailTemplates = emailTemplates;
         _configuration = configuration;
     }
 
     public async Task<ApiResponse> RequestAsync(RequestPasswordResetRequest request, CancellationToken cancellationToken)
     {
-        var email = request.Email.Trim().ToLowerInvariant();
-        var user = await _context.Users.FirstOrDefaultAsync(item => item.Email.ToLower() == email, cancellationToken);
+        var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+        var user = await _context.Users.FirstOrDefaultAsync(item => item.Email.ToLower() == normalizedEmail, cancellationToken);
         if (user is null) return ApiResponse.CreateSuccess(GenericMessage);
 
         var rawToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
@@ -37,8 +42,8 @@ public class PasswordResetService : IPasswordResetService
         });
         var publicUrl = (_configuration["PublicAppUrl"] ?? "http://localhost:3000").TrimEnd('/');
         var resetUrl = $"{publicUrl}/espace-membre?resetToken={Uri.EscapeDataString(rawToken)}";
-        var html = $"<p>Une demande de réinitialisation de mot de passe a été reçue.</p><p><a href=\"{WebUtility.HtmlEncode(resetUrl)}\">Choisir un nouveau mot de passe</a></p><p>Ce lien expire dans 30 minutes.</p>";
-        _emailOutbox.Enqueue(user.Email, "Réinitialisation du mot de passe HCBE Canada", html, nameof(PasswordResetToken));
+        var renderedEmail = _emailTemplates.PasswordReset(user.FirstName, resetUrl, 30);
+        _emailOutbox.Enqueue(user.Email, renderedEmail.Subject, renderedEmail.HtmlBody, nameof(PasswordResetToken));
         await _context.SaveChangesAsync(cancellationToken);
         return ApiResponse.CreateSuccess(GenericMessage);
     }
@@ -54,6 +59,14 @@ public class PasswordResetService : IPasswordResetService
 
         reset.User.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
         reset.UsedAt = DateTime.UtcNow;
+        var publicUrl = (_configuration["PublicAppUrl"] ?? "http://localhost:3000").TrimEnd('/');
+        var confirmation = _emailTemplates.PasswordChanged(reset.User.FirstName, $"{publicUrl}/espace-membre");
+        _emailOutbox.Enqueue(
+            reset.User.Email,
+            confirmation.Subject,
+            confirmation.HtmlBody,
+            nameof(PasswordResetToken),
+            reset.Id);
         await _context.SaveChangesAsync(cancellationToken);
         return ApiResponse.CreateSuccess("Password updated successfully");
     }

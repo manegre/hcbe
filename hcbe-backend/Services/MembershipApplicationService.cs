@@ -8,10 +8,20 @@ namespace HcbeApi.Services;
 public class MembershipApplicationService : IMembershipApplicationService
 {
     private readonly ApplicationDbContext _context;
+    private readonly IEmailOutbox? _emailOutbox;
+    private readonly IEmailTemplateRenderer? _emailTemplates;
+    private readonly IConfiguration? _configuration;
 
-    public MembershipApplicationService(ApplicationDbContext context)
+    public MembershipApplicationService(
+        ApplicationDbContext context,
+        IEmailOutbox? emailOutbox = null,
+        IEmailTemplateRenderer? emailTemplates = null,
+        IConfiguration? configuration = null)
     {
         _context = context;
+        _emailOutbox = emailOutbox;
+        _emailTemplates = emailTemplates;
+        _configuration = configuration;
     }
 
     public async Task<ApiResponse<MembershipApplicationDto>> SubmitAsync(CreateMembershipApplicationRequest request)
@@ -107,6 +117,7 @@ public class MembershipApplicationService : IMembershipApplicationService
             _context.Members.Add(member);
             _context.Users.Add(user);
             _context.MembershipApplications.Add(application);
+            QueueWelcome(member);
             await _context.SaveChangesAsync();
 
             return ApiResponse<MembershipApplicationDto>.SuccessResponse(MapToDto(application));
@@ -255,6 +266,7 @@ public class MembershipApplicationService : IMembershipApplicationService
                 application.MemberId = existingMember.Id;
                 application.PasswordHash = null;
                 application.ReviewedAt = DateTime.UtcNow;
+                QueueMembershipDecision(application, approved: true);
                 await _context.SaveChangesAsync();
 
                 return ApiResponse<MemberDto>.SuccessResponse(MapMemberToDto(existingMember));
@@ -300,6 +312,7 @@ public class MembershipApplicationService : IMembershipApplicationService
             application.PasswordHash = null;
             application.ReviewedAt = DateTime.UtcNow;
 
+            QueueMembershipDecision(application, approved: true);
             await _context.SaveChangesAsync();
 
             return ApiResponse<MemberDto>.SuccessResponse(MapMemberToDto(member));
@@ -330,6 +343,7 @@ public class MembershipApplicationService : IMembershipApplicationService
             application.Status = MembershipApplicationStatus.Rejected;
             application.ReviewedAt = DateTime.UtcNow;
 
+            QueueMembershipDecision(application, approved: false);
             await _context.SaveChangesAsync();
 
             return ApiResponse<MembershipApplicationDto>.SuccessResponse(MapToDto(application));
@@ -384,6 +398,24 @@ public class MembershipApplicationService : IMembershipApplicationService
             application.ReviewedAt
         );
     }
+
+    private void QueueWelcome(Member member)
+    {
+        if (_emailOutbox is null || _emailTemplates is null) return;
+        var email = _emailTemplates.MemberWelcome(member.FirstName, $"{PublicAppUrl()}/espace-membre");
+        _emailOutbox.Enqueue(member.Email, email.Subject, email.HtmlBody, nameof(Member), member.Id);
+    }
+
+    private void QueueMembershipDecision(MembershipApplication application, bool approved)
+    {
+        if (_emailOutbox is null || _emailTemplates is null) return;
+        var actionUrl = approved ? $"{PublicAppUrl()}/espace-membre" : $"{PublicAppUrl()}/contact";
+        var email = _emailTemplates.MembershipDecision(application.FirstName, approved, actionUrl);
+        _emailOutbox.Enqueue(application.Email, email.Subject, email.HtmlBody, nameof(MembershipApplication), application.Id);
+    }
+
+    private string PublicAppUrl() =>
+        (_configuration?["PublicAppUrl"] ?? "http://localhost:3000").TrimEnd('/');
 
     private static MemberDto MapMemberToDto(Member member)
     {

@@ -14,11 +14,19 @@ public class AuthService : IAuthService
 {
     private readonly ApplicationDbContext _context;
     private readonly IConfiguration _configuration;
+    private readonly IEmailOutbox? _emailOutbox;
+    private readonly IEmailTemplateRenderer? _emailTemplates;
 
-    public AuthService(ApplicationDbContext context, IConfiguration configuration)
+    public AuthService(
+        ApplicationDbContext context,
+        IConfiguration configuration,
+        IEmailOutbox? emailOutbox = null,
+        IEmailTemplateRenderer? emailTemplates = null)
     {
         _context = context;
         _configuration = configuration;
+        _emailOutbox = emailOutbox;
+        _emailTemplates = emailTemplates;
     }
 
     public async Task<string?> RegisterAsync(string email, string password, string? firstName, string? lastName)
@@ -157,8 +165,10 @@ public class AuthService : IAuthService
             _context.Members.Add(member);
         }
 
+        var createdUser = false;
         if (user == null)
         {
+            createdUser = true;
             // Google-only accounts receive an unguessable password. A member can still
             // enable password login later through the existing password-reset flow.
             user = new User
@@ -194,6 +204,15 @@ public class AuthService : IAuthService
         user.FailedLoginAttempts = 0;
         user.LockoutEndUtc = null;
         user.LastLoginAtUtc = DateTime.UtcNow;
+
+        if (createdUser && _emailOutbox is not null && _emailTemplates is not null)
+        {
+            var memberSpaceUrl = $"{PublicAppUrl()}/espace-membre";
+            var renderedEmail = IsProfileComplete(member)
+                ? _emailTemplates.MemberWelcome(member.FirstName, memberSpaceUrl)
+                : _emailTemplates.MemberOnboarding(member.FirstName, memberSpaceUrl);
+            _emailOutbox.Enqueue(user.Email, renderedEmail.Subject, renderedEmail.HtmlBody, nameof(User), user.Id);
+        }
 
         return await CreateRefreshSessionAsync(user, CreateToken(user), ipAddress);
     }
@@ -254,6 +273,19 @@ public class AuthService : IAuthService
 
     private int GetRefreshTokenLifetimeDays() =>
         _configuration.GetValue("JwtSettings:RefreshTokenExpirationInDays", 7);
+
+    private string PublicAppUrl() =>
+        (_configuration["PublicAppUrl"] ?? "http://localhost:3000").TrimEnd('/');
+
+    private static bool IsProfileComplete(Member member) =>
+        !string.IsNullOrWhiteSpace(member.FirstName)
+        && !string.IsNullOrWhiteSpace(member.LastName)
+        && !string.IsNullOrWhiteSpace(member.Phone)
+        && !string.IsNullOrWhiteSpace(member.City)
+        && !string.IsNullOrWhiteSpace(member.Province)
+        && !string.IsNullOrWhiteSpace(member.Profession)
+        && !string.IsNullOrWhiteSpace(member.Expertise)
+        && !string.IsNullOrWhiteSpace(member.Interests);
 
     private static string CreateSecureToken() =>
         Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));

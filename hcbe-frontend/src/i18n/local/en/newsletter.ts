@@ -26,11 +26,14 @@ export default {
   'public.privacy.analyticsTitle': 'Technical data',
   'public.privacy.analyticsBody':
     'We do not use advertising cookies, and no third-party audience analytics tool is currently active. Limited technical logs may be retained to keep the service secure and reliable.',
+  'public.privacy.cookiesTitle': 'Cookies and local storage',
+  'public.privacy.cookiesBody':
+    'We use one essential cookie to remember your privacy choice. Secure sign-in uses a protected session cookie, while your selected language and theme may be stored locally on your device. These items are never used for advertising or cross-site tracking.',
   'public.privacy.retentionTitle': 'Retention',
   'public.privacy.retentionBody':
-    'Your information is kept while your subscription remains active. You can request deactivation by writing to contact@hcbecanada.org.',
+    'Your information is kept while your subscription remains active. You can request deactivation by writing to contact@hcbe.ca.',
   'public.privacy.rightsTitle': 'Your rights',
   'public.privacy.rightsBody':
     'You may request access, correction or removal of your data by contacting us. We do not sell your information to third parties.',
-  'public.privacy.contact': 'Questions: contact@hcbecanada.org',
+  'public.privacy.contact': 'Questions: contact@hcbe.ca',
 };
