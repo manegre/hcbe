@@ -7,11 +7,11 @@ export default {
   'public.member.hero.badge': 'Communauté HCBE',
   'public.member.hero.title': 'Devenez membre du HCBE Canada.',
   'public.member.hero.subtitle':
-    'Créez votre compte instantanément avec Google et accédez aux services, événements et ressources réservés aux membres.',
+    'Créez gratuitement votre compte avec Google ou votre courriel et accédez immédiatement aux services, événements et ressources réservés aux membres.',
   'public.member.hero.card.label': 'Adhésion',
   'public.member.hero.card.title': "L'adhésion est gratuite et ouverte à la diaspora burkinabè au Canada.",
   'public.member.hero.card.description':
-    "Avec Google, aucun délai d'approbation : votre espace membre est créé dès votre première connexion.",
+    "Aucun délai d’approbation : votre espace membre est accessible dès votre inscription.",
   'public.member.advantages.label': 'Avantages',
   'public.member.advantages.title': "Ce que l'adhésion vous apporte",
   'public.member.advantages.items.events': 'Accès prioritaire aux événements et formations',
@@ -27,9 +27,9 @@ export default {
     "Si vous avez des questions sur l'inscription, notre équipe peut vous accompagner.",
   'public.member.help.cta': 'Nous contacter',
   'public.member.form.label': 'Inscription',
-  'public.member.form.title': "Demande d'adhésion",
+  'public.member.form.title': 'Créer mon compte membre',
   'public.member.form.intro':
-    "Remplissez le formulaire ci-dessous. Les champs marqués d'un astérisque sont obligatoires.",
+    "Remplissez le formulaire ci-dessous pour accéder immédiatement à votre espace. Les champs marqués d’un astérisque sont obligatoires.",
   'public.member.form.sections.contact': 'Coordonnées',
   'public.member.form.sections.professional': 'Profil professionnel',
   'public.member.form.fields.firstName': 'Prénom',
@@ -49,11 +49,11 @@ export default {
   'public.member.form.charCount': '{{count}}/500 caractères',
   'public.member.form.success.title': 'Inscription réussie',
   'public.member.form.success.message':
-    'Votre demande a été envoyée. Nous examinerons votre dossier et vous contacterons bientôt.',
+    'Votre compte membre est actif. Vous êtes maintenant connecté à votre espace.',
   'public.member.form.error.title': "Erreur d'inscription",
   'public.member.form.error.message': "Une erreur s'est produite. Veuillez réessayer plus tard.",
   'public.member.form.submit.loading': 'Envoi en cours...',
-  'public.member.form.submit.label': 'Soumettre ma demande',
+  'public.member.form.submit.label': 'Créer mon compte',
   'public.member.form.consent':
     'En soumettant ce formulaire, vous acceptez que vos informations soient utilisées dans le cadre de votre adhésion au HCBE Canada.',
   'public.member.login.badge': 'Connexion',
@@ -71,7 +71,7 @@ export default {
   'public.member.login.submit': 'Se connecter',
   'public.member.login.submitting': 'Connexion…',
   'public.member.login.error': 'Connexion impossible.',
-  'public.member.login.notMember': "Ce compte n'est pas encore lié à une adhésion approuvée.",
+  'public.member.login.notMember': "Ce compte n’est pas lié à une adhésion membre.",
   'public.member.login.accountBadge': 'Mon compte',
   'public.member.login.loading': 'Chargement du profil…',
   'public.member.login.logout': 'Se déconnecter',

@@ -94,7 +94,7 @@ public record CreateMembershipApplicationRequest(
     string? Profession,
     string? Expertise,
     [MaxLength(500)] string? Motivation,
-    [MinLength(8)] string? Password = null);
+    [Required] [MinLength(8)] string Password);
 
 public record UpdateMemberAccountRequest(
     string? FirstName,

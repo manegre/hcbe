@@ -209,8 +209,8 @@ export interface Project {
   fundsRaised: string;
   beneficiaries: string;
   beneficiariesEn?: string;
-  startDate?: string;
-  endDate?: string;
+  startDate?: string | null;
+  endDate?: string | null;
   partners: string[];
   isActive: boolean;
   createdAt: string;
@@ -232,8 +232,8 @@ export interface CreateProjectRequest {
   fundsRaised: string;
   beneficiaries: string;
   beneficiariesEn?: string;
-  startDate?: string;
-  endDate?: string;
+  startDate?: string | null;
+  endDate?: string | null;
   partners?: string[];
 }
 
@@ -252,8 +252,8 @@ export interface UpdateProjectRequest {
   fundsRaised?: string;
   beneficiaries?: string;
   beneficiariesEn?: string;
-  startDate?: string;
-  endDate?: string;
+  startDate?: string | null;
+  endDate?: string | null;
   partners?: string[];
   isActive?: boolean;
 }
@@ -397,7 +397,7 @@ export interface CreateMembershipApplicationRequest {
   profession?: string;
   expertise?: string;
   motivation?: string;
-  password?: string;
+  password: string;
 }
 
 export type PublicSubmissionType =

@@ -78,6 +78,8 @@ const EditProjectPage = () => {
     try {
       const requestData = {
         ...formData,
+        startDate: formData.startDate || null,
+        endDate: formData.endDate || null,
         partners: partners
           .split(',')
           .map((p) => p.trim())

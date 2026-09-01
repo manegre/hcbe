@@ -7,11 +7,11 @@ export default {
   'public.member.hero.badge': 'HCBE Community',
   'public.member.hero.title': 'Become a member of HCBE Canada.',
   'public.member.hero.subtitle':
-    'Create your account instantly with Google and access member services, events and resources.',
+    'Create your free account with Google or email and immediately access member services, events and resources.',
   'public.member.hero.card.label': 'Membership',
   'public.member.hero.card.title': 'Membership is free and open to the Burkinabè diaspora in Canada.',
   'public.member.hero.card.description':
-    'With Google, there is no approval delay: your member space is created on your first sign-in.',
+    'There is no approval delay: your member space is available as soon as you register.',
   'public.member.advantages.label': 'Benefits',
   'public.member.advantages.title': 'What membership gives you',
   'public.member.advantages.items.events': 'Priority access to events and training',
@@ -27,9 +27,9 @@ export default {
     'If you have questions about registration, our team can guide you.',
   'public.member.help.cta': 'Contact us',
   'public.member.form.label': 'Registration',
-  'public.member.form.title': 'Membership application',
+  'public.member.form.title': 'Create my member account',
   'public.member.form.intro':
-    'Fill out the form below. Fields marked with an asterisk are required.',
+    'Complete the form below for immediate access to your member space. Fields marked with an asterisk are required.',
   'public.member.form.sections.contact': 'Contact details',
   'public.member.form.sections.professional': 'Professional profile',
   'public.member.form.fields.firstName': 'First name',
@@ -48,11 +48,11 @@ export default {
   'public.member.form.charCount': '{{count}}/500 characters',
   'public.member.form.success.title': 'Registration successful',
   'public.member.form.success.message':
-    'Your application has been sent. We will review your file and contact you soon.',
+    'Your member account is active. You are now signed in to your space.',
   'public.member.form.error.title': 'Registration error',
   'public.member.form.error.message': 'An error occurred. Please try again later.',
   'public.member.form.submit.loading': 'Sending...',
-  'public.member.form.submit.label': 'Submit my application',
+  'public.member.form.submit.label': 'Create my account',
   'public.member.form.consent':
     'By submitting this form, you agree that your information may be used for your HCBE Canada membership.',
   'public.member.login.badge': 'Sign in',
@@ -70,7 +70,7 @@ export default {
   'public.member.login.submit': 'Sign in',
   'public.member.login.submitting': 'Signing in…',
   'public.member.login.error': 'Unable to sign in.',
-  'public.member.login.notMember': 'This account is not linked to an approved membership yet.',
+  'public.member.login.notMember': 'This account is not linked to a member profile.',
   'public.member.login.accountBadge': 'My account',
   'public.member.login.loading': 'Loading profile…',
   'public.member.login.logout': 'Sign out',

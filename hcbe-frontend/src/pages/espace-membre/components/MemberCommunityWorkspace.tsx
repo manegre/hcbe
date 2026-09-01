@@ -104,31 +104,53 @@ const MemberCommunityWorkspace = () => {
 
   const load = async () => {
     setLoading(true);
-    const [apps, matchResult, profileResult, requestResult, directoryResult, conversationResult] = await Promise.all([
-      communityApi.getMyApplications(), communityApi.getMyMatches(), communityApi.getMyProfile(),
-      communityApi.getMyRequests(), communityApi.searchDirectory(), messagingApi.getConversations(),
-    ]);
-    if (apps.success && apps.data) setApplications(apps.data);
-    if (matchResult.success && matchResult.data) setMatches(matchResult.data);
-    if (profileResult.success && profileResult.data) {
-      const { headline, bio, expertise, sectors, city, province, isVisible, allowContactRequests } = profileResult.data;
-      setProfile({ headline, bio, expertise, sectors, city, province, isVisible, allowContactRequests });
+    setNotice(null);
+
+    try {
+      const [apps, matchesResult, profileResult, requestsResult, directoryResult, conversationsResult] = await Promise.allSettled([
+        communityApi.getMyApplications(), communityApi.getMyMatches(), communityApi.getMyProfile(),
+        communityApi.getMyRequests(), communityApi.searchDirectory(), messagingApi.getConversations(),
+      ]);
+
+      if (apps.status === 'fulfilled' && apps.value.success && apps.value.data) setApplications(apps.value.data);
+      if (matchesResult.status === 'fulfilled' && matchesResult.value.success && matchesResult.value.data) setMatches(matchesResult.value.data);
+      if (profileResult.status === 'fulfilled' && profileResult.value.success && profileResult.value.data) {
+        const { headline, bio, expertise, sectors, city, province, isVisible, allowContactRequests } = profileResult.value.data;
+        setProfile({ headline, bio, expertise, sectors, city, province, isVisible, allowContactRequests });
+      } else {
+        // A missing profile is the expected first-login state. Keep the empty form ready
+        // instead of blocking the entire member workspace.
+        setProfile(emptyProfile);
+      }
+      if (requestsResult.status === 'fulfilled' && requestsResult.value.success && requestsResult.value.data) setRequests(requestsResult.value.data);
+      if (directoryResult.status === 'fulfilled' && directoryResult.value.success && directoryResult.value.data) setDirectory(directoryResult.value.data);
+      if (conversationsResult.status === 'fulfilled' && conversationsResult.value.success && conversationsResult.value.data) {
+        setUnreadMessages(conversationsResult.value.data.reduce((sum, item) => sum + item.unreadCount, 0));
+      }
+
+      const requiredRequestFailed = [apps, matchesResult, requestsResult, directoryResult, conversationsResult]
+        .some((result) => result.status === 'rejected');
+      if (requiredRequestFailed) setNotice(copy.error);
+    } finally {
+      setLoading(false);
     }
-    if (requestResult.success && requestResult.data) setRequests(requestResult.data);
-    if (directoryResult.success && directoryResult.data) setDirectory(directoryResult.data);
-    if (conversationResult.success && conversationResult.data) setUnreadMessages(conversationResult.data.reduce((sum, item) => sum + item.unreadCount, 0));
-    setLoading(false);
   };
 
   useEffect(() => { void load(); }, []);
 
   const run = async (action: () => Promise<{ success: boolean; message?: string }>, successMessage?: string) => {
     setBusy(true); setNotice(null);
-    const result = await action();
-    setNotice(result.success ? (successMessage || copy.saved) : (result.message || copy.error));
-    if (result.success) await load();
-    setBusy(false);
-    return result.success;
+    try {
+      const result = await action();
+      setNotice(result.success ? (successMessage || copy.saved) : (result.message || copy.error));
+      if (result.success) await load();
+      return result.success;
+    } catch {
+      setNotice(copy.error);
+      return false;
+    } finally {
+      setBusy(false);
+    }
   };
 
   const filteredDirectory = useMemo(() => {

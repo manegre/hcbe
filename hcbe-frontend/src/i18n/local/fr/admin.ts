@@ -1,4 +1,7 @@
 export default {
+  'admin.accessDenied.title': 'Accès refusé',
+  'admin.accessDenied.description': "Vous n’avez pas l’autorisation d’accéder à cette page. Des droits d’administration sont requis.",
+  'admin.accessDenied.back': 'Retourner à la page précédente',
   'admin.detail.record': 'Fiche détaillée',
   'admin.list.workspace': 'Centre de gestion',
   'admin.list.subtitle': 'Gérez, filtrez et mettez à jour les contenus de cette rubrique.',

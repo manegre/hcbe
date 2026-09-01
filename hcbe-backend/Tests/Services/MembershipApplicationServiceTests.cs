@@ -1,0 +1,89 @@
+using FluentAssertions;
+using HcbeApi.Data;
+using HcbeApi.Models;
+using HcbeApi.Services;
+using HcbeApi.Tests.Helpers;
+using Microsoft.EntityFrameworkCore;
+
+namespace HcbeApi.Tests.Services;
+
+public sealed class MembershipApplicationServiceTests : IDisposable
+{
+    private readonly ApplicationDbContext _context = TestDbContextFactory.CreateInMemoryContext();
+
+    [Fact]
+    public async Task SubmitAsync_CreatesActiveNonAdminMemberAccountImmediately()
+    {
+        var service = new MembershipApplicationService(_context);
+        var request = CreateRequest("new.member@example.org", "MemberPassword!23");
+
+        var result = await service.SubmitAsync(request);
+
+        result.Success.Should().BeTrue();
+        result.Data.Should().NotBeNull();
+        result.Data!.Status.Should().Be(nameof(MembershipApplicationStatus.Approved));
+        result.Data.MemberId.Should().NotBeNull();
+        result.Data.ReviewedAt.Should().NotBeNull();
+
+        var member = await _context.Members.SingleAsync();
+        member.IsAdmin.Should().BeFalse();
+        member.Email.Should().Be("new.member@example.org");
+
+        var user = await _context.Users.SingleAsync();
+        user.MemberId.Should().Be(member.Id);
+        user.IsAdmin.Should().BeFalse();
+        user.IsActive.Should().BeTrue();
+        BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash).Should().BeTrue();
+
+        var application = await _context.MembershipApplications.SingleAsync();
+        application.PasswordHash.Should().BeNull();
+        application.MemberId.Should().Be(member.Id);
+    }
+
+    [Fact]
+    public async Task SubmitAsync_WithoutValidPassword_DoesNotCreatePartialRecords()
+    {
+        var service = new MembershipApplicationService(_context);
+        var request = CreateRequest("invalid.password@example.org", "short");
+
+        var result = await service.SubmitAsync(request);
+
+        result.Success.Should().BeFalse();
+        (await _context.Members.CountAsync()).Should().Be(0);
+        (await _context.Users.CountAsync()).Should().Be(0);
+        (await _context.MembershipApplications.CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task SubmitAsync_WhenUserEmailAlreadyExists_DoesNotCreateMember()
+    {
+        _context.Users.Add(new User
+        {
+            Email = "existing@example.org",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("ExistingPassword!23")
+        });
+        await _context.SaveChangesAsync();
+        var service = new MembershipApplicationService(_context);
+
+        var result = await service.SubmitAsync(CreateRequest("EXISTING@example.org", "MemberPassword!23"));
+
+        result.Success.Should().BeFalse();
+        (await _context.Members.CountAsync()).Should().Be(0);
+        (await _context.MembershipApplications.CountAsync()).Should().Be(0);
+    }
+
+    private static CreateMembershipApplicationRequest CreateRequest(string email, string password) =>
+        new(
+            "Awa",
+            "Ouédraogo",
+            email,
+            "+1 416 555 0188",
+            "Toronto",
+            "Ontario",
+            "Engineer",
+            "Technology",
+            "Contribute to the HCBE community.",
+            password);
+
+    public void Dispose() => _context.Dispose();
+}

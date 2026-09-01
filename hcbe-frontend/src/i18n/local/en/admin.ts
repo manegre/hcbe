@@ -1,4 +1,7 @@
 export default {
+  'admin.accessDenied.title': 'Access denied',
+  'admin.accessDenied.description': 'You do not have permission to access this page. Administrator privileges are required.',
+  'admin.accessDenied.back': 'Go back',
   'admin.detail.record': 'Record details',
   'admin.list.workspace': 'Management centre',
   'admin.list.subtitle': 'Manage, filter, and update the content in this section.',

@@ -125,6 +125,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 // Add services to the container
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddExceptionHandler<BadRequestExceptionHandler>();
 builder.Services.AddProblemDetails(options =>
 {
     options.CustomizeProblemDetails = context =>

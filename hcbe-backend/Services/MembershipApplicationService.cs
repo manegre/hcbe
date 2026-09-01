@@ -20,12 +20,26 @@ public class MembershipApplicationService : IMembershipApplicationService
         {
             var normalizedEmail = request.Email.Trim().ToLowerInvariant();
 
+            if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 8)
+            {
+                return ApiResponse<MembershipApplicationDto>.ErrorResponse(
+                    "A password of at least 8 characters is required");
+            }
+
             var existingMember = await _context.Members
                 .AnyAsync(m => m.Email.ToLower() == normalizedEmail);
             if (existingMember)
             {
                 return ApiResponse<MembershipApplicationDto>.ErrorResponse(
                     "A member with this email already exists");
+            }
+
+            var existingUser = await _context.Users
+                .AnyAsync(u => u.Email.ToLower() == normalizedEmail);
+            if (existingUser)
+            {
+                return ApiResponse<MembershipApplicationDto>.ErrorResponse(
+                    "An account with this email already exists");
             }
 
             var pendingApplication = await _context.MembershipApplications
@@ -37,24 +51,61 @@ public class MembershipApplicationService : IMembershipApplicationService
                     "A pending application already exists for this email");
             }
 
-            var application = new MembershipApplication
+            var now = DateTime.UtcNow;
+            var firstName = request.FirstName.Trim();
+            var lastName = request.LastName.Trim();
+            var email = request.Email.Trim();
+            var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+
+            var member = new Member
             {
-                FirstName = request.FirstName.Trim(),
-                LastName = request.LastName.Trim(),
-                Email = request.Email.Trim(),
+                FirstName = firstName,
+                LastName = lastName,
+                Email = email,
                 Phone = request.Phone?.Trim(),
                 City = request.City?.Trim(),
                 Province = request.Province?.Trim(),
                 Profession = request.Profession?.Trim(),
                 Expertise = request.Expertise?.Trim(),
-                Motivation = request.Motivation?.Trim(),
-                PasswordHash = string.IsNullOrWhiteSpace(request.Password)
-                    ? null
-                    : BCrypt.Net.BCrypt.HashPassword(request.Password),
-                Status = MembershipApplicationStatus.Pending,
-                CreatedAt = DateTime.UtcNow
+                Interests = request.Motivation?.Trim(),
+                IsAdmin = false,
+                CreatedAt = now
             };
 
+            var user = new User
+            {
+                Email = email,
+                PasswordHash = passwordHash,
+                FirstName = firstName,
+                LastName = lastName,
+                MemberId = member.Id,
+                IsAdmin = false,
+                IsActive = true,
+                CreatedAt = now
+            };
+
+            // Keep an approved registration record for audit/history without retaining
+            // the submitted password hash in the application table.
+            var application = new MembershipApplication
+            {
+                FirstName = firstName,
+                LastName = lastName,
+                Email = email,
+                Phone = member.Phone,
+                City = member.City,
+                Province = member.Province,
+                Profession = member.Profession,
+                Expertise = member.Expertise,
+                Motivation = request.Motivation?.Trim(),
+                PasswordHash = null,
+                Status = MembershipApplicationStatus.Approved,
+                MemberId = member.Id,
+                CreatedAt = now,
+                ReviewedAt = now
+            };
+
+            _context.Members.Add(member);
+            _context.Users.Add(user);
             _context.MembershipApplications.Add(application);
             await _context.SaveChangesAsync();
 

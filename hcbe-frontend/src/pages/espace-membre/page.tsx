@@ -4,6 +4,7 @@ import { features } from '../../config/features';
 import MemberLoginForm from './components/MemberLoginForm';
 import { Button, ArrowLink, PageHeader, Field, inputClasses } from '../../components/ui';
 import { membershipApplicationsApi } from '../../lib/api/membership-applications';
+import { useAuth } from '../../contexts/AuthContext';
 
 const memberAdvantageKeys = [
   'public.member.advantages.items.events',
@@ -45,6 +46,7 @@ const domainesProfessionnels = [
 
 const EspaceMembrePage = () => {
   const { t } = useTranslation();
+  const { user, login } = useAuth();
   const [inscriptionData, setInscriptionData] = useState({
     prenom: '',
     nom: '',
@@ -96,6 +98,7 @@ const EspaceMembrePage = () => {
       });
 
       if (response.success) {
+        const loginResult = await login(inscriptionData.email.trim(), inscriptionData.password);
         setSubmitStatus('success');
         setInscriptionData({
           prenom: '',
@@ -110,6 +113,7 @@ const EspaceMembrePage = () => {
           password: '',
           confirmPassword: '',
         });
+        if (!loginResult.success) setSubmitStatus('error');
       } else {
         setSubmitStatus('error');
       }
@@ -138,11 +142,11 @@ const EspaceMembrePage = () => {
       />
 
       <section className="bg-background py-16 md:py-24">
-        <div className="container-page grid grid-cols-1 gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-12">
+        <div className={`container-page grid grid-cols-1 gap-10 lg:gap-12 ${user?.memberId ? 'lg:grid-cols-1' : 'lg:grid-cols-[0.9fr_1.1fr]'}`}>
           <aside className="space-y-8">
             {features.memberLoginEnabled && <MemberLoginForm />}
 
-            <div>
+            {!user?.memberId && <div>
               <p className="text-label-md uppercase text-red-link">{t('public.member.advantages.label')}</p>
               <h2 className="mt-3 font-display text-headline-lg text-green">
                 {t('public.member.advantages.title')}
@@ -155,18 +159,18 @@ const EspaceMembrePage = () => {
                   </li>
                 ))}
               </ul>
-            </div>
+            </div>}
 
-            <div className="border border-line bg-surface p-6">
+            {!user?.memberId && <div className="border border-line bg-surface p-6">
               <h3 className="font-display text-headline-md text-green">{t('public.member.help.title')}</h3>
               <p className="mt-2 text-body-md text-ink-variant">{t('public.member.help.description')}</p>
               <ArrowLink to="/contact" tone="goldInk" className="mt-4">
                 {t('public.member.help.cta')}
               </ArrowLink>
-            </div>
+            </div>}
           </aside>
 
-          <div className="border border-line bg-surface p-8">
+          {!user?.memberId && <div className="border border-line bg-surface p-8">
             <p className="text-label-md uppercase text-red-link">{t('public.member.form.label')}</p>
             <h2 className="mt-3 font-display text-headline-lg text-green">{t('public.member.form.title')}</h2>
             <p className="mt-3 text-body-md text-ink-variant">{t('public.member.form.intro')}</p>
@@ -389,7 +393,7 @@ const EspaceMembrePage = () => {
 
               <p className="text-body-md text-ink-variant">{t('public.member.form.consent')}</p>
             </form>
-          </div>
+          </div>}
         </div>
       </section>
 
