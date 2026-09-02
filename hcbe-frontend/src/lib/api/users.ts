@@ -19,6 +19,9 @@ export const usersApi = {
   createAdminUser: (data: CreateAdminUserRequest): Promise<ApiResponse<AdminUser>> =>
     apiClient.post<AdminUser>('/api/users/admin', data),
 
+  promoteMember: (memberId: string): Promise<ApiResponse<AdminUser>> =>
+    apiClient.post<AdminUser>(`/api/users/admin/promote-member/${memberId}`, {}),
+
   updateAdminUser: (id: string, data: UpdateAdminUserRequest): Promise<ApiResponse<AdminUser>> =>
     apiClient.put<AdminUser>(`/api/users/admin/${id}`, data),
 

@@ -61,6 +61,20 @@ public sealed class EmailTemplateRenderer(IConfiguration configuration) : IEmail
             Layout("Votre accès administrateur HCBE Canada est prêt.", "Bienvenue dans l’équipe", "Votre accès au centre de gestion", body, "Activer mon compte", adminLoginUrl, securityNotice: true));
     }
 
+    public RenderedEmail AdminPromotion(string? firstName, string adminLoginUrl)
+    {
+        var name = GreetingName(firstName);
+        var body = $"""
+            <p style="margin:0 0 18px;font-size:16px;line-height:1.75;color:{Ink};">Bonjour {name}, votre compte membre HCBE Canada dispose maintenant d’un accès administrateur.</p>
+            {Callout("Nouvelles responsabilités", "Vous pouvez désormais accéder au centre de gestion pour administrer les contenus et les activités de la plateforme. Votre accès membre reste disponible avec le même compte.")}
+            {Steps(("01", "Reconnectez-vous", "Déconnectez-vous de votre session actuelle, puis reconnectez-vous afin d’activer vos nouvelles permissions."), ("02", "Ouvrez l’administration", "Utilisez votre compte Google ou vos identifiants habituels sur la page de connexion administrateur."), ("03", "Protégez les données", "N’accordez un accès administrateur qu’aux personnes autorisées par le HCBE Canada."))}
+            <p style="margin:22px 0 0;font-size:13px;line-height:1.65;color:{Muted};">Your member account now has administrator access. Sign in again with your usual account to activate the new permissions.</p>
+            """;
+        return new RenderedEmail(
+            "[HCBE Canada] Accès administrateur accordé / Administrator access granted",
+            Layout("Votre compte dispose maintenant d’un accès administrateur.", "Accès accordé", "Bienvenue dans l’équipe d’administration", body, "Accéder à l’administration", adminLoginUrl, securityNotice: true));
+    }
+
     public RenderedEmail PasswordReset(string? firstName, string resetUrl, int expiresInMinutes)
     {
         var name = GreetingName(firstName);

@@ -68,6 +68,25 @@ public static class UserEndpoints
         .Produces(403)
         .Produces(400);
 
+        group.MapPost("/admin/promote-member/{memberId:guid}", async (
+            Guid memberId,
+            HttpContext context,
+            IUserAdminService userAdminService) =>
+        {
+            if (!context.IsAdmin())
+            {
+                return Results.Forbid();
+            }
+
+            var response = await userAdminService.PromoteMemberAsync(memberId);
+            return response.HandleServiceResponse();
+        })
+        .WithName("PromoteMemberToAdmin")
+        .Produces<ApiResponse<AdminUserDto>>()
+        .Produces(403)
+        .Produces(404)
+        .Produces(400);
+
         group.MapPut("/admin/{id:guid}", async (Guid id, UpdateAdminUserRequest request, HttpContext context, IUserAdminService userAdminService) =>
         {
             if (!context.IsAdmin())

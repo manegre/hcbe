@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { membersApi } from '../../../../lib/api/members';
+import { usersApi } from '../../../../lib/api/users';
 import type { MemberDto } from '../../../../lib/api/types';
 import { AdminDetailLayout, DetailList, DetailRow } from '../../../../components/admin/AdminDetailLayout';
 import { Button, EmptyState } from '../../../../components/ui';
@@ -13,6 +14,9 @@ const MemberViewPage: React.FC = () => {
   const [member, setMember] = useState<MemberDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [promoting, setPromoting] = useState(false);
+  const [promotionMessage, setPromotionMessage] = useState<string | null>(null);
+  const [promotionError, setPromotionError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadMember = async () => {
@@ -50,6 +54,29 @@ const MemberViewPage: React.FC = () => {
       }
     } catch (err) {
       console.error('Error deleting member:', err);
+    }
+  };
+
+  const handlePromote = async () => {
+    if (!id || !member || member.isAdmin) return;
+    if (!window.confirm(t('admin.members.confirmPromote', { name: `${member.firstName} ${member.lastName}` }))) return;
+
+    try {
+      setPromoting(true);
+      setPromotionError(null);
+      setPromotionMessage(null);
+      const response = await usersApi.promoteMember(id);
+      if (response.success && response.data) {
+        setMember((current) => current ? { ...current, isAdmin: true } : current);
+        setPromotionMessage(t('admin.members.promoteSuccess', { email: member.email }));
+      } else {
+        setPromotionError(response.message || t('admin.members.promoteError'));
+      }
+    } catch (err) {
+      console.error('Error promoting member:', err);
+      setPromotionError(t('admin.members.promoteError'));
+    } finally {
+      setPromoting(false);
     }
   };
 
@@ -94,6 +121,12 @@ const MemberViewPage: React.FC = () => {
       backPath="/admin/members"
       actions={
         <>
+          {!member.isAdmin && (
+            <Button variant="primary" onClick={handlePromote} disabled={promoting}>
+              <i className="ri-shield-user-line text-base" aria-hidden="true" />
+              {promoting ? t('admin.members.promoting') : t('admin.members.promote')}
+            </Button>
+          )}
           <Button to={`/admin/members/${member.id}/edit`} variant="secondary">
             {t('admin.common.edit')}
           </Button>
@@ -103,11 +136,41 @@ const MemberViewPage: React.FC = () => {
         </>
       }
       main={
-        <DetailList>
-          {fields.map((field) => (
-            <DetailRow key={field.label} label={field.label} value={field.value || t('admin.common.na')} />
-          ))}
-        </DetailList>
+        <>
+          <div className={`flex flex-wrap items-center justify-between gap-4 rounded-xl border px-4 py-4 sm:px-5 ${member.isAdmin ? 'border-green/25 bg-green/[0.055]' : 'border-gold/35 bg-gold/[0.07]'}`}>
+            <div className="flex items-start gap-3">
+              <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${member.isAdmin ? 'bg-green text-gold' : 'bg-gold text-green-deep'}`}>
+                <i className={`${member.isAdmin ? 'ri-shield-check-line' : 'ri-user-line'} text-lg`} aria-hidden="true" />
+              </span>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-ink-variant">{t('admin.members.accessLevel')}</p>
+                <p className="mt-1 font-display text-xl font-bold text-green-deep">
+                  {member.isAdmin ? t('admin.members.adminAccess') : t('admin.members.memberAccess')}
+                </p>
+                <p className="mt-1 max-w-2xl text-sm leading-5 text-ink-variant">
+                  {member.isAdmin ? t('admin.members.adminAccessHint') : t('admin.members.promoteHint')}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {promotionMessage && (
+            <div role="status" className="mt-4 border-l-4 border-green bg-green/[0.06] px-4 py-3 text-sm text-green-deep">
+              {promotionMessage}
+            </div>
+          )}
+          {promotionError && (
+            <div role="alert" className="mt-4 border-l-4 border-error bg-error/[0.06] px-4 py-3 text-sm text-error-deep">
+              {promotionError}
+            </div>
+          )}
+
+          <DetailList>
+            {fields.map((field) => (
+              <DetailRow key={field.label} label={field.label} value={field.value || t('admin.common.na')} />
+            ))}
+          </DetailList>
+        </>
       }
     />
   );

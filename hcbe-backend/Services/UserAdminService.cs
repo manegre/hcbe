@@ -128,6 +128,76 @@ public class UserAdminService : IUserAdminService
         }
     }
 
+    public async Task<ApiResponse<AdminUserDto>> PromoteMemberAsync(Guid memberId)
+    {
+        try
+        {
+            var member = await _context.Members.FindAsync(memberId);
+            if (member is null)
+            {
+                return ApiResponse<AdminUserDto>.ErrorResponse("Member not found");
+            }
+
+            var email = member.Email.Trim().ToLowerInvariant();
+            var user = await _context.Users.FirstOrDefaultAsync(item =>
+                item.MemberId == memberId || item.Email.ToLower() == email);
+
+            if (user is not null && user.MemberId.HasValue && user.MemberId.Value != memberId)
+            {
+                return ApiResponse<AdminUserDto>.ErrorResponse("This account is already linked to another member");
+            }
+
+            if (user?.IsAdmin == true && member.IsAdmin)
+            {
+                return ApiResponse<AdminUserDto>.SuccessResponse(MapToDto(user));
+            }
+
+            var publicUrl = (_configuration["PublicAppUrl"] ?? "http://localhost:3000").TrimEnd('/');
+            if (user is null)
+            {
+                var temporaryPassword = PasswordPolicy.GenerateTemporaryPassword();
+                user = new User
+                {
+                    Email = email,
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(temporaryPassword),
+                    FirstName = member.FirstName,
+                    LastName = member.LastName,
+                    IsAdmin = true,
+                    MustChangePassword = true,
+                    MemberId = member.Id,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.Users.Add(user);
+
+                var welcome = _emailTemplates.AdminWelcome(
+                    user.FirstName,
+                    user.Email,
+                    temporaryPassword,
+                    $"{publicUrl}/admin/login");
+                _emailOutbox.Enqueue(user.Email, welcome.Subject, welcome.HtmlBody, nameof(User), user.Id);
+            }
+            else
+            {
+                user.IsAdmin = true;
+                user.MemberId = member.Id;
+
+                var promotion = _emailTemplates.AdminPromotion(user.FirstName ?? member.FirstName, $"{publicUrl}/admin/login");
+                _emailOutbox.Enqueue(user.Email, promotion.Subject, promotion.HtmlBody, nameof(User), user.Id);
+            }
+
+            member.IsAdmin = true;
+            await _context.SaveChangesAsync();
+
+            return ApiResponse<AdminUserDto>.SuccessResponse(MapToDto(user));
+        }
+        catch (Exception ex)
+        {
+            return ApiResponse<AdminUserDto>.ErrorResponse(
+                "Failed to promote member",
+                new List<string> { ex.Message });
+        }
+    }
+
     public async Task<ApiResponse<AdminUserDto>> UpdateAsync(Guid id, UpdateAdminUserRequest request, Guid currentUserId)
     {
         try
@@ -152,6 +222,10 @@ public class UserAdminService : IUserAdminService
                 }
 
                 user.IsAdmin = false;
+                var member = user.MemberId.HasValue
+                    ? await _context.Members.FindAsync(user.MemberId.Value)
+                    : await _context.Members.FirstOrDefaultAsync(item => item.Email.ToLower() == user.Email.ToLower());
+                if (member is not null) member.IsAdmin = false;
             }
 
             if (request.FirstName != null) user.FirstName = string.IsNullOrWhiteSpace(request.FirstName) ? null : request.FirstName.Trim();
@@ -193,6 +267,11 @@ public class UserAdminService : IUserAdminService
             {
                 return ApiResponse<bool>.ErrorResponse("Cannot delete the last admin user");
             }
+
+            var member = user.MemberId.HasValue
+                ? await _context.Members.FindAsync(user.MemberId.Value)
+                : await _context.Members.FirstOrDefaultAsync(item => item.Email.ToLower() == user.Email.ToLower());
+            if (member is not null) member.IsAdmin = false;
 
             _context.Users.Remove(user);
             await _context.SaveChangesAsync();
