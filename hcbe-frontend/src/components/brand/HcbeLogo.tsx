@@ -1,32 +1,38 @@
+import canadaFlag from '../../assets/flags/canada.png';
+
 type HcbeLogoSize = 'sm' | 'md' | 'lg';
 
 const wordmarkSize: Record<HcbeLogoSize, string> = {
-  sm: 'text-base',
-  md: 'text-xl',
-  lg: 'text-2xl',
+  sm: 'text-[15px]',
+  md: 'text-[19px]',
+  lg: 'text-[23px]',
 };
 
-const flagSize: Record<HcbeLogoSize, string> = {
+const burkinaFlagSize: Record<HcbeLogoSize, string> = {
   sm: 'h-4 w-6',
-  md: 'h-5 w-8',
+  md: 'h-5 w-[30px]',
   lg: 'h-6 w-9',
 };
 
+const canadaFlagSize: Record<HcbeLogoSize, string> = {
+  sm: 'h-4 w-8',
+  md: 'h-5 w-10',
+  lg: 'h-6 w-12',
+};
+
 const BurkinaFlag = ({ className }: { className: string }) => (
-  <svg viewBox="0 0 24 16" className={className} aria-hidden="true">
-    <rect width="24" height="8" fill="#EF3340" />
-    <rect y="8" width="24" height="8" fill="#14532D" />
-    <path d="M12 4.4l1.1 2.8 3 .2-2.3 1.9.8 2.9L12 10.5 9.4 12.2l.8-2.9L7.9 7.4l3-.2z" fill="#FFCD00" />
+  <svg viewBox="0 0 36 24" className={className} aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <rect width="36" height="12" fill="#EF2B2D" />
+    <rect y="12" width="36" height="12" fill="#009E49" />
+    <polygon
+      points="18,7.2 19.3,11.2 23.5,11.2 20.1,13.7 21.4,17.7 18,15.2 14.6,17.7 15.9,13.7 12.5,11.2 16.7,11.2"
+      fill="#FCD116"
+    />
   </svg>
 );
 
 const CanadaFlag = ({ className }: { className: string }) => (
-  <svg viewBox="0 0 24 16" className={className} aria-hidden="true">
-    <rect width="24" height="16" fill="#FFFFFF" />
-    <rect width="6" height="16" fill="#D52B1E" />
-    <rect x="18" width="6" height="16" fill="#D52B1E" />
-    <path d="M12 4l1.1 2.6 2.2-.7-1 2.4 1.5 1.1-2 .5.2 2-2-1.4-2 1.4.2-2-2-.5 1.5-1.1-1-2.4 2.2.7z" fill="#D52B1E" />
-  </svg>
+  <img src={canadaFlag} alt="" aria-hidden="true" className={`object-cover ${className}`} />
 );
 
 interface HcbeLogoMarkProps {
@@ -36,14 +42,18 @@ interface HcbeLogoMarkProps {
 }
 
 export const HcbeLogoMark = ({ size = 'md', tone = 'light', className = '' }: HcbeLogoMarkProps) => (
-  <span className={`inline-flex shrink-0 items-center gap-2 ${className}`}>
-    <BurkinaFlag className={flagSize[size]} />
-    <span className={`font-sans font-bold ${wordmarkSize[size]}`}>
-      <span className={tone === 'dark' ? 'text-white' : 'text-green'}>HC</span>
-      <span className="text-gold">BE</span>
-      <span className="ml-1 text-red">Canada</span>
+  <span className={`inline-flex shrink-0 items-center gap-2.5 ${className}`}>
+    <span className="overflow-hidden rounded-[3px] shadow-[0_1px_3px_rgba(0,0,0,.14)] ring-1 ring-black/10">
+      <BurkinaFlag className={`${burkinaFlagSize[size]} block`} />
     </span>
-    <CanadaFlag className={flagSize[size]} />
+    <span className={`inline-flex items-baseline whitespace-nowrap font-sans font-bold leading-none ${wordmarkSize[size]}`}>
+      <span className={`tracking-[-0.035em] ${tone === 'dark' ? 'text-white' : 'text-green-deep'}`}>HCBE</span>
+      <span className="mx-1.5 self-center text-[0.52em] text-gold" aria-hidden="true">◆</span>
+      <span className={`tracking-[-0.025em] ${tone === 'dark' ? 'text-white/90' : 'text-red-link'}`}>Canada</span>
+    </span>
+    <span className="overflow-hidden rounded-[3px] shadow-[0_1px_3px_rgba(0,0,0,.14)] ring-1 ring-black/10">
+      <CanadaFlag className={`${canadaFlagSize[size]} block`} />
+    </span>
   </span>
 );
 
