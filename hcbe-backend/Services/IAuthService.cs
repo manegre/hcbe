@@ -22,6 +22,7 @@ public interface IAuthService
         string? ipAddress);
     Task<AuthSession?> RotateRefreshTokenAsync(string refreshToken, string? ipAddress);
     Task RevokeRefreshTokenAsync(string refreshToken, string? ipAddress);
+    Task<User?> CompleteRequiredPasswordChangeAsync(Guid userId, string password);
     string CreateToken(User user);
 }
 

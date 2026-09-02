@@ -32,6 +32,7 @@ const SouvenirsPage = lazy(() => import('../pages/actualites/souvenirs/page'));
 
 // Admin Pages
 const AdminLoginPage = lazy(() => import('../pages/admin/login/page').then(module => ({ default: module.AdminLoginPage })));
+const RequiredPasswordChangePage = lazy(() => import('../pages/admin/change-password/page'));
 const AdminDashboard = lazy(() => import('../pages/admin/dashboard/page').then(module => ({ default: module.AdminDashboard })));
 const AdminEventsList = lazy(() => import('../pages/admin/events/page').then(module => ({ default: module.AdminEventsList })));
 const CreateEventPage = lazy(() => import('../pages/admin/events/create/page').then(module => ({ default: module.CreateEventPage })));
@@ -181,6 +182,10 @@ const routes: RouteObject[] = [
   {
     path: '/admin/login',
     element: <AdminLoginPage />,
+  },
+  {
+    path: '/admin/change-password',
+    element: <ProtectedRoute requireAdmin={false}><RequiredPasswordChangePage /></ProtectedRoute>,
   },
   {
     path: '/admin',

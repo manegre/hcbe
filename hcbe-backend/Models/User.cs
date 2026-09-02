@@ -9,6 +9,7 @@ public class User
     public string? LastName { get; set; }
     public bool IsAdmin { get; set; } = false;
     public bool IsActive { get; set; } = true;
+    public bool MustChangePassword { get; set; }
     public Guid? MemberId { get; set; }
     public Member? Member { get; set; }
     public int FailedLoginAttempts { get; set; }

@@ -239,6 +239,52 @@ public class AuthServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task AdminLogin_ProvisionsMemberAccessForExistingAdministrator()
+    {
+        const string password = "ExistingAdmin!2026";
+        var admin = new User
+        {
+            Email = "legacy.admin@example.com",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
+            FirstName = "Legacy",
+            LastName = "Admin",
+            IsAdmin = true
+        };
+        _context.Users.Add(admin);
+        await _context.SaveChangesAsync();
+
+        var session = await _service.CreateSessionAsync(admin.Email, password, "127.0.0.1");
+
+        session.Should().NotBeNull();
+        session!.User.MemberId.Should().NotBeNull();
+        var member = await _context.Members.SingleAsync();
+        member.Id.Should().Be(session.User.MemberId!.Value);
+        member.IsAdmin.Should().BeTrue();
+        member.Email.Should().Be(admin.Email);
+    }
+
+    [Fact]
+    public async Task CompleteRequiredPasswordChangeAsync_ActivatesInvitedAdministrator()
+    {
+        var admin = new User
+        {
+            Email = "invited.admin@example.com",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("Temporary!2026Access"),
+            IsAdmin = true,
+            MustChangePassword = true
+        };
+        _context.Users.Add(admin);
+        await _context.SaveChangesAsync();
+
+        var updated = await _service.CompleteRequiredPasswordChangeAsync(admin.Id, "Permanent!2026Access");
+
+        updated.Should().NotBeNull();
+        updated!.MustChangePassword.Should().BeFalse();
+        updated.MemberId.Should().NotBeNull();
+        BCrypt.Net.BCrypt.Verify("Permanent!2026Access", updated.PasswordHash).Should().BeTrue();
+    }
+
+    [Fact]
     public async Task CreateOrLinkMemberExternalSessionAsync_CreatesAccountForApprovedMember()
     {
         var member = new Member

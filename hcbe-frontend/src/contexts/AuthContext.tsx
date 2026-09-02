@@ -10,6 +10,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
   googleAdminLogin: (credential: string) => Promise<{ success: boolean; message?: string }>;
   googleMemberLogin: (credential: string) => Promise<{ success: boolean; message?: string }>;
+  completeRequiredPasswordChange: (password: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
   checkAuth: () => Promise<void>;
 }
@@ -97,6 +98,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const completeRequiredPasswordChange = async (password: string) => {
+    try {
+      const response = await authApi.completeRequiredPasswordChange(password);
+      if (response.success && response.data) {
+        localStorage.setItem('hcbe_user', JSON.stringify(response.data));
+        setUser(response.data);
+        return { success: true };
+      }
+      return { success: false, message: response.message || 'Password change failed' };
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Password change failed',
+      };
+    }
+  };
+
   const logout = () => {
     authApi.logout();
     setUser(null);
@@ -153,6 +171,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login,
     googleAdminLogin,
     googleMemberLogin,
+    completeRequiredPasswordChange,
     logout,
     checkAuth
   };

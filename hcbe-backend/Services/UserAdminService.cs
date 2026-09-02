@@ -8,10 +8,20 @@ namespace HcbeApi.Services;
 public class UserAdminService : IUserAdminService
 {
     private readonly ApplicationDbContext _context;
+    private readonly IEmailOutbox _emailOutbox;
+    private readonly IEmailTemplateRenderer _emailTemplates;
+    private readonly IConfiguration _configuration;
 
-    public UserAdminService(ApplicationDbContext context)
+    public UserAdminService(
+        ApplicationDbContext context,
+        IEmailOutbox emailOutbox,
+        IEmailTemplateRenderer emailTemplates,
+        IConfiguration configuration)
     {
         _context = context;
+        _emailOutbox = emailOutbox;
+        _emailTemplates = emailTemplates;
+        _configuration = configuration;
     }
 
     public async Task<ApiResponse<List<AdminUserDto>>> GetAdminUsersAsync()
@@ -57,6 +67,11 @@ public class UserAdminService : IUserAdminService
     {
         try
         {
+            if (!PasswordPolicy.IsStrong(request.Password))
+            {
+                return ApiResponse<AdminUserDto>.ErrorResponse(PasswordPolicy.ValidationMessage);
+            }
+
             var email = request.Email.Trim().ToLowerInvariant();
             if (await _context.Users.AnyAsync(u => u.Email.ToLower() == email))
             {
@@ -65,15 +80,42 @@ public class UserAdminService : IUserAdminService
 
             var user = new User
             {
-                Email = request.Email.Trim(),
+                Email = email,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
                 FirstName = request.FirstName?.Trim(),
                 LastName = request.LastName?.Trim(),
                 IsAdmin = true,
+                MustChangePassword = true,
                 CreatedAt = DateTime.UtcNow,
             };
 
+            var member = await _context.Members.FirstOrDefaultAsync(item => item.Email.ToLower() == email);
+            if (member is null)
+            {
+                member = new Member
+                {
+                    Email = email,
+                    FirstName = string.IsNullOrWhiteSpace(user.FirstName) ? email.Split('@', 2)[0] : user.FirstName,
+                    LastName = user.LastName ?? string.Empty,
+                    IsAdmin = true
+                };
+                _context.Members.Add(member);
+            }
+            else
+            {
+                member.IsAdmin = true;
+            }
+
+            user.MemberId = member.Id;
+
             _context.Users.Add(user);
+            var publicUrl = (_configuration["PublicAppUrl"] ?? "http://localhost:3000").TrimEnd('/');
+            var welcome = _emailTemplates.AdminWelcome(
+                user.FirstName,
+                user.Email,
+                request.Password,
+                $"{publicUrl}/admin/login");
+            _emailOutbox.Enqueue(user.Email, welcome.Subject, welcome.HtmlBody, nameof(User), user.Id);
             await _context.SaveChangesAsync();
 
             return ApiResponse<AdminUserDto>.SuccessResponse(MapToDto(user));
@@ -166,5 +208,6 @@ public class UserAdminService : IUserAdminService
     }
 
     private static AdminUserDto MapToDto(User user) =>
-        new(user.Id, user.Email, user.FirstName, user.LastName, user.IsAdmin, user.CreatedAt);
+        new(user.Id, user.Email, user.FirstName, user.LastName, user.IsAdmin,
+            user.MustChangePassword, user.MemberId, user.CreatedAt);
 }

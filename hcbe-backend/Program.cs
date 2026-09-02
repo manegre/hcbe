@@ -1235,6 +1235,7 @@ static void EnsureSqliteSecuritySchema(ApplicationDbContext context)
     try { context.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN LockoutEndUtc TEXT"); } catch { }
     try { context.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN LastLoginAtUtc TEXT"); } catch { }
     try { context.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN IsActive INTEGER NOT NULL DEFAULT 1"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN MustChangePassword INTEGER NOT NULL DEFAULT 0"); } catch { }
     try { context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_Users_Email ON Users(Email)"); } catch { }
 
     context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS RefreshTokens (

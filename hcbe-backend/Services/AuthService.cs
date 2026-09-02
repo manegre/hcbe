@@ -90,6 +90,7 @@ public class AuthService : IAuthService
         user.FailedLoginAttempts = 0;
         user.LockoutEndUtc = null;
         user.LastLoginAtUtc = now;
+        await EnsureAdminMemberProfileAsync(user);
         await _context.SaveChangesAsync();
 
         // Generate JWT token
@@ -132,6 +133,7 @@ public class AuthService : IAuthService
         user.FailedLoginAttempts = 0;
         user.LockoutEndUtc = null;
         user.LastLoginAtUtc = DateTime.UtcNow;
+        await EnsureAdminMemberProfileAsync(user);
 
         return await CreateRefreshSessionAsync(user, CreateToken(user), ipAddress);
     }
@@ -160,7 +162,7 @@ public class AuthService : IAuthService
                 Email = normalizedEmail,
                 FirstName = string.IsNullOrWhiteSpace(firstName) ? fallbackName : firstName.Trim(),
                 LastName = string.IsNullOrWhiteSpace(lastName) ? string.Empty : lastName.Trim(),
-                IsAdmin = false
+                IsAdmin = user?.IsAdmin == true
             };
             _context.Members.Add(member);
         }
@@ -204,6 +206,7 @@ public class AuthService : IAuthService
         user.FailedLoginAttempts = 0;
         user.LockoutEndUtc = null;
         user.LastLoginAtUtc = DateTime.UtcNow;
+        member.IsAdmin = user.IsAdmin;
 
         if (createdUser && _emailOutbox is not null && _emailTemplates is not null)
         {
@@ -293,12 +296,63 @@ public class AuthService : IAuthService
 
     public async Task<User?> GetUserByIdAsync(Guid userId)
     {
-        return await _context.Users.FindAsync(userId);
+        var user = await _context.Users.FindAsync(userId);
+        if (user is null) return null;
+        await EnsureAdminMemberProfileAsync(user);
+        await _context.SaveChangesAsync();
+        return user;
     }
 
     public async Task<User?> GetUserByEmailAsync(string email)
     {
         return await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+    }
+
+    public async Task<User?> CompleteRequiredPasswordChangeAsync(Guid userId, string password)
+    {
+        var user = await _context.Users.FindAsync(userId);
+        if (user is null || !user.IsActive || !user.MustChangePassword) return null;
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(password);
+        user.MustChangePassword = false;
+        user.FailedLoginAttempts = 0;
+        user.LockoutEndUtc = null;
+        await EnsureAdminMemberProfileAsync(user);
+        await _context.SaveChangesAsync();
+        return user;
+    }
+
+    private async Task EnsureAdminMemberProfileAsync(User user)
+    {
+        if (!user.IsAdmin) return;
+
+        Member? member = null;
+        if (user.MemberId.HasValue)
+        {
+            member = await _context.Members.FindAsync(user.MemberId.Value);
+        }
+
+        member ??= await _context.Members
+            .FirstOrDefaultAsync(item => item.Email.ToLower() == user.Email.ToLower());
+
+        if (member is null)
+        {
+            var fallbackName = user.Email.Split('@', 2)[0];
+            member = new Member
+            {
+                Email = user.Email.Trim().ToLowerInvariant(),
+                FirstName = string.IsNullOrWhiteSpace(user.FirstName) ? fallbackName : user.FirstName.Trim(),
+                LastName = user.LastName?.Trim() ?? string.Empty,
+                IsAdmin = true
+            };
+            _context.Members.Add(member);
+        }
+        else
+        {
+            member.IsAdmin = true;
+        }
+
+        user.MemberId = member.Id;
     }
 
     public string CreateToken(User user) => GenerateJwtToken(user);

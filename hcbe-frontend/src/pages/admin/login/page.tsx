@@ -55,6 +55,11 @@ export const AdminLoginPage = () => {
       return;
     }
 
+    if (loggedInUser.mustChangePassword) {
+      navigate('/admin/change-password', { replace: true });
+      return;
+    }
+
     navigate(from, { replace: true });
   };
 

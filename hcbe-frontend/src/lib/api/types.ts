@@ -6,6 +6,7 @@ export interface User {
   lastName?: string;
   isAdmin: boolean;
   memberId?: string;
+  mustChangePassword: boolean;
 }
 
 export interface AuthResponse {
@@ -38,6 +39,8 @@ export interface AdminUser {
   firstName?: string;
   lastName?: string;
   isAdmin: boolean;
+  mustChangePassword: boolean;
+  memberId?: string;
   createdAt: string;
 }
 

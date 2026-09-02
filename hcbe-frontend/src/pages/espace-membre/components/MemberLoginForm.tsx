@@ -8,6 +8,7 @@ import { authApi } from '../../../lib/api/auth';
 import MemberCommunityWorkspace from './MemberCommunityWorkspace';
 import { GoogleSignInButton } from '../../../components/auth/GoogleSignInButton';
 import { memberProfessionalDomains, memberProvinces } from '../memberProfileOptions';
+import { useNavigate } from 'react-router-dom';
 
 const isMemberProfileComplete = (member: MemberDto) => [
   member.firstName,
@@ -25,6 +26,7 @@ interface MemberLoginFormProps {
 
 const MemberLoginForm = ({ mode = 'login', embedded = false }: MemberLoginFormProps) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { user, login, googleMemberLogin, logout } = useAuth();
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [member, setMember] = useState<MemberDto | null>(null);
@@ -78,6 +80,8 @@ const MemberLoginForm = ({ mode = 'login', embedded = false }: MemberLoginFormPr
     const storedUser = JSON.parse(localStorage.getItem('hcbe_user') || 'null');
     if (!result.success) {
       setStatus(result.message || t('public.member.login.error'));
+    } else if (storedUser?.mustChangePassword) {
+      navigate('/admin/change-password');
     } else if (!storedUser?.memberId) {
       logout();
       setStatus(t('public.member.login.notMember'));
@@ -98,9 +102,12 @@ const MemberLoginForm = ({ mode = 'login', embedded = false }: MemberLoginFormPr
             ? t('public.member.login.googleUnavailable')
             : t('public.member.login.googleError'),
       );
+    } else {
+      const authenticatedUser = JSON.parse(localStorage.getItem('hcbe_user') || 'null');
+      if (authenticatedUser?.mustChangePassword) navigate('/admin/change-password');
     }
     setSubmitting(false);
-  }, [googleMemberLogin, t]);
+  }, [googleMemberLogin, navigate, t]);
 
   const handleGoogleUnavailable = useCallback(() => {
     setStatus(t('public.member.login.googleUnavailable'));

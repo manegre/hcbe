@@ -19,23 +19,28 @@ public record RequestPasswordResetRequest([Required] [EmailAddress] string Email
 public record ConfirmPasswordResetRequest(
     [Required] string Token,
     [Required] [MinLength(8)] string Password);
+public record ChangeRequiredPasswordRequest(
+    [Required] [MinLength(12)] string Password);
 
 public record AuthResponse(string Token, UserDto User);
 
 public sealed record AuthSession(string AccessToken, string RefreshToken, DateTime RefreshTokenExpiresAtUtc, User User);
 
-public record UserDto(Guid Id, string Email, string? FirstName, string? LastName, bool IsAdmin, Guid? MemberId);
+public record UserDto(
+    Guid Id, string Email, string? FirstName, string? LastName, bool IsAdmin,
+    Guid? MemberId, bool MustChangePassword);
 
 public record PrivacyRequestDto(
     Guid Id, string Type, string Status, DateTime RequestedAtUtc, DateTime ExecuteAfterUtc,
     DateTime? CancelledAtUtc, DateTime? CompletedAtUtc);
 
 public record AdminUserDto(
-    Guid Id, string Email, string? FirstName, string? LastName, bool IsAdmin, DateTime CreatedAt);
+    Guid Id, string Email, string? FirstName, string? LastName, bool IsAdmin,
+    bool MustChangePassword, Guid? MemberId, DateTime CreatedAt);
 
 public record CreateAdminUserRequest(
     [Required][EmailAddress] string Email,
-    [Required][MinLength(6)] string Password,
+    [Required][MinLength(12)] string Password,
     string? FirstName,
     string? LastName);
 

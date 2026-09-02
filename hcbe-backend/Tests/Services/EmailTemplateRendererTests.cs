@@ -52,4 +52,20 @@ public sealed class EmailTemplateRendererTests
         email.HtmlBody.Should().Contain("never ask for your password");
         email.HtmlBody.Should().Contain("resetToken=ABC");
     }
+
+    [Fact]
+    public void AdminWelcome_IncludesTemporaryAccessAndBothDestinations()
+    {
+        var email = _renderer.AdminWelcome(
+            "Awa",
+            "awa@example.com",
+            "Temporary!2026Access",
+            "https://hcbe.ca/admin/login");
+
+        email.Subject.Should().Contain("Administrator access");
+        email.HtmlBody.Should().Contain("awa@example.com");
+        email.HtmlBody.Should().Contain("Temporary!2026Access");
+        email.HtmlBody.Should().Contain("https://hcbe.ca/admin/login");
+        email.HtmlBody.Should().Contain("espace membre");
+    }
 }

@@ -70,6 +70,7 @@ const AdminUsersPage: React.FC = () => {
       columns={[
         { key: 'user', label: t('admin.users.colUser') },
         { key: 'email', label: t('admin.common.email') },
+        { key: 'status', label: t('admin.users.status') },
         { key: 'date', label: t('admin.common.date') },
         { key: 'actions', label: t('admin.common.actions'), align: 'right' },
       ]}
@@ -90,6 +91,12 @@ const AdminUsersPage: React.FC = () => {
             </div>
           </Td>
           <Td>{user.email}</Td>
+          <Td>
+            <Tag className={user.mustChangePassword ? 'border-gold/60 bg-gold/10 text-gold-ink' : 'border-green/25 bg-green/5 text-green'}>
+              <span className={`mr-2 h-1.5 w-1.5 rounded-full ${user.mustChangePassword ? 'bg-gold' : 'bg-green'}`} />
+              {t(user.mustChangePassword ? 'admin.users.pendingActivation' : 'admin.users.active')}
+            </Tag>
+          </Td>
           <Td>{new Date(user.createdAt).toLocaleDateString()}</Td>
           <Td align="right">
             <div className="inline-flex items-center justify-end gap-1">

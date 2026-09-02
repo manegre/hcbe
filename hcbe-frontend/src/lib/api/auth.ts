@@ -31,6 +31,10 @@ export const authApi = {
     return apiClient.post<void>('/api/auth/password-reset/confirm', { token, password }, false);
   },
 
+  async completeRequiredPasswordChange(password: string): Promise<ApiResponse<User>> {
+    return apiClient.post<User>('/api/auth/password/change-required', { password });
+  },
+
   logout(): void {
     void apiClient.post<void>('/api/auth/logout', undefined, false).catch(() => undefined);
     localStorage.removeItem('hcbe_token');

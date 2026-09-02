@@ -31,7 +31,7 @@ public static class HttpContextExtensions
             return context.User.FindFirst("isAdmin")?.Value?.ToLowerInvariant() == "true";
         }
 
-        return db.Users.AsNoTracking().Any(u => u.Id == userId && u.IsAdmin);
+        return db.Users.AsNoTracking().Any(u => u.Id == userId && u.IsAdmin && !u.MustChangePassword);
     }
 
     public static IResult ForbidIfNotAdmin(this HttpContext context)

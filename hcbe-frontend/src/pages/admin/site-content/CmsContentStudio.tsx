@@ -17,6 +17,7 @@ interface CatalogEntry {
   section: string;
   contentType: CmsContentType;
   label: string;
+  labelEn?: string;
   fallbackFr: string;
   fallbackEn: string;
 }
@@ -41,6 +42,7 @@ const extraCatalog: CatalogEntry[] = [
     section: 'hero',
     contentType: 'image' as const,
     label: `Image ${index + 1} du carrousel`,
+    labelEn: `Carousel image ${index + 1}`,
     fallbackFr: '',
     fallbackEn: '',
   })),
@@ -50,20 +52,23 @@ const extraCatalog: CatalogEntry[] = [
     section: 'zones',
     contentType: 'image' as const,
     label: `Portrait ${person.replace('.', ' · ')}`,
+    labelEn: `Portrait ${person.replace('.', ' · ')}`,
     fallbackFr: '',
     fallbackEn: '',
   })),
   {
     key: 'seo.global.title', page: 'global', section: 'seo', contentType: 'seo', label: 'Titre général du site',
+    labelEn: 'Website title',
     fallbackFr: "HCBE Canada — Haut Conseil des Burkinabè de l'Extérieur", fallbackEn: 'HCBE Canada — High Council of Burkinabè Abroad',
   },
   {
     key: 'seo.global.description', page: 'global', section: 'seo', contentType: 'seo', label: 'Description générale du site',
+    labelEn: 'Website description',
     fallbackFr: 'Services, actualités et communauté des Burkinabè au Canada.', fallbackEn: 'Services, news and community for Burkinabè people in Canada.',
   },
   ...['home', 'services', 'news', 'engagement', 'contact', 'member'].flatMap((page) => [
-    { key: `seo.${page}.title`, page, section: 'seo', contentType: 'seo' as const, label: `SEO · ${page} · titre`, fallbackFr: '', fallbackEn: '' },
-    { key: `seo.${page}.description`, page, section: 'seo', contentType: 'seo' as const, label: `SEO · ${page} · description`, fallbackFr: '', fallbackEn: '' },
+    { key: `seo.${page}.title`, page, section: 'seo', contentType: 'seo' as const, label: `SEO · ${page} · titre`, labelEn: `SEO · ${page} · title`, fallbackFr: '', fallbackEn: '' },
+    { key: `seo.${page}.description`, page, section: 'seo', contentType: 'seo' as const, label: `SEO · ${page} · description`, labelEn: `SEO · ${page} · description`, fallbackFr: '', fallbackEn: '' },
   ]),
 ];
 
@@ -80,6 +85,7 @@ const inferEntry = (key: string, fallbackFr: string, fallbackEn: string): Catalo
     section,
     contentType: longForm ? 'richtext' : 'text',
     label: segments.slice(2).join(' · ').replace(/([a-z])([A-Z])/g, '$1 $2'),
+    labelEn: segments.slice(2).join(' · ').replace(/([a-z])([A-Z])/g, '$1 $2'),
     fallbackFr,
     fallbackEn,
   };
@@ -91,6 +97,40 @@ const catalog = [
     .map((key) => inferEntry(key, messages.fr.translation[key] || '', messages.en?.translation[key] || '')),
   ...extraCatalog,
 ].sort((left, right) => left.page.localeCompare(right.page) || left.key.localeCompare(right.key));
+
+const catalogByKey = Object.fromEntries(catalog.map((entry) => [entry.key, entry]));
+
+const compactLabel = (value: string, limit = 105) => {
+  const normalized = value.replace(/\s+/g, ' ').trim();
+  if (normalized.length <= limit) return normalized;
+  return `${normalized.slice(0, limit - 1).trimEnd()}…`;
+};
+
+const localizedValue = (entry: CatalogEntry, stored: CmsContentItemDto | undefined, english: boolean) => {
+  if (english) return stored?.draftValueEn ?? stored?.publishedValueEn ?? entry.fallbackEn;
+  return stored?.draftValueFr ?? stored?.publishedValueFr ?? entry.fallbackFr;
+};
+
+const readableEntryLabel = (
+  entry: CatalogEntry,
+  itemByKey: Record<string, CmsContentItemDto>,
+  english: boolean,
+) => {
+  const configuredLabel = english ? entry.labelEn || entry.label : entry.label;
+  if (entry.contentType === 'image' || entry.contentType === 'seo') return configuredLabel;
+
+  if (entry.key.endsWith('.a')) {
+    const questionKey = entry.key.replace(/\.a$/, '.q');
+    const questionEntry = catalogByKey[questionKey];
+    if (questionEntry) {
+      const question = localizedValue(questionEntry, itemByKey[questionKey], english);
+      if (question.trim()) return `${english ? 'Answer' : 'Réponse'} · ${compactLabel(question, 92)}`;
+    }
+  }
+
+  const content = localizedValue(entry, itemByKey[entry.key], english);
+  return compactLabel(content || configuredLabel);
+};
 
 const copy = {
   fr: {
@@ -150,6 +190,7 @@ export const CmsContentStudio = () => {
   const itemByKey = useMemo(() => Object.fromEntries(items.map((item) => [item.key, item])), [items]);
   const selected = catalog.find((entry) => entry.key === selectedKey) || catalog[0];
   const stored = selected ? itemByKey[selected.key] : undefined;
+  const selectedLabel = selected ? readableEntryLabel(selected, itemByKey, english) : '';
 
   useEffect(() => {
     if (!selected) return;
@@ -168,8 +209,8 @@ export const CmsContentStudio = () => {
     const query = search.trim().toLowerCase();
     return catalog.filter((entry) =>
       (page === 'all' || entry.page === page)
-      && (!query || `${entry.key} ${entry.label} ${entry.fallbackFr} ${entry.fallbackEn}`.toLowerCase().includes(query)));
-  }, [page, search]);
+      && (!query || `${entry.key} ${entry.label} ${entry.labelEn || ''} ${entry.fallbackFr} ${entry.fallbackEn} ${readableEntryLabel(entry, itemByKey, english)}`.toLowerCase().includes(query)));
+  }, [english, itemByKey, page, search]);
   const pendingCount = items.filter((item) => item.hasUnpublishedChanges).length;
   const publishedCount = items.filter((item) => item.isPublished).length;
 
@@ -181,7 +222,7 @@ export const CmsContentStudio = () => {
       page: selected.page,
       section: selected.section,
       contentType: selected.contentType,
-      label: selected.label,
+      label: readableEntryLabel(selected, itemByKey, false),
       valueFr,
       valueEn,
       publish,
@@ -297,9 +338,10 @@ export const CmsContentStudio = () => {
           <div className="max-h-[720px] overflow-y-auto">
             {loading ? <div className="p-10 text-center text-ink-variant"><i className="ri-loader-4-line animate-spin text-2xl" /></div> : visible.length === 0 ? <p className="p-8 text-center text-sm text-ink-variant">{c.empty}</p> : visible.map((entry) => {
               const saved = itemByKey[entry.key];
+              const displayLabel = readableEntryLabel(entry, itemByKey, english);
               return <button key={entry.key} type="button" onClick={() => setSelectedKey(entry.key)} className={`group flex w-full items-start gap-3 border-b border-line/70 px-4 py-3 text-left transition-colors ${selectedKey === entry.key ? 'bg-green/8' : 'hover:bg-surface-container'}`}>
                 <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${entry.contentType === 'image' ? 'bg-red-link/10 text-red-link' : entry.contentType === 'seo' ? 'bg-gold/15 text-gold-ink' : 'bg-green/10 text-green'}`}><i className={entry.contentType === 'image' ? 'ri-image-line' : entry.contentType === 'seo' ? 'ri-search-eye-line' : 'ri-text'} /></span>
-                <span className="min-w-0 flex-1"><strong className="block truncate text-sm font-semibold text-green-deep">{entry.label || entry.key}</strong><small className="mt-1 block truncate text-[10px] text-ink-variant">{entry.section} · {saved ? c.overridden : c.inherited}</small></span>
+                <span className="min-w-0 flex-1"><strong className="block truncate text-sm font-semibold text-green-deep" title={displayLabel}>{displayLabel}</strong><small className="mt-1 block truncate text-[10px] text-ink-variant">{entry.section} · {saved ? c.overridden : c.inherited}</small></span>
                 {saved?.hasUnpublishedChanges ? <span className="mt-2 h-2 w-2 rounded-full bg-gold" title={c.pending} /> : saved?.isPublished ? <i className="ri-checkbox-circle-fill mt-1 text-green" /> : null}
               </button>;
             })}
@@ -309,7 +351,7 @@ export const CmsContentStudio = () => {
         <div className="bg-surface p-5 sm:p-6 lg:p-7">
           {!selected ? <p className="text-sm text-ink-variant">{c.editorHint}</p> : <>
             <div className="flex flex-wrap items-start justify-between gap-4 border-b border-line pb-5">
-              <div><p className="text-[9px] font-bold uppercase tracking-[.17em] text-red-link">{selected.page} · {selected.section}</p><h3 className="mt-1 font-display text-2xl font-bold text-green-deep">{selected.label || selected.key}</h3><code className="mt-2 block text-[10px] text-ink-variant">{selected.key}</code></div>
+              <div><p className="text-[9px] font-bold uppercase tracking-[.17em] text-red-link">{selected.page} · {selected.section}</p><h3 className="mt-1 max-w-3xl font-display text-2xl font-bold text-green-deep">{selectedLabel}</h3><code className="mt-2 block text-[10px] text-ink-variant">{selected.key}</code></div>
               <a href={pageLabels[selected.page]?.path || '/'} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center gap-2 rounded-full border border-green/25 px-4 text-[10px] font-bold uppercase tracking-[.1em] text-green hover:bg-green hover:text-white">{c.openPage}<i className="ri-external-link-line" /></a>
             </div>
 

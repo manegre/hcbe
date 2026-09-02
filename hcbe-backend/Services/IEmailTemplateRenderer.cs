@@ -6,6 +6,7 @@ public interface IEmailTemplateRenderer
 {
     RenderedEmail MemberOnboarding(string? firstName, string actionUrl);
     RenderedEmail MemberWelcome(string? firstName, string memberSpaceUrl);
+    RenderedEmail AdminWelcome(string? firstName, string email, string temporaryPassword, string adminLoginUrl);
     RenderedEmail PasswordReset(string? firstName, string resetUrl, int expiresInMinutes);
     RenderedEmail PasswordChanged(string? firstName, string memberSpaceUrl);
     RenderedEmail MembershipDecision(string? firstName, bool approved, string actionUrl);

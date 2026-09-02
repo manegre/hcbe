@@ -43,6 +43,24 @@ public sealed class EmailTemplateRenderer(IConfiguration configuration) : IEmail
             Layout("Bienvenue dans la communauté HCBE Canada.", "Adhésion confirmée", "Ensemble, faisons vivre la communauté.", body, "Accéder à mon espace", memberSpaceUrl));
     }
 
+    public RenderedEmail AdminWelcome(string? firstName, string email, string temporaryPassword, string adminLoginUrl)
+    {
+        var name = GreetingName(firstName);
+        var body = $"""
+            <p style="margin:0 0 18px;font-size:16px;line-height:1.75;color:{Ink};">Bonjour {name}, un compte administrateur HCBE Canada vient d’être créé pour vous.</p>
+            {Callout("Accès temporaire", "Connectez-vous avec les identifiants ci-dessous. Pour protéger le site, vous devrez choisir un nouveau mot de passe avant d’accéder au centre de gestion.")}
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:22px 0;background:#f5f7f3;border:1px solid {Line};">
+              <tr><td style="padding:18px 20px;border-bottom:1px solid {Line};font-family:Verdana,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:{Muted};">Courriel</td><td style="padding:18px 20px;border-bottom:1px solid {Line};font-family:Verdana,Arial,sans-serif;font-size:14px;font-weight:700;color:{GreenDark};">{Encode(email)}</td></tr>
+              <tr><td style="padding:18px 20px;font-family:Verdana,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:{Muted};">Mot de passe temporaire</td><td style="padding:18px 20px;font-family:Consolas,'Courier New',monospace;font-size:16px;font-weight:700;letter-spacing:.04em;color:{GreenDark};">{Encode(temporaryPassword)}</td></tr>
+            </table>
+            {Steps(("01", "Connectez-vous", "Utilisez le courriel et le mot de passe temporaire ci-dessus."), ("02", "Sécurisez votre compte", "Choisissez immédiatement un nouveau mot de passe personnel."), ("03", "Explorez vos espaces", "Accédez au centre de gestion et à l’espace membre avec le même compte."))}
+            <p style="margin:22px 0 0;font-size:13px;line-height:1.65;color:{Muted};">An HCBE Canada administrator account has been created for you. Sign in with the temporary credentials above, then choose a permanent password.</p>
+            """;
+        return new RenderedEmail(
+            "[HCBE Canada] Votre accès administrateur / Administrator access",
+            Layout("Votre accès administrateur HCBE Canada est prêt.", "Bienvenue dans l’équipe", "Votre accès au centre de gestion", body, "Activer mon compte", adminLoginUrl, securityNotice: true));
+    }
+
     public RenderedEmail PasswordReset(string? firstName, string resetUrl, int expiresInMinutes)
     {
         var name = GreetingName(firstName);

@@ -58,6 +58,7 @@ public class PasswordResetService : IPasswordResetService
             return ApiResponse.CreateError("The password reset link is invalid or has expired");
 
         reset.User.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+        reset.User.MustChangePassword = false;
         reset.UsedAt = DateTime.UtcNow;
         var publicUrl = (_configuration["PublicAppUrl"] ?? "http://localhost:3000").TrimEnd('/');
         var confirmation = _emailTemplates.PasswordChanged(reset.User.FirstName, $"{publicUrl}/espace-membre");

@@ -13,6 +13,9 @@ export const usersApi = {
   getAdminUser: (id: string): Promise<ApiResponse<AdminUser>> =>
     apiClient.get<AdminUser>(`/api/users/admin/${id}`),
 
+  generateTemporaryPassword: (): Promise<ApiResponse<string>> =>
+    apiClient.get<string>('/api/users/admin/temporary-password'),
+
   createAdminUser: (data: CreateAdminUserRequest): Promise<ApiResponse<AdminUser>> =>
     apiClient.post<AdminUser>('/api/users/admin', data),
 

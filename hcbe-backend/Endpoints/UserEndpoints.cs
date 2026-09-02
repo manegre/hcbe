@@ -44,6 +44,15 @@ public static class UserEndpoints
         .Produces(404)
         .Produces(400);
 
+        group.MapGet("/admin/temporary-password", (HttpContext context) =>
+        {
+            if (!context.IsAdmin()) return Results.Forbid();
+            return Results.Ok(ApiResponse<string>.SuccessResponse(PasswordPolicy.GenerateTemporaryPassword()));
+        })
+        .WithName("GenerateAdminTemporaryPassword")
+        .Produces<ApiResponse<string>>()
+        .Produces(403);
+
         group.MapPost("/admin", async (CreateAdminUserRequest request, HttpContext context, IUserAdminService userAdminService) =>
         {
             if (!context.IsAdmin())

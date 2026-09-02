@@ -31,7 +31,7 @@ public static class AuthEndpoints
 
             SetRefreshCookie(context, environment, session.RefreshToken, session.RefreshTokenExpiresAtUtc);
             var user = session.User;
-            var authResponse = new AuthResponse(session.AccessToken, new UserDto(user.Id, user.Email, user.FirstName, user.LastName, user.IsAdmin, user.MemberId));
+            var authResponse = new AuthResponse(session.AccessToken, MapUser(user));
             return Results.Ok(ApiResponse<AuthResponse>.SuccessResponse(authResponse));
         })
         .WithName("Login")
@@ -80,7 +80,7 @@ public static class AuthEndpoints
             var user = session.User;
             return Results.Ok(ApiResponse<AuthResponse>.SuccessResponse(new AuthResponse(
                 session.AccessToken,
-                new UserDto(user.Id, user.Email, user.FirstName, user.LastName, user.IsAdmin, user.MemberId))));
+                MapUser(user))));
         })
         .WithName("GoogleAdminLogin")
         .AllowAnonymous()
@@ -129,7 +129,7 @@ public static class AuthEndpoints
             var user = session.User;
             return Results.Ok(ApiResponse<AuthResponse>.SuccessResponse(new AuthResponse(
                 session.AccessToken,
-                new UserDto(user.Id, user.Email, user.FirstName, user.LastName, user.IsAdmin, user.MemberId))));
+                MapUser(user))));
         })
         .WithName("GoogleMemberLogin")
         .AllowAnonymous()
@@ -162,7 +162,7 @@ public static class AuthEndpoints
             var user = session.User;
             return Results.Ok(ApiResponse<AuthResponse>.SuccessResponse(new AuthResponse(
                 session.AccessToken,
-                new UserDto(user.Id, user.Email, user.FirstName, user.LastName, user.IsAdmin, user.MemberId))));
+                MapUser(user))));
         })
         .WithName("RefreshSession")
         .AllowAnonymous()
@@ -201,6 +201,29 @@ public static class AuthEndpoints
             .AllowAnonymous()
             .RequireRateLimiting("Authentication");
 
+        group.MapPost("/password/change-required", async (
+            ChangeRequiredPasswordRequest request,
+            HttpContext context,
+            IAuthService authService) =>
+        {
+            var userId = context.GetUserId();
+            if (userId is null) return Results.Unauthorized();
+            if (!PasswordPolicy.IsStrong(request.Password))
+            {
+                return Results.BadRequest(ApiResponse<UserDto>.ErrorResponse(PasswordPolicy.ValidationMessage));
+            }
+
+            var user = await authService.CompleteRequiredPasswordChangeAsync(userId.Value, request.Password);
+            return user is null
+                ? Results.BadRequest(ApiResponse<UserDto>.ErrorResponse("No required password change is pending"))
+                : Results.Ok(ApiResponse<UserDto>.SuccessResponse(MapUser(user)));
+        })
+        .WithName("CompleteRequiredPasswordChange")
+        .RequireAuthorization("Authenticated")
+        .Produces<ApiResponse<UserDto>>()
+        .Produces(400)
+        .Produces(401);
+
         group.MapGet("/me", async (HttpContext context, IAuthService authService) =>
         {
             var userId = context.GetUserId();
@@ -215,7 +238,7 @@ public static class AuthEndpoints
                 return Results.NotFound();
             }
 
-            var userDto = new UserDto(user.Id, user.Email, user.FirstName, user.LastName, user.IsAdmin, user.MemberId);
+            var userDto = MapUser(user);
             return Results.Ok(ApiResponse<UserDto>.SuccessResponse(userDto));
         })
         .WithName("GetCurrentUser")
@@ -244,4 +267,8 @@ public static class AuthEndpoints
         Expires = new DateTimeOffset(DateTime.SpecifyKind(expiresAtUtc, DateTimeKind.Utc)),
         IsEssential = true
     };
+
+    private static UserDto MapUser(User user) =>
+        new(user.Id, user.Email, user.FirstName, user.LastName, user.IsAdmin,
+            user.MemberId, user.MustChangePassword);
 }
