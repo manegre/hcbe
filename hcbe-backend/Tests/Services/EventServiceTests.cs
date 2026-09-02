@@ -154,6 +154,33 @@ public class EventServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task CreateAsync_ShouldNormalizeUnspecifiedFormDatesToUtc()
+    {
+        var eventDate = new DateTime(2026, 10, 15, 18, 30, 0, DateTimeKind.Unspecified);
+        var deadline = new DateTime(2026, 10, 14, 18, 30, 0, DateTimeKind.Unspecified);
+        var request = new CreateEventRequest(
+            "UTC-safe event",
+            null,
+            eventDate,
+            null,
+            null,
+            null,
+            null,
+            deadline,
+            null,
+            null,
+            "Draft");
+
+        var result = await _service.CreateAsync(request);
+
+        result.Success.Should().BeTrue();
+        result.Data!.Date.Kind.Should().Be(DateTimeKind.Utc);
+        result.Data.RegistrationDeadline!.Value.Kind.Should().Be(DateTimeKind.Utc);
+        result.Data.Date.Should().Be(DateTime.SpecifyKind(eventDate, DateTimeKind.Utc));
+        result.Data.RegistrationDeadline.Should().Be(DateTime.SpecifyKind(deadline, DateTimeKind.Utc));
+    }
+
+    [Fact]
     public async Task UpdateAsync_WhenEventExists_ShouldUpdateEvent()
     {
         // Arrange

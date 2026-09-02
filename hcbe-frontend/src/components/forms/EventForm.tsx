@@ -136,13 +136,15 @@ export const EventForm: React.FC<EventFormProps> = ({
       titleEn: formData.titleEn,
       description: formData.description || undefined,
       descriptionEn: formData.descriptionEn,
-      date: formData.date,
+      date: new Date(formData.date).toISOString(),
       location: formData.location || undefined,
       locationEn: formData.locationEn,
       type: formData.type || undefined,
       zone: formData.zone || undefined,
       capacity: formData.capacity ? parseInt(formData.capacity, 10) : undefined,
-      registrationDeadline: formData.registrationDeadline || undefined,
+      registrationDeadline: formData.registrationDeadline
+        ? new Date(formData.registrationDeadline).toISOString()
+        : undefined,
       meetingLink: formData.meetingLink || undefined,
       imageUrl: formData.imageUrl || undefined,
       status: formData.status,

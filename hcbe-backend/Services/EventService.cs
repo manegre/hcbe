@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using HcbeApi.Data;
 using HcbeApi.Helpers;
 using HcbeApi.Models;
@@ -16,15 +17,18 @@ public class EventService : IEventService
     private readonly ApplicationDbContext _context;
     private readonly INotificationService _notificationService;
     private readonly IFileStorageService _fileStorage;
+    private readonly ILogger<EventService> _logger;
 
     public EventService(
         ApplicationDbContext context,
         INotificationService notificationService,
-        IFileStorageService fileStorage)
+        IFileStorageService fileStorage,
+        ILogger<EventService>? logger = null)
     {
         _context = context;
         _notificationService = notificationService;
         _fileStorage = fileStorage;
+        _logger = logger ?? NullLogger<EventService>.Instance;
     }
 
     public async Task<ApiResponse<List<EventDto>>> GetAllAsync()
@@ -121,13 +125,13 @@ public class EventService : IEventService
                 TitleEn = NormalizeOptional(request.TitleEn),
                 Description = request.Description,
                 DescriptionEn = NormalizeOptional(request.DescriptionEn),
-                Date = request.Date,
+                Date = NormalizeUtc(request.Date),
                 Location = request.Location,
                 LocationEn = NormalizeOptional(request.LocationEn),
                 Type = request.Type,
                 Zone = request.Zone,
                 Capacity = request.Capacity,
-                RegistrationDeadline = request.RegistrationDeadline,
+                RegistrationDeadline = NormalizeUtc(request.RegistrationDeadline),
                 MeetingLink = request.MeetingLink,
                 ImageUrl = request.ImageUrl,
                 Status = request.Status
@@ -148,6 +152,7 @@ public class EventService : IEventService
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Failed to create event {EventTitle}", request.Title);
             return ApiResponse<EventDto>.ErrorResponse(
                 "Failed to create event",
                 new List<string> { ex.Message });
@@ -172,13 +177,13 @@ public class EventService : IEventService
             if (request.TitleEn != null) eventEntity.TitleEn = NormalizeOptional(request.TitleEn);
             if (request.Description != null) eventEntity.Description = request.Description;
             if (request.DescriptionEn != null) eventEntity.DescriptionEn = NormalizeOptional(request.DescriptionEn);
-            if (request.Date.HasValue) eventEntity.Date = request.Date.Value;
+            if (request.Date.HasValue) eventEntity.Date = NormalizeUtc(request.Date.Value);
             if (request.Location != null) eventEntity.Location = request.Location;
             if (request.LocationEn != null) eventEntity.LocationEn = NormalizeOptional(request.LocationEn);
             if (request.Type != null) eventEntity.Type = request.Type;
             if (request.Zone != null) eventEntity.Zone = request.Zone;
             if (request.Capacity.HasValue) eventEntity.Capacity = request.Capacity;
-            if (request.RegistrationDeadline.HasValue) eventEntity.RegistrationDeadline = request.RegistrationDeadline;
+            if (request.RegistrationDeadline.HasValue) eventEntity.RegistrationDeadline = NormalizeUtc(request.RegistrationDeadline);
             if (request.MeetingLink != null) eventEntity.MeetingLink = request.MeetingLink;
             if (request.ImageUrl != null) eventEntity.ImageUrl = request.ImageUrl;
             if (request.Status != null) eventEntity.Status = request.Status;
@@ -196,6 +201,16 @@ public class EventService : IEventService
                 new List<string> { ex.Message });
         }
     }
+
+    private static DateTime NormalizeUtc(DateTime value) => value.Kind switch
+    {
+        DateTimeKind.Utc => value,
+        DateTimeKind.Local => value.ToUniversalTime(),
+        _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
+    };
+
+    private static DateTime? NormalizeUtc(DateTime? value) =>
+        value.HasValue ? NormalizeUtc(value.Value) : null;
 
     public async Task<ApiResponse> DeleteAsync(Guid id)
     {
