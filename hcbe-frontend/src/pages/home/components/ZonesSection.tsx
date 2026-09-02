@@ -3,7 +3,7 @@ import zone1DelegatePhoto from '../../../assets/delegates/zone1-delegate.png';
 import zone1DeputyPhoto from '../../../assets/delegates/zone1-deputy.png';
 import zone2DelegatePhoto from '../../../assets/delegates/zone2-delegate.png';
 import zone2DeputyPhoto from '../../../assets/delegates/zone2-deputy.png';
-import { ArrowLink, SectionHeading } from '../../../components/ui';
+import { ArrowLink } from '../../../components/ui';
 import { useCmsContent } from '../../../contexts/CmsContentContext';
 import { resolveMediaUrl } from '../../../lib/api/media-url';
 
@@ -44,79 +44,140 @@ const ZonesSection = () => {
     },
   ];
 
-  return (
-    // `border-t` : les deux sections voisines sont `paper` (#FAFAF9) et
-    // `background` (#F8F9FA), deux blancs cassés presque identiques. Sans filet,
-    // les 192px de marges cumulées se lisent comme un trou, pas comme une
-    // frontière.
-    <section className="border-t border-line bg-background py-24">
-      <div className="container-page">
-        <SectionHeading title={t('public.home.zones.title')} description={t('public.home.zones.subtitle')} />
+  const territoryCount = zones.reduce((count, zone) => count + zone.regions.length, 0);
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+  return (
+    <section className="border-t border-line bg-surface py-16 sm:py-20 lg:py-24">
+      <div className="container-page">
+        <div className="grid items-end gap-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-14">
+          <div className="max-w-3xl">
+            <div className="flex items-center gap-3" aria-hidden="true">
+              <span className="h-0.5 w-10 bg-gold" />
+              <span className="h-1.5 w-1.5 rounded-full bg-red" />
+            </div>
+            <h2 className="mt-5 font-display text-[34px] font-bold leading-[1.08] tracking-[-0.025em] text-green sm:text-[44px] lg:text-[52px]">
+              {t('public.home.zones.title')}
+            </h2>
+            <p className="mt-5 max-w-2xl text-[17px] leading-7 text-ink-variant">
+              {t('public.home.zones.subtitle')}
+            </p>
+          </div>
+
+          <dl className="grid grid-cols-2 divide-x divide-line border-y border-line lg:min-w-[330px]">
+            <div className="py-4 pr-6">
+              <dd className="font-display text-[36px] font-bold leading-none text-green">{String(zones.length).padStart(2, '0')}</dd>
+              <dt className="mt-2 text-[9px] font-bold uppercase tracking-[0.15em] text-ink-variant">{t('public.home.stats.zones')}</dt>
+            </div>
+            <div className="py-4 pl-6">
+              <dd className="font-display text-[36px] font-bold leading-none text-green">{territoryCount}</dd>
+              <dt className="mt-2 text-[9px] font-bold uppercase tracking-[0.15em] text-ink-variant">{t('public.home.stats.provinces')}</dt>
+            </div>
+          </dl>
+        </div>
+
+        <div className="mt-12 overflow-hidden border border-green/15 bg-background shadow-[0_22px_65px_rgba(0,59,27,.08)] sm:mt-14">
+          <div className="public-grid-pattern relative flex flex-col gap-5 overflow-hidden bg-green-deep px-6 py-6 text-white sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:px-10">
+            <div className="pointer-events-none absolute -right-12 -top-20 h-56 w-56 rounded-full border-[42px] border-white/[0.04]" aria-hidden="true" />
+            <div className="relative flex items-center gap-4">
+              <span className="flex h-11 w-11 items-center justify-center border border-gold/50 text-gold" aria-hidden="true">
+                <i className="ri-map-2-line text-xl" />
+              </span>
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-gold">HCBE Canada</p>
+                <p className="mt-1 font-display text-xl font-bold text-white">{t('public.home.zones.representation')}</p>
+              </div>
+            </div>
+            <p className="relative border-l-2 border-gold pl-4 text-[10px] font-bold uppercase tracking-[0.14em] text-white/65">
+              {t('public.home.zones.territories', { count: territoryCount })}
+            </p>
+          </div>
+
           {zones.map((zone, zoneIndex) => (
             <article
               key={zone.name}
-              className="group relative flex min-h-full flex-col overflow-hidden rounded-[24px] border border-green/10 bg-white shadow-[0_18px_55px_rgba(0,59,27,.09)] transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_25px_65px_rgba(0,59,27,.14)]"
+              className={`grid grid-cols-1 ${zoneIndex > 0 ? 'border-t border-green/15' : ''} lg:grid-cols-12`}
             >
-              <div className={`public-grid-pattern relative overflow-hidden px-6 py-7 sm:px-8 ${zoneIndex === 0 ? 'bg-green-deep' : 'bg-[#164E36]'}`}>
-                <span className="pointer-events-none absolute -right-2 -top-12 font-display text-[170px] font-bold leading-none text-white/[0.045]" aria-hidden="true">
+              <header className={`public-grid-pattern relative overflow-hidden px-6 py-7 text-white sm:px-8 lg:col-span-3 lg:min-h-[560px] lg:px-8 lg:py-10 ${zoneIndex === 0 ? 'bg-green-deep' : 'bg-[#164E36]'}`}>
+                <span className="pointer-events-none absolute -bottom-14 -right-4 font-display text-[230px] font-bold leading-none text-white/[0.05]" aria-hidden="true">
                   {zoneIndex + 1}
                 </span>
-                <div className="relative flex items-start justify-between gap-4">
+                <p className="relative text-[9px] font-bold uppercase tracking-[0.2em] text-gold">HCBE Canada</p>
+                <div className="relative mt-4 flex items-end justify-between gap-4 lg:mt-10 lg:block">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gold">HCBE Canada</p>
-                    <h3 className="mt-2 font-display text-[34px] font-bold leading-none text-white">{zone.name}</h3>
+                    <span className="block font-display text-[72px] font-bold leading-[0.78] text-white/20" aria-hidden="true">0{zoneIndex + 1}</span>
+                    <h3 className="mt-4 font-display text-[38px] font-bold leading-none text-white">{zone.name}</h3>
                   </div>
-                  <div className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-semibold text-white/80 backdrop-blur-sm">
+                  <p className="border-l-2 border-gold pl-3 text-[10px] font-bold uppercase leading-5 tracking-[0.12em] text-white/65 lg:mt-10 lg:max-w-[140px]">
                     {t('public.home.zones.territories', { count: zone.regions.length })}
-                  </div>
+                  </p>
+                </div>
+              </header>
+
+              <div className="min-w-0 px-6 py-7 sm:px-8 lg:col-span-9 lg:px-10 lg:py-10">
+                <div className="flex items-center gap-4">
+                  <p className="shrink-0 text-[9px] font-bold uppercase tracking-[0.18em] text-red-link">{t('public.home.zones.representation')}</p>
+                  <span className="h-px flex-1 bg-line" aria-hidden="true" />
                 </div>
 
-                <div className="relative mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="mt-6 grid gap-4 md:grid-cols-2">
                   {[
-                    { role: t('public.home.zones.delegate'), person: zone.delegate },
-                    { role: t('public.home.zones.deputy'), person: zone.deputy },
-                  ].map(({ role, person }, personIndex) => (
-                    <div key={person.name} className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.07] p-3 backdrop-blur-sm">
-                      <div className="relative shrink-0">
-                        <img src={person.photo} alt="" className="h-[72px] w-[72px] rounded-xl object-cover object-top" />
-                        {personIndex === 0 && <span className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-green-deep bg-gold text-[11px] text-green-deep"><i className="ri-star-fill" aria-hidden="true" /></span>}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-gold/90">{role}</p>
-                        <p className="mt-1 font-display text-[17px] font-semibold leading-snug text-white">{person.name}</p>
+                    { role: t('public.home.zones.delegate'), person: zone.delegate, isLead: true },
+                    { role: t('public.home.zones.deputy'), person: zone.deputy, isLead: false },
+                  ].map(({ role, person, isLead }, personIndex) => (
+                    <div
+                      key={person.name}
+                      className="group relative overflow-hidden border border-green/15 bg-surface-container/55 p-4 transition-all duration-300 hover:-translate-y-1 hover:border-green/35 hover:shadow-[0_16px_36px_rgba(0,59,27,.10)] sm:p-5"
+                    >
+                      <span className={`absolute inset-x-0 top-0 h-1 ${isLead ? 'bg-gold' : 'bg-red'}`} aria-hidden="true" />
+                      <span className="pointer-events-none absolute -right-1 -top-5 font-display text-[92px] font-bold leading-none text-green/[0.045]" aria-hidden="true">
+                        0{personIndex + 1}
+                      </span>
+
+                      <div className="relative flex items-center gap-5">
+                        <div className="relative shrink-0">
+                          <div className="border border-green/15 bg-background p-1.5">
+                            <img src={person.photo} alt="" className="h-28 w-24 object-cover object-top grayscale-[6%] transition-all duration-300 group-hover:scale-[1.025] group-hover:grayscale-0 lg:h-32 lg:w-28" />
+                          </div>
+                        {isLead && (
+                            <span className="absolute -bottom-2 -right-2 flex h-8 w-8 items-center justify-center rounded-full border-[3px] border-surface-container bg-gold text-xs text-green-deep shadow-[0_5px_14px_rgba(0,59,27,.18)]" aria-hidden="true">
+                            <i className="ri-star-fill" />
+                          </span>
+                        )}
+                        </div>
+                        <div className="min-w-0 py-2">
+                          <span className={`inline-flex h-7 items-center px-2.5 text-[8px] font-bold uppercase tracking-[0.14em] ${isLead ? 'bg-gold text-green-deep' : 'bg-red text-white'}`}>
+                            {role}
+                          </span>
+                          <p className="mt-4 font-display text-[22px] font-bold leading-[1.08] text-green sm:text-[24px]">{person.name}</p>
+                          <p className="mt-3 text-[9px] font-bold uppercase tracking-[0.16em] text-green/45">HCBE Canada · {zone.name}</p>
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
-              </div>
 
-              <div className="flex flex-1 flex-col px-6 py-7 sm:px-8">
-                <div className="relative pl-8">
-                  <i className="ri-double-quotes-l absolute left-0 top-0 text-xl text-gold" aria-hidden="true" />
-                  <p className="font-display text-[18px] leading-[1.55] text-ink">{t(zone.welcomeKey)}</p>
-                </div>
-
-                <div className="mt-8 border-t border-green/10 pt-6">
-                  <div className="mb-4 flex items-center justify-between gap-4">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-green/65">{t('public.home.zones.regions')}</p>
-                    <i className="ri-map-2-line text-xl text-green/40" aria-hidden="true" />
+                <div className="mt-8 grid gap-8 border-t border-line pt-8 md:grid-cols-2 md:gap-10">
+                  <div className="relative pl-8">
+                    <i className="ri-double-quotes-l absolute left-0 top-0 text-xl text-gold" aria-hidden="true" />
+                    <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-red-link">{t('public.home.zones.welcomeLabel')}</p>
+                    <p className="mt-3 font-display text-[18px] font-semibold leading-[1.55] text-ink">{t(zone.welcomeKey)}</p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {zone.regions.map((region, regionIndex) => (
-                      <span key={region} className="inline-flex items-center gap-2 rounded-full bg-surface-container px-3.5 py-2 text-sm font-medium text-green-deep">
-                        <span className={`h-1.5 w-1.5 rounded-full ${regionIndex === 0 ? 'bg-red' : 'bg-gold'}`} aria-hidden="true" />
-                        {region}
-                      </span>
-                    ))}
-                  </div>
-                </div>
 
-                <div className="mt-auto pt-7">
-                  <ArrowLink to="/contact" tone="red" className="border-t border-green/10 pt-4">
-                    {t('public.home.zones.cta')}
-                  </ArrowLink>
+                  <div className="md:border-l md:border-line md:pl-8">
+                    <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-green/55">{t('public.home.zones.regions')}</p>
+                    <ul className="mt-4 grid gap-x-5 gap-y-2.5 sm:grid-cols-2" aria-label={t('public.home.zones.regions')}>
+                      {zone.regions.map((region, regionIndex) => (
+                        <li key={region} className="flex items-start gap-2.5 text-[13px] font-medium leading-5 text-ink-variant">
+                          <span className={`mt-2 h-1.5 w-1.5 shrink-0 rounded-full ${regionIndex === 0 ? 'bg-red' : 'bg-gold'}`} aria-hidden="true" />
+                          {region}
+                        </li>
+                      ))}
+                    </ul>
+
+                    <ArrowLink to="/contact" tone="red" className="mt-6 border-t border-line pt-4">
+                      {t('public.home.zones.cta')}
+                    </ArrowLink>
+                  </div>
                 </div>
               </div>
             </article>
