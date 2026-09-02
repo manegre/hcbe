@@ -9,6 +9,14 @@ import { useAuth } from '../../contexts/AuthContext';
 import { siteContentApi } from '../../lib/api/site-content';
 import type { NavigationItemDto } from '../../lib/api/types';
 
+const mobileNavIcons: Record<string, string> = {
+  '/': 'ri-home-5-line',
+  '/services': 'ri-service-line',
+  '/actualites': 'ri-newspaper-line',
+  '/engagement': 'ri-hand-heart-line',
+  '/contact': 'ri-mail-send-line',
+};
+
 const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
@@ -114,6 +122,13 @@ const Navbar = () => {
   const mainLinks = navLinks.filter((link) => link.path !== '/espace-membre');
   const hasMemberSession = Boolean(user?.memberId);
   const memberCtaLabel = hasMemberSession ? t('public.nav.memberSpace') : t('public.nav.memberAccess');
+  const activeLanguage = i18n.language.startsWith('en') ? 'en' : 'fr';
+
+  const openMobileMenu = () => {
+    const activeParent = mainLinks.find((link) => link.dropdown && location.pathname.startsWith(link.path));
+    setOpenDropdown(activeParent?.path || null);
+    setIsMobileMenuOpen(true);
+  };
 
   const mobileMenu = isMobileMenuOpen
     ? createPortal(
@@ -131,45 +146,57 @@ const Navbar = () => {
             onClick={() => setIsMobileMenuOpen(false)}
           />
 
-          <div className="absolute inset-y-0 right-0 flex h-[100dvh] w-full max-w-[32rem] flex-col overflow-hidden bg-background shadow-[-24px_0_70px_rgba(0,35,18,.24)]">
-            <div className="flex h-16 shrink-0 items-center justify-between border-b border-line bg-surface px-margin-mobile sm:px-6">
+          <div className="mobile-nav-panel public-grid-pattern absolute inset-0 flex h-[100dvh] w-full flex-col overflow-hidden bg-green-deep text-white">
+            <div className="pointer-events-none absolute -right-24 top-28 h-72 w-72 rounded-full border-[52px] border-gold/[.055]" aria-hidden="true" />
+            <div className="pointer-events-none absolute -bottom-8 -left-3 font-display text-[8rem] font-black leading-none tracking-[-.08em] text-white/[.025] sm:text-[12rem]" aria-hidden="true">HCBE</div>
+
+            <div className="relative flex min-h-[74px] shrink-0 items-center justify-between border-b border-white/10 px-margin-mobile sm:px-7">
               <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="flex min-w-0 items-center">
-                <HcbeLogoMark size="sm" />
+                <HcbeLogoMark size="sm" tone="dark" />
               </Link>
-              <div className="flex shrink-0 items-center gap-1">
-                <ThemeToggle />
+              <div className="flex shrink-0 items-center gap-2">
+                <ThemeToggle variant="onDark" />
                 <button
                   type="button"
                   ref={closeButtonRef}
                   onClick={() => setIsMobileMenuOpen(false)}
                   aria-label={t('public.nav.closeMenu')}
-                  className="flex h-11 w-11 items-center justify-center rounded-full text-ink transition-colors hover:bg-green/8 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green"
+                  className="flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-white/[.06] text-white transition-all hover:rotate-3 hover:border-gold/60 hover:bg-white/[.1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
                 >
                   <i className="ri-close-line text-2xl" aria-hidden="true"></i>
                 </button>
               </div>
             </div>
 
-            <nav id="mobile-navigation" className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-margin-mobile py-4 sm:px-6 sm:py-6">
-              <div className="overflow-hidden rounded-2xl border border-line/80 bg-surface shadow-[0_16px_40px_rgba(0,59,27,.06)]">
+            <nav id="mobile-navigation" className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-margin-mobile pb-5 pt-6 sm:px-7 sm:pt-8">
+              <div className="mb-5 flex items-end justify-between border-b border-white/10 pb-4">
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-[.22em] text-gold">HCBE Canada</p>
+                  <p className="mt-1 font-display text-2xl font-bold leading-none text-white">{t('public.nav.explore', { defaultValue: 'Explorer le site' })}</p>
+                </div>
+                <span className="pb-0.5 text-[9px] font-bold uppercase tracking-[.16em] text-white/35">Menu</span>
+              </div>
+
+              <div>
                 {mainLinks.map((link, index) => {
                   const label = link.label || t(link.labelKey);
                   const active = isActiveLink(link.path, Boolean(link.dropdown));
                   const expanded = openDropdown === link.path;
 
                   return (
-                    <div key={link.path} className={index > 0 ? 'border-t border-line/70' : ''}>
+                    <div key={link.path} className="mobile-nav-entry border-b border-white/10" style={{ animationDelay: `${80 + index * 55}ms` }}>
                       {link.dropdown ? (
-                        <div className="flex min-h-[54px] items-stretch">
+                        <div className="flex min-h-[66px] items-stretch">
                           <Link
                             to={link.path}
                             onClick={() => setIsMobileMenuOpen(false)}
-                            className={`relative flex flex-1 items-center px-4 font-display text-[1.05rem] leading-tight transition-colors sm:px-5 ${
-                              active ? 'bg-green/7 text-green' : 'text-ink hover:bg-green/5 hover:text-green'
+                            className={`group relative flex flex-1 items-center gap-4 py-3 font-display text-[1.35rem] font-bold leading-tight transition-colors sm:text-[1.5rem] ${
+                              active ? 'text-gold' : 'text-white hover:text-gold'
                             }`}
                           >
-                            {active && <span className="absolute inset-y-3 left-0 w-[3px] rounded-r-full bg-gold" aria-hidden="true" />}
-                            {label}
+                            <span className={`w-6 font-sans text-[9px] font-bold tracking-[.16em] ${active ? 'text-gold' : 'text-white/30'}`}>{String(index + 1).padStart(2, '0')}</span>
+                            <i className={`${mobileNavIcons[link.path] || 'ri-arrow-right-up-line'} text-base ${active ? 'text-gold' : 'text-white/35'}`} aria-hidden="true" />
+                            <span>{label}</span>
                           </Link>
                           <button
                             type="button"
@@ -181,43 +208,42 @@ const Navbar = () => {
                             }
                             aria-expanded={expanded}
                             aria-controls={`mobile-submenu-${link.path.replace(/\W/g, '')}`}
-                            className={`flex w-14 shrink-0 items-center justify-center border-l border-line/60 transition-colors ${
-                              expanded ? 'bg-green text-white' : 'text-green hover:bg-green/8'
+                            className={`my-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition-all ${
+                              expanded ? 'rotate-45 border-gold bg-gold text-green-deep' : 'border-white/15 bg-white/[.04] text-white/65 hover:border-gold/60 hover:text-gold'
                             }`}
                           >
-                            <i
-                              className={`ri-arrow-${expanded ? 'up' : 'down'}-s-line text-xl transition-transform`}
-                              aria-hidden="true"
-                            ></i>
+                            <i className="ri-add-line text-lg" aria-hidden="true"></i>
                           </button>
                         </div>
                       ) : (
                         <Link
                           to={link.path}
                           onClick={() => setIsMobileMenuOpen(false)}
-                          className={`relative flex min-h-[54px] items-center px-4 font-display text-[1.05rem] leading-tight transition-colors sm:px-5 ${
-                            active ? 'bg-green/7 text-green' : 'text-ink hover:bg-green/5 hover:text-green'
+                          className={`group relative flex min-h-[66px] items-center gap-4 py-3 font-display text-[1.35rem] font-bold leading-tight transition-colors sm:text-[1.5rem] ${
+                            active ? 'text-gold' : 'text-white hover:text-gold'
                           }`}
                         >
-                          {active && <span className="absolute inset-y-3 left-0 w-[3px] rounded-r-full bg-gold" aria-hidden="true" />}
-                          {label}
+                          <span className={`w-6 font-sans text-[9px] font-bold tracking-[.16em] ${active ? 'text-gold' : 'text-white/30'}`}>{String(index + 1).padStart(2, '0')}</span>
+                          <i className={`${mobileNavIcons[link.path] || 'ri-arrow-right-up-line'} text-base ${active ? 'text-gold' : 'text-white/35'}`} aria-hidden="true" />
+                          <span>{label}</span>
+                          <i className="ri-arrow-right-up-line ml-auto text-base text-white/25 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-gold" aria-hidden="true" />
                         </Link>
                       )}
 
                       {link.dropdown && expanded && (
-                        <div id={`mobile-submenu-${link.path.replace(/\W/g, '')}`} className="border-t border-line/60 bg-surface-container/55 px-3 py-2 sm:px-4">
+                        <div id={`mobile-submenu-${link.path.replace(/\W/g, '')}`} className="mb-4 ml-10 grid gap-1 border-l border-gold/60 pl-5">
                           {link.dropdown.map((subLink) => (
                             <Link
                               key={subLink.path}
                               to={subLink.path}
                               onClick={() => setIsMobileMenuOpen(false)}
-                              className={`flex min-h-[44px] items-center rounded-xl px-3 text-sm font-medium transition-colors ${
+                              className={`flex min-h-[38px] items-center gap-3 text-[11px] font-bold uppercase tracking-[.1em] transition-colors ${
                                 location.pathname === subLink.path
-                                  ? 'bg-green text-white'
-                                  : 'text-ink-variant hover:bg-green/7 hover:text-green'
+                                  ? 'text-gold'
+                                  : 'text-white/55 hover:text-white'
                               }`}
                             >
-                              <span className="mr-3 h-1.5 w-1.5 rounded-full bg-gold" aria-hidden="true" />
+                              <span className={`h-1.5 w-1.5 rotate-45 ${location.pathname === subLink.path ? 'bg-gold' : 'bg-white/25'}`} aria-hidden="true" />
                               {t(subLink.labelKey)}
                             </Link>
                           ))}
@@ -229,17 +255,19 @@ const Navbar = () => {
               </div>
             </nav>
 
-            <div className="shrink-0 border-t border-line bg-surface px-margin-mobile pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 sm:px-6">
+            <div className="relative shrink-0 border-t border-white/10 bg-black/10 px-margin-mobile pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 backdrop-blur-sm sm:px-7">
               <div className="flex items-center justify-between gap-4">
-                <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-ink-variant">
+                <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/45">
                   {t('public.nav.language', { defaultValue: 'Langue' })}
                 </span>
-                <PublicLanguageSwitcher />
+                <div className="flex rounded-full border border-white/15 bg-white/[.05] p-1">
+                  {(['fr', 'en'] as const).map((language) => <button key={language} type="button" onClick={() => void i18n.changeLanguage(language)} aria-pressed={activeLanguage === language} className={`flex h-8 min-w-11 items-center justify-center rounded-full text-[10px] font-bold uppercase tracking-[.1em] transition-all ${activeLanguage === language ? 'bg-white text-green-deep shadow-sm' : 'text-white/55 hover:text-white'}`}>{language}</button>)}
+                </div>
               </div>
               <Link
                 to="/espace-membre"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className={`mt-4 flex min-h-[48px] w-full items-center justify-center gap-2 rounded-full px-6 py-3 text-[11px] font-bold uppercase tracking-[0.1em] text-white transition-all duration-200 hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${hasMemberSession ? 'bg-green shadow-[0_10px_24px_rgba(0,59,27,.2)] hover:bg-green-deep focus-visible:outline-green' : 'bg-red-link shadow-[0_10px_24px_rgba(174,45,31,.2)] hover:bg-red-deep focus-visible:outline-red-link'}`}
+                className={`mt-3 flex min-h-[50px] w-full items-center justify-center gap-3 rounded-xl px-6 py-3 text-[10px] font-bold uppercase tracking-[0.12em] transition-all duration-200 hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${hasMemberSession ? 'bg-gold text-green-deep shadow-[0_12px_28px_rgba(252,209,22,.12)] hover:bg-[#ffe04d] focus-visible:outline-gold' : 'bg-red-link text-white shadow-[0_12px_28px_rgba(174,45,31,.22)] hover:bg-red-deep focus-visible:outline-red-link'}`}
               >
                 <i className={hasMemberSession ? 'ri-user-smile-line text-base' : 'ri-user-add-line text-base'} aria-hidden="true" />
                 {memberCtaLabel}
@@ -326,7 +354,7 @@ const Navbar = () => {
 
         <button
           type="button"
-          onClick={() => setIsMobileMenuOpen(true)}
+          onClick={openMobileMenu}
           aria-label={t('public.nav.openMenu')}
           aria-expanded={isMobileMenuOpen}
           aria-controls="mobile-navigation"
