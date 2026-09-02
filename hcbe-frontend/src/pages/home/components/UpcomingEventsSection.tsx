@@ -3,6 +3,7 @@ import type { Event } from '../../../lib/api/types';
 import { isCurrentOrUpcomingEvent } from '../../../lib/events/lifecycle';
 import { localized, localizedOptional } from '../../../lib/i18n/localized';
 import { ArrowLink, EmptyState, SectionHeading } from '../../../components/ui';
+import { formatEventDateTime } from '../../../lib/events/timezone';
 
 const MAX_EVENTS = 3;
 
@@ -47,13 +48,13 @@ const UpcomingEventsSection = () => {
 
   const locale = i18n.language.startsWith('fr') ? 'fr-CA' : 'en-CA';
 
-  const formatDate = (dateString: string) =>
-    new Intl.DateTimeFormat(locale, {
+  const formatDate = (event: Event) =>
+    formatEventDateTime(event.date, locale, event.timeZone, {
       weekday: 'short',
       day: 'numeric',
       month: 'long',
       year: 'numeric',
-    }).format(new Date(dateString));
+    });
 
   return (
     <section className="bg-paper py-24">
@@ -101,7 +102,7 @@ const UpcomingEventsSection = () => {
                 key={event.id}
                 className="grid grid-cols-1 gap-6 border-t border-line py-8 md:grid-cols-[120px_1fr]"
               >
-                <p className="text-label-md uppercase text-red-link">{formatDate(event.date)}</p>
+                <p className="text-label-md uppercase text-red-link">{formatDate(event)}</p>
                 <div>
                   <h3 className="font-display text-headline-md text-ink">
                     {localized(event.title, event.titleEn, i18n.language)}

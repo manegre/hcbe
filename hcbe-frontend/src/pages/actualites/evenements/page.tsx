@@ -11,6 +11,8 @@ import {
 import type { Event } from '../../../lib/api/types';
 import { localized, localizedOptional } from '../../../lib/i18n/localized';
 import { ArrowLink, EmptyState, PageHeader, StatusChip, Tag } from '../../../components/ui';
+import { getEventCategoryLabel, useEventCategories } from '../../../lib/events/categories';
+import { formatEventDateTime } from '../../../lib/events/timezone';
 
 type PublicFilter = 'current' | 'past' | 'all';
 
@@ -26,6 +28,7 @@ export const EvenementsPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<PublicFilter>('current');
   const [error, setError] = useState<string | null>(null);
+  const categories = useEventCategories();
 
   useEffect(() => {
     loadEvents();
@@ -63,11 +66,11 @@ export const EvenementsPage = () => {
 
   const locale = i18n.language.startsWith('en') ? 'en-CA' : 'fr-CA';
 
-  const formatDay = (dateString: string) =>
-    new Intl.DateTimeFormat(locale, { day: '2-digit' }).format(new Date(dateString));
+  const formatDay = (event: Event) =>
+    formatEventDateTime(event.date, locale, event.timeZone, { day: '2-digit' });
 
-  const formatMonthYear = (dateString: string) =>
-    new Intl.DateTimeFormat(locale, { month: 'short', year: 'numeric' }).format(new Date(dateString));
+  const formatMonthYear = (event: Event) =>
+    formatEventDateTime(event.date, locale, event.timeZone, { month: 'short', year: 'numeric' });
 
   const lifecycleLabel = (lifecycle: EventLifecycle) => {
     if (lifecycle === 'ongoing') return t('public.news.evenements.status.ongoing');
@@ -84,8 +87,7 @@ export const EvenementsPage = () => {
         : 'public.news.evenements.empty.all';
 
   const isVirtual = (event: Event) => {
-    const type = (event.type || '').toLowerCase();
-    return type.includes('virtuel') || type.includes('virtual') || Boolean(event.meetingLink);
+    return event.format === 'Online' || event.format === 'Hybrid' || Boolean(event.meetingLink);
   };
 
   return (
@@ -164,6 +166,7 @@ export const EvenementsPage = () => {
                   event.descriptionEn,
                   i18n.language,
                 );
+                const categoryLabel = getEventCategoryLabel(event.type, categories, i18n.language);
 
                 return (
                   <article
@@ -172,10 +175,10 @@ export const EvenementsPage = () => {
                   >
                     <div className="flex items-baseline gap-2 md:block">
                       <p className="font-display text-headline-lg tabular-nums text-red-link">
-                        {formatDay(event.date)}
+                        {formatDay(event)}
                       </p>
                       <p className="text-label-md uppercase text-ink-variant">
-                        {formatMonthYear(event.date)}
+                        {formatMonthYear(event)}
                       </p>
                     </div>
                     <div className="relative flex h-[140px] w-full items-center justify-center overflow-hidden rounded-xl bg-green-deep text-gold">
@@ -216,10 +219,11 @@ export const EvenementsPage = () => {
                           }
                           label={lifecycleLabel(lifecycle)}
                         />
+                        {categoryLabel && <Tag>{categoryLabel}</Tag>}
                         {isVirtual(event) && (
                           <Tag>
-                            <i className="ri-video-line mr-1" aria-hidden="true"></i>
-                            {t('public.news.evenements.status.virtual')}
+                            <i className={`${event.format === 'Hybrid' ? 'ri-links-line' : 'ri-video-line'} mr-1`} aria-hidden="true"></i>
+                            {t(`public.news.evenements.format.${event.format || 'Online'}`)}
                           </Tag>
                         )}
                         <ArrowLink to={`/actualites/evenements/${event.id}`} tone="red">

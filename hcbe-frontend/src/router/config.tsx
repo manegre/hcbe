@@ -38,6 +38,7 @@ const AdminEventsList = lazy(() => import('../pages/admin/events/page').then(mod
 const CreateEventPage = lazy(() => import('../pages/admin/events/create/page').then(module => ({ default: module.CreateEventPage })));
 const EditEventPage = lazy(() => import('../pages/admin/events/edit/page').then(module => ({ default: module.EditEventPage })));
 const ViewEventPage = lazy(() => import('../pages/admin/events/view/page').then(module => ({ default: module.ViewEventPage })));
+const EventCategoriesPage = lazy(() => import('../pages/admin/events/categories/page'));
 
 // Admin Association Pages
 const AdminAssociationsList = lazy(() => import('../pages/admin/associations/page').then(module => ({ default: module.AdminAssociationsList })));
@@ -206,6 +207,10 @@ const routes: RouteObject[] = [
       {
         path: 'events/create',
         element: <CreateEventPage />,
+      },
+      {
+        path: 'events/categories',
+        element: <EventCategoriesPage />,
       },
       {
         path: 'events/:id',

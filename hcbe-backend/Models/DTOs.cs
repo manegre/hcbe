@@ -172,8 +172,16 @@ public record EventDto(
     string? Type, string? Zone, int? Capacity, DateTime? RegistrationDeadline,
     string? MeetingLink, string? ImageUrl, string Status, DateTime CreatedAt, DateTime UpdatedAt,
     string? TitleEn, string? DescriptionEn, string? LocationEn,
+    List<string> Speakers,
     List<EventMediaDto> Media,
-    List<EventAttachmentDto> Attachments);
+    List<EventAttachmentDto> Attachments,
+    DateTime? EndDate,
+    string TimeZone,
+    string Format,
+    string? RegistrationUrl,
+    string? CtaLabel,
+    string? CtaLabelEn,
+    List<string> Organizers);
 
 public record CreateEventRequest(
     [Required] string Title,
@@ -182,22 +190,61 @@ public record CreateEventRequest(
     string? Location,
     string? Type,
     string? Zone,
-    int? Capacity,
+    [Range(1, int.MaxValue)] int? Capacity,
     DateTime? RegistrationDeadline,
     string? MeetingLink,
     string? ImageUrl,
     string Status,
     string? TitleEn = null,
     string? DescriptionEn = null,
-    string? LocationEn = null);
+    string? LocationEn = null,
+    List<string>? Speakers = null,
+    DateTime? EndDate = null,
+    string? TimeZone = null,
+    string? Format = null,
+    string? RegistrationUrl = null,
+    string? CtaLabel = null,
+    string? CtaLabelEn = null,
+    List<string>? Organizers = null);
 
 public record UpdateEventRequest(
     string? Title, string? Description, DateTime? Date, string? Location,
-    string? Type, string? Zone, int? Capacity, DateTime? RegistrationDeadline,
+    string? Type, string? Zone, [Range(1, int.MaxValue)] int? Capacity, DateTime? RegistrationDeadline,
     string? MeetingLink, string? ImageUrl, string? Status,
     string? TitleEn = null,
     string? DescriptionEn = null,
-    string? LocationEn = null);
+    string? LocationEn = null,
+    List<string>? Speakers = null,
+    DateTime? EndDate = null,
+    string? TimeZone = null,
+    string? Format = null,
+    string? RegistrationUrl = null,
+    string? CtaLabel = null,
+    string? CtaLabelEn = null,
+    List<string>? Organizers = null);
+
+public record EventCategoryDto(
+    Guid Id,
+    string Slug,
+    string Name,
+    string? NameEn,
+    bool IsActive,
+    int DisplayOrder,
+    DateTime CreatedAt,
+    DateTime UpdatedAt);
+
+public record CreateEventCategoryRequest(
+    [Required, MaxLength(120)] string Name,
+    [MaxLength(120)] string? NameEn = null,
+    [MaxLength(80)] string? Slug = null,
+    bool IsActive = true,
+    int DisplayOrder = 0);
+
+public record UpdateEventCategoryRequest(
+    [MaxLength(120)] string? Name = null,
+    [MaxLength(120)] string? NameEn = null,
+    bool? IsActive = null,
+    int? DisplayOrder = null);
 
 // News DTOs
 public record NewsAttachmentDto(

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import type { CreateEventRequest, UpdateEventRequest, Event } from '../../lib/api/types';
+import type { EventCategory } from '../../lib/api/types';
 import { useTranslation } from 'react-i18next';
 import {
   AdminLanguageTabs,
@@ -10,6 +11,12 @@ import {
 import { AdminFormLayout } from '../admin/AdminFormLayout';
 import { ArrowLink, Button, Field, inputClasses } from '../ui';
 import { formatFileSize, resolveMediaUrl } from '../../lib/api/media-url';
+import { eventCategoriesApi } from '../../lib/api/event-categories';
+import {
+  EVENT_TIME_ZONES,
+  isoToZonedInput,
+  zonedInputToIso,
+} from '../../lib/events/timezone';
 
 interface EventFormProps {
   initialValues?: Event;
@@ -36,32 +43,42 @@ export const EventForm: React.FC<EventFormProps> = ({
   onCoverFileChange,
   aside,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const formRef = useRef<HTMLFormElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
+  const initialTimeZone = initialValues?.timeZone || 'America/Toronto';
   const [formData, setFormData] = useState({
     title: initialValues?.title || '',
     titleEn: initialValues?.titleEn || '',
     description: initialValues?.description || '',
     descriptionEn: initialValues?.descriptionEn || '',
-    date: initialValues?.date ? new Date(initialValues.date).toISOString().slice(0, 16) : '',
+    date: isoToZonedInput(initialValues?.date, initialTimeZone),
+    endDate: isoToZonedInput(initialValues?.endDate, initialTimeZone),
+    timeZone: initialTimeZone,
     location: initialValues?.location || '',
     locationEn: initialValues?.locationEn || '',
     type: initialValues?.type || '',
+    format: initialValues?.format || 'InPerson',
     zone: initialValues?.zone || '',
     capacity: initialValues?.capacity?.toString() || '',
     registrationDeadline: initialValues?.registrationDeadline
       ? new Date(initialValues.registrationDeadline).toISOString().slice(0, 16)
       : '',
     meetingLink: initialValues?.meetingLink || '',
+    registrationUrl: initialValues?.registrationUrl || '',
+    ctaLabel: initialValues?.ctaLabel || '',
+    ctaLabelEn: initialValues?.ctaLabelEn || '',
     imageUrl: initialValues?.imageUrl || '',
     status: initialValues?.status || 'Draft',
+    speakers: initialValues?.speakers?.length ? initialValues.speakers : [''],
+    organizers: initialValues?.organizers?.length ? initialValues.organizers : [''],
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [coverPreviewUrl, setCoverPreviewUrl] = useState('');
+  const [categories, setCategories] = useState<EventCategory[]>([]);
   const initialSnapshotRef = useRef(JSON.stringify(formData));
   const isDirty = JSON.stringify(formData) !== initialSnapshotRef.current;
 
@@ -80,6 +97,18 @@ export const EventForm: React.FC<EventFormProps> = ({
     return () => URL.revokeObjectURL(objectUrl);
   }, [coverFile, formData.imageUrl]);
 
+  useEffect(() => {
+    let active = true;
+    eventCategoriesApi.getCategoriesForAdmin()
+      .then((response) => {
+        if (active && response.success && response.data) setCategories(response.data);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
@@ -89,6 +118,60 @@ export const EventForm: React.FC<EventFormProps> = ({
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
     }
+  };
+
+  const updateSpeaker = (index: number, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      speakers: prev.speakers.map((speaker, speakerIndex) =>
+        speakerIndex === index ? value : speaker,
+      ),
+    }));
+    if (errors.speakers) {
+      setErrors((prev) => ({ ...prev, speakers: '' }));
+    }
+  };
+
+  const addSpeaker = () => {
+    setFormData((prev) =>
+      prev.speakers.length >= 20 ? prev : { ...prev, speakers: [...prev.speakers, ''] },
+    );
+  };
+
+  const removeSpeaker = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      speakers:
+        prev.speakers.length === 1
+          ? ['']
+          : prev.speakers.filter((_, speakerIndex) => speakerIndex !== index),
+    }));
+  };
+
+  const updateOrganizer = (index: number, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      organizers: prev.organizers.map((organizer, organizerIndex) =>
+        organizerIndex === index ? value : organizer,
+      ),
+    }));
+    if (errors.organizers) setErrors((prev) => ({ ...prev, organizers: '' }));
+  };
+
+  const addOrganizer = () => {
+    setFormData((prev) =>
+      prev.organizers.length >= 20 ? prev : { ...prev, organizers: [...prev.organizers, ''] },
+    );
+  };
+
+  const removeOrganizer = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      organizers:
+        prev.organizers.length === 1
+          ? ['']
+          : prev.organizers.filter((_, organizerIndex) => organizerIndex !== index),
+    }));
   };
 
   const validateForm = (): boolean => {
@@ -102,13 +185,17 @@ export const EventForm: React.FC<EventFormProps> = ({
       newErrors.date = t('admin.events.form.validation.dateRequired');
     }
 
+    if (formData.endDate && formData.endDate <= formData.date) {
+      newErrors.endDate = t('admin.events.form.validation.endAfterStart');
+    }
+
     if (!formData.status) {
       newErrors.status = t('admin.events.form.validation.statusRequired');
     }
 
     if (
       formData.registrationDeadline &&
-      new Date(formData.registrationDeadline) >= new Date(formData.date)
+      formData.registrationDeadline >= formData.date
     ) {
       newErrors.registrationDeadline = t('admin.events.form.validation.deadlineBeforeDate');
     }
@@ -118,6 +205,22 @@ export const EventForm: React.FC<EventFormProps> = ({
       (isNaN(parseInt(formData.capacity, 10)) || parseInt(formData.capacity, 10) < 1)
     ) {
       newErrors.capacity = t('admin.events.form.validation.capacityPositive');
+    }
+
+    if (formData.speakers.some((speaker) => speaker.trim().length > 160)) {
+      newErrors.speakers = t('admin.events.form.validation.speakerNameTooLong');
+    }
+
+    if (formData.organizers.some((organizer) => organizer.trim().length > 160)) {
+      newErrors.organizers = t('admin.events.form.validation.organizerNameTooLong');
+    }
+
+    if (formData.status === 'Active' && formData.format !== 'Online' && !formData.location.trim()) {
+      newErrors.location = t('admin.events.form.validation.locationRequired');
+    }
+
+    if (formData.status === 'Active' && formData.format !== 'InPerson' && !formData.meetingLink.trim()) {
+      newErrors.meetingLink = t('admin.events.form.validation.meetingLinkRequired');
     }
 
     setErrors(newErrors);
@@ -136,18 +239,28 @@ export const EventForm: React.FC<EventFormProps> = ({
       titleEn: formData.titleEn,
       description: formData.description || undefined,
       descriptionEn: formData.descriptionEn,
-      date: new Date(formData.date).toISOString(),
+      date: zonedInputToIso(formData.date, formData.timeZone),
+      endDate: formData.endDate
+        ? zonedInputToIso(formData.endDate, formData.timeZone)
+        : undefined,
+      timeZone: formData.timeZone,
       location: formData.location || undefined,
       locationEn: formData.locationEn,
       type: formData.type || undefined,
+      format: formData.format as 'InPerson' | 'Online' | 'Hybrid',
       zone: formData.zone || undefined,
       capacity: formData.capacity ? parseInt(formData.capacity, 10) : undefined,
       registrationDeadline: formData.registrationDeadline
-        ? new Date(formData.registrationDeadline).toISOString()
+        ? zonedInputToIso(formData.registrationDeadline, formData.timeZone)
         : undefined,
       meetingLink: formData.meetingLink || undefined,
+      registrationUrl: formData.registrationUrl || undefined,
+      ctaLabel: formData.ctaLabel || undefined,
+      ctaLabelEn: formData.ctaLabelEn || undefined,
       imageUrl: formData.imageUrl || undefined,
       status: formData.status,
+      speakers: formData.speakers.map((speaker) => speaker.trim()).filter(Boolean),
+      organizers: formData.organizers.map((organizer) => organizer.trim()).filter(Boolean),
     };
 
     await onSubmit(submitData);
@@ -160,15 +273,25 @@ export const EventForm: React.FC<EventFormProps> = ({
     { value: 'Completed', label: t('admin.eventPublication.completed') },
   ];
 
-  const typeOptions = [
-    { value: '', label: t('admin.events.form.selectType') },
-    { value: 'Workshop', label: t('admin.events.type.workshop') },
-    { value: 'Conference', label: t('admin.events.type.conference') },
-    { value: 'Networking', label: t('admin.events.type.networking') },
-    { value: 'Training', label: t('admin.events.type.training') },
-    { value: 'Social', label: t('admin.events.type.social') },
-    { value: 'Other', label: t('admin.events.type.other') },
+  const fallbackTypeOptions = [
+    { slug: 'workshop', name: t('admin.events.type.workshop'), nameEn: 'Workshop' },
+    { slug: 'conference', name: t('admin.events.type.conference'), nameEn: 'Conference' },
+    { slug: 'webinar', name: t('admin.events.type.webinar'), nameEn: 'Webinar' },
+    { slug: 'professional-development', name: t('admin.events.type.professionalDevelopment'), nameEn: 'Professional development' },
+    { slug: 'diplomatic-community-meeting', name: t('admin.events.type.diplomaticMeeting'), nameEn: 'Diplomatic and community meeting' },
+    { slug: 'business-investment', name: t('admin.events.type.businessInvestment'), nameEn: 'Business and investment' },
+    { slug: 'networking', name: t('admin.events.type.networking'), nameEn: 'Networking' },
+    { slug: 'training', name: t('admin.events.type.training'), nameEn: 'Training' },
+    { slug: 'cultural-festival', name: t('admin.events.type.culturalFestival'), nameEn: 'Cultural festival' },
+    { slug: 'national-celebration', name: t('admin.events.type.nationalCelebration'), nameEn: 'National and civic celebration' },
+    { slug: 'fundraiser-solidarity', name: t('admin.events.type.fundraiser'), nameEn: 'Fundraiser and solidarity' },
+    { slug: 'memorial-tribute', name: t('admin.events.type.memorial'), nameEn: 'Memorial and tribute' },
+    { slug: 'social', name: t('admin.events.type.social'), nameEn: 'Social event' },
+    { slug: 'other', name: t('admin.events.type.other'), nameEn: 'Other' },
   ];
+  const categoryOptions = categories.length > 0
+    ? categories.filter((category) => category.isActive || category.slug === formData.type)
+    : fallbackTypeOptions;
 
   const zoneOptions = [
     { value: '', label: t('admin.events.form.selectZone') },
@@ -191,11 +314,16 @@ export const EventForm: React.FC<EventFormProps> = ({
         onCancel={() => navigate(backPath)}
         onSave={() => formRef.current?.requestSubmit()}
         secondaryActions={
-          initialValues && (
-            <ArrowLink to={`/admin/events/${initialValues.id}`} tone="green">
-              {t('admin.events.view')}
+          <div className="flex flex-wrap items-center gap-4">
+            <ArrowLink to="/admin/events/categories" tone="green">
+              {t('admin.events.categories.manage')}
             </ArrowLink>
-          )
+            {initialValues && (
+              <ArrowLink to={`/admin/events/${initialValues.id}`} tone="green">
+                {t('admin.events.view')}
+              </ArrowLink>
+            )}
+          </div>
         }
         actions={
           <Button type="submit" variant="primary" disabled={isLoading}>
@@ -208,6 +336,7 @@ export const EventForm: React.FC<EventFormProps> = ({
               [formData.title, formData.titleEn],
               [formData.description, formData.descriptionEn],
               [formData.location, formData.locationEn],
+              [formData.ctaLabel, formData.ctaLabelEn],
             ])}
             frPanel={
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -240,7 +369,7 @@ export const EventForm: React.FC<EventFormProps> = ({
                 </div>
 
                 <div className="md:col-span-2">
-                  <Field label={t('admin.common.location')} htmlFor="location">
+                  <Field label={t('admin.common.location')} htmlFor="location" error={errors.location}>
                     <input
                       type="text"
                       id="location"
@@ -249,6 +378,24 @@ export const EventForm: React.FC<EventFormProps> = ({
                       onChange={handleChange}
                       className={inputClasses}
                       placeholder={t('admin.events.form.locationPlaceholder')}
+                    />
+                  </Field>
+                </div>
+
+                <div className="md:col-span-2">
+                  <Field
+                    label={t('admin.events.form.ctaLabel')}
+                    htmlFor="ctaLabel"
+                    hint={t('admin.events.form.ctaLabelHint')}
+                  >
+                    <input
+                      type="text"
+                      id="ctaLabel"
+                      name="ctaLabel"
+                      value={formData.ctaLabel}
+                      onChange={handleChange}
+                      className={inputClasses}
+                      placeholder={t('admin.events.form.ctaLabelPlaceholder')}
                     />
                   </Field>
                 </div>
@@ -266,6 +413,20 @@ export const EventForm: React.FC<EventFormProps> = ({
                       onChange={handleChange}
                       className={inputClasses}
                       placeholder={t('admin.events.form.titleEnPlaceholder')}
+                    />
+                  </Field>
+                </div>
+
+                <div className="md:col-span-2">
+                  <Field label={t('admin.events.form.ctaLabel')} htmlFor="ctaLabelEn">
+                    <input
+                      type="text"
+                      id="ctaLabelEn"
+                      name="ctaLabelEn"
+                      value={formData.ctaLabelEn}
+                      onChange={handleChange}
+                      className={inputClasses}
+                      placeholder={t('admin.events.form.ctaLabelEnPlaceholder')}
                     />
                   </Field>
                 </div>
@@ -303,11 +464,23 @@ export const EventForm: React.FC<EventFormProps> = ({
         }
         main={
           <div>
-            <h2 className="mb-4 border-b border-line pb-3 text-label-md uppercase text-ink-variant">
-              {t('admin.content.lang.settings')}
-            </h2>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <Field label={t('admin.events.form.eventDate')} htmlFor="date" required error={errors.date}>
+            <section aria-labelledby="event-schedule-title">
+              <div className="mb-5 flex items-start gap-3 border-b border-line pb-4">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-green text-gold">
+                  <i className="ri-calendar-schedule-line text-lg" aria-hidden="true" />
+                </span>
+                <div>
+                  <h2 id="event-schedule-title" className="font-display text-title-lg text-green">
+                    {t('admin.events.form.scheduleSection')}
+                  </h2>
+                  <p className="mt-1 text-body-md text-ink-variant">
+                    {t('admin.events.form.scheduleHint')}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <Field label={t('admin.events.form.startDate')} htmlFor="date" required error={errors.date}>
                 <input
                   type="datetime-local"
                   id="date"
@@ -316,6 +489,36 @@ export const EventForm: React.FC<EventFormProps> = ({
                   onChange={handleChange}
                   className={inputClasses}
                 />
+              </Field>
+
+              <Field label={t('admin.events.form.endDate')} htmlFor="endDate" error={errors.endDate}>
+                <input
+                  type="datetime-local"
+                  id="endDate"
+                  name="endDate"
+                  value={formData.endDate}
+                  onChange={handleChange}
+                  min={formData.date || undefined}
+                  className={inputClasses}
+                />
+              </Field>
+
+              <Field
+                label={t('admin.events.form.timeZone')}
+                htmlFor="timeZone"
+                hint={t('admin.events.form.timeZoneHint')}
+              >
+                <select
+                  id="timeZone"
+                  name="timeZone"
+                  value={formData.timeZone}
+                  onChange={handleChange}
+                  className={`${inputClasses} cursor-pointer`}
+                >
+                  {EVENT_TIME_ZONES.map((timeZone) => (
+                    <option key={timeZone.value} value={timeZone.value}>{timeZone.label}</option>
+                  ))}
+                </select>
               </Field>
 
               <Field
@@ -332,8 +535,54 @@ export const EventForm: React.FC<EventFormProps> = ({
                   className={inputClasses}
                 />
               </Field>
+              </div>
+            </section>
 
-              <Field label={t('admin.events.form.meetingLink')} htmlFor="meetingLink">
+            <section className="mt-8 border-t border-line pt-6" aria-labelledby="event-format-title">
+              <div className="mb-5 flex items-start gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gold text-green">
+                  <i className="ri-map-pin-2-line text-lg" aria-hidden="true" />
+                </span>
+                <div>
+                  <h2 id="event-format-title" className="font-display text-title-lg text-green">
+                    {t('admin.events.form.formatSection')}
+                  </h2>
+                  <p className="mt-1 text-body-md text-ink-variant">{t('admin.events.form.formatHint')}</p>
+                </div>
+              </div>
+
+              <div className="mb-6 grid grid-cols-3 gap-2">
+                {(['InPerson', 'Online', 'Hybrid'] as const).map((format) => (
+                  <button
+                    key={format}
+                    type="button"
+                    onClick={() => setFormData((current) => ({ ...current, format }))}
+                    className={`min-h-[72px] rounded-xl border px-3 py-3 text-center transition-all ${
+                      formData.format === format
+                        ? 'border-green bg-green text-white shadow-[0_8px_20px_rgba(0,59,27,.14)]'
+                        : 'border-line bg-surface text-ink hover:border-green/40'
+                    }`}
+                    aria-pressed={formData.format === format}
+                  >
+                    <i
+                      className={`${format === 'InPerson' ? 'ri-map-pin-line' : format === 'Online' ? 'ri-live-line' : 'ri-links-line'} block text-xl ${formData.format === format ? 'text-gold' : 'text-green'}`}
+                      aria-hidden="true"
+                    />
+                    <span className="mt-1 block text-[10px] font-bold uppercase tracking-[.1em]">
+                      {t(`admin.events.format.${format}`)}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+
+              <Field
+                label={t('admin.events.form.meetingLink')}
+                htmlFor="meetingLink"
+                error={errors.meetingLink}
+                hint={formData.format === 'InPerson' ? t('admin.events.form.meetingLinkOptional') : undefined}
+              >
                 <input
                   type="url"
                   id="meetingLink"
@@ -353,11 +602,15 @@ export const EventForm: React.FC<EventFormProps> = ({
                   onChange={handleChange}
                   className={`${inputClasses} cursor-pointer`}
                 >
-                  {typeOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
+                  <option value="">{t('admin.events.form.selectType')}</option>
+                  {categoryOptions.map((option) => (
+                    <option key={option.slug} value={option.slug}>
+                      {i18n.language.startsWith('en') ? option.nameEn || option.name : option.name}
                     </option>
                   ))}
+                  {formData.type && !categoryOptions.some((option) => option.slug === formData.type) && (
+                    <option value={formData.type}>{formData.type}</option>
+                  )}
                 </select>
               </Field>
 
@@ -390,6 +643,18 @@ export const EventForm: React.FC<EventFormProps> = ({
                 />
               </Field>
 
+              <Field label={t('admin.events.form.registrationUrl')} htmlFor="registrationUrl">
+                <input
+                  type="url"
+                  id="registrationUrl"
+                  name="registrationUrl"
+                  value={formData.registrationUrl}
+                  onChange={handleChange}
+                  className={inputClasses}
+                  placeholder="https://..."
+                />
+              </Field>
+
               <Field
                 label={t('admin.common.status')}
                 htmlFor="status"
@@ -411,7 +676,142 @@ export const EventForm: React.FC<EventFormProps> = ({
                   ))}
                 </select>
               </Field>
-            </div>
+              </div>
+            </section>
+
+            <section className="mt-8 border-t border-line pt-6" aria-labelledby="event-speakers-title">
+              <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+                <div>
+                  <h3
+                    id="event-speakers-title"
+                    className="flex items-center gap-2 text-label-md uppercase text-green"
+                  >
+                    <i className="ri-user-voice-line text-gold-ink" aria-hidden="true" />
+                    {t('admin.events.form.speakers')}
+                  </h3>
+                  <p className="mt-1 text-body-md text-ink-variant">
+                    {t('admin.events.form.speakersHint')}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={addSpeaker}
+                  disabled={isLoading || formData.speakers.length >= 20}
+                >
+                  <i className="ri-add-line" aria-hidden="true" />
+                  {t('admin.events.form.addSpeaker')}
+                </Button>
+              </div>
+
+              <div className="mt-5 space-y-3">
+                {formData.speakers.map((speaker, index) => (
+                  <div
+                    key={index}
+                    className="grid grid-cols-[2.5rem_minmax(0,1fr)_2.75rem] items-end gap-3"
+                  >
+                    <span className="flex h-11 items-center justify-center border border-line bg-surface-container font-display text-title-md text-green">
+                      {String(index + 1).padStart(2, '0')}
+                    </span>
+                    <Field
+                      label={t('admin.events.form.speakerNumber', { number: index + 1 })}
+                      htmlFor={`speaker-${index}`}
+                    >
+                      <input
+                        type="text"
+                        id={`speaker-${index}`}
+                        value={speaker}
+                        onChange={(event) => updateSpeaker(index, event.target.value)}
+                        maxLength={160}
+                        className={inputClasses}
+                        placeholder={t('admin.events.form.speakerPlaceholder')}
+                      />
+                    </Field>
+                    <button
+                      type="button"
+                      onClick={() => removeSpeaker(index)}
+                      disabled={isLoading}
+                      className="flex h-11 w-11 items-center justify-center border border-line text-ink-variant transition-colors hover:border-error hover:text-error focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green disabled:cursor-not-allowed disabled:opacity-50"
+                      aria-label={t('admin.events.form.removeSpeaker', { number: index + 1 })}
+                    >
+                      <i className="ri-delete-bin-line" aria-hidden="true" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {errors.speakers && (
+                <p className="mt-3 text-body-md text-error" role="alert">
+                  {errors.speakers}
+                </p>
+              )}
+            </section>
+
+            <section className="mt-8 border-t border-line pt-6" aria-labelledby="event-organizers-title">
+              <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+                <div>
+                  <h3
+                    id="event-organizers-title"
+                    className="flex items-center gap-2 text-label-md uppercase text-green"
+                  >
+                    <i className="ri-community-line text-gold-ink" aria-hidden="true" />
+                    {t('admin.events.form.organizers')}
+                  </h3>
+                  <p className="mt-1 text-body-md text-ink-variant">
+                    {t('admin.events.form.organizersHint')}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={addOrganizer}
+                  disabled={isLoading || formData.organizers.length >= 20}
+                >
+                  <i className="ri-add-line" aria-hidden="true" />
+                  {t('admin.events.form.addOrganizer')}
+                </Button>
+              </div>
+
+              <div className="mt-5 space-y-3">
+                {formData.organizers.map((organizer, index) => (
+                  <div
+                    key={index}
+                    className="grid grid-cols-[2.5rem_minmax(0,1fr)_2.75rem] items-end gap-3"
+                  >
+                    <span className="flex h-11 items-center justify-center rounded-lg border border-line bg-surface-container font-display text-title-md text-green">
+                      {String(index + 1).padStart(2, '0')}
+                    </span>
+                    <Field
+                      label={t('admin.events.form.organizerNumber', { number: index + 1 })}
+                      htmlFor={`organizer-${index}`}
+                    >
+                      <input
+                        type="text"
+                        id={`organizer-${index}`}
+                        value={organizer}
+                        onChange={(event) => updateOrganizer(index, event.target.value)}
+                        maxLength={160}
+                        className={inputClasses}
+                        placeholder={t('admin.events.form.organizerPlaceholder')}
+                      />
+                    </Field>
+                    <button
+                      type="button"
+                      onClick={() => removeOrganizer(index)}
+                      disabled={isLoading}
+                      className="flex h-11 w-11 items-center justify-center rounded-lg border border-line text-ink-variant transition-colors hover:border-error hover:text-error focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green disabled:cursor-not-allowed disabled:opacity-50"
+                      aria-label={t('admin.events.form.removeOrganizer', { number: index + 1 })}
+                    >
+                      <i className="ri-delete-bin-line" aria-hidden="true" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {errors.organizers && (
+                <p className="mt-3 text-body-md text-error" role="alert">{errors.organizers}</p>
+              )}
+            </section>
           </div>
         }
         aside={

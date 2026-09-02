@@ -22,6 +22,9 @@ public class ApplicationDbContext : DbContext
     public DbSet<Member> Members { get; set; }
     public DbSet<MemberProfile> MemberProfiles { get; set; }
     public DbSet<Event> Events { get; set; }
+    public DbSet<EventSpeaker> EventSpeakers { get; set; }
+    public DbSet<EventOrganizer> EventOrganizers { get; set; }
+    public DbSet<EventCategory> EventCategories { get; set; }
     public DbSet<EventMedia> EventMedia { get; set; }
     public DbSet<EventAttachment> EventAttachments { get; set; }
     public DbSet<News> News { get; set; }
@@ -134,6 +137,51 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<Event>()
             .HasIndex(e => e.Status);
+
+        modelBuilder.Entity<EventSpeaker>()
+            .HasOne(s => s.Event)
+            .WithMany(e => e.Speakers)
+            .HasForeignKey(s => s.EventId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<EventSpeaker>()
+            .Property(s => s.Name)
+            .HasMaxLength(160);
+
+        modelBuilder.Entity<EventSpeaker>()
+            .HasIndex(s => new { s.EventId, s.DisplayOrder });
+
+        modelBuilder.Entity<EventOrganizer>()
+            .HasOne(organizer => organizer.Event)
+            .WithMany(e => e.Organizers)
+            .HasForeignKey(organizer => organizer.EventId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<EventOrganizer>()
+            .Property(organizer => organizer.Name)
+            .HasMaxLength(160);
+
+        modelBuilder.Entity<EventOrganizer>()
+            .HasIndex(organizer => new { organizer.EventId, organizer.DisplayOrder });
+
+        modelBuilder.Entity<EventCategory>()
+            .Property(category => category.Slug)
+            .HasMaxLength(80);
+
+        modelBuilder.Entity<EventCategory>()
+            .Property(category => category.Name)
+            .HasMaxLength(120);
+
+        modelBuilder.Entity<EventCategory>()
+            .Property(category => category.NameEn)
+            .HasMaxLength(120);
+
+        modelBuilder.Entity<EventCategory>()
+            .HasIndex(category => category.Slug)
+            .IsUnique();
+
+        modelBuilder.Entity<EventCategory>()
+            .HasIndex(category => category.DisplayOrder);
 
         modelBuilder.Entity<EventMedia>()
             .HasOne(m => m.Event)

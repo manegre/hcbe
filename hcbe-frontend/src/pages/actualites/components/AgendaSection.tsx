@@ -2,6 +2,7 @@ import { eventsApi } from '../../../lib/api/events';
 import type { Event } from '../../../lib/api/types';
 import { localized, localizedOptional } from '../../../lib/i18n/localized';
 import { ArrowLink, EmptyState } from '../../../components/ui';
+import { formatEventDateTime, getEventMonthKey } from '../../../lib/events/timezone';
 
 const AgendaSection = () => {
   const { t, i18n } = useTranslation();
@@ -37,20 +38,19 @@ const AgendaSection = () => {
 
   const locale = i18n.language.startsWith('en') ? 'en-CA' : 'fr-CA';
 
-  const formatDate = (dateString: string) =>
-    new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(dateString));
+  const formatDate = (event: Event) =>
+    formatEventDateTime(event.date, locale, event.timeZone, { day: 'numeric', month: 'long', year: 'numeric' });
 
-  const formatTime = (dateString: string) =>
-    new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' }).format(new Date(dateString));
+  const formatTime = (event: Event) =>
+    formatEventDateTime(event.date, locale, event.timeZone, { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
 
   // Generate months dynamically from the loaded events
   const months = (() => {
     const labelsByKey = new Map<string, string>();
     events.forEach((event) => {
-      const date = new Date(event.date);
-      const monthKey = date.toISOString().slice(5, 7); // MM format
+      const monthKey = getEventMonthKey(event.date, event.timeZone);
       if (!labelsByKey.has(monthKey)) {
-        const label = new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(date);
+        const label = formatEventDateTime(event.date, locale, event.timeZone, { month: 'long', year: 'numeric' });
         labelsByKey.set(monthKey, label.charAt(0).toUpperCase() + label.slice(1));
       }
     });
@@ -65,7 +65,7 @@ const AgendaSection = () => {
   const filteredEvents =
     selectedMonth === 'tous'
       ? events
-      : events.filter((event) => event.date.split('T')[0].split('-')[1] === selectedMonth);
+      : events.filter((event) => getEventMonthKey(event.date, event.timeZone) === selectedMonth);
 
   const renderContent = () => {
     if (isLoading) {
@@ -113,12 +113,12 @@ const AgendaSection = () => {
                   <i className="ri-calendar-event-line text-lg" aria-hidden="true" />
                 </span>
                 <div className="min-w-0">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-red-link">{formatDate(event.date)}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-red-link">{formatDate(event)}</p>
                   <h3 className="mt-2 font-display text-xl font-semibold leading-tight text-green">
                     {localized(event.title, event.titleEn, i18n.language)}
                   </h3>
                   <p className="mt-2 text-sm text-ink-variant">
-                    {formatTime(event.date)}
+                    {formatTime(event)}
                     {location ? ` · ${location}` : ''}
                   </p>
                   {localizedOptional(event.description, event.descriptionEn, i18n.language) && (

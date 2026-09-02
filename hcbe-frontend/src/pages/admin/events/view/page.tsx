@@ -9,6 +9,8 @@ import { AdminDetailLayout, DetailList, DetailRow } from '../../../../components
 import { Button, EmptyState } from '../../../../components/ui';
 import { EventGalleryManager } from '../../../../components/admin/EventGalleryManager';
 import { EventAttachmentsManager } from '../../../../components/admin/EventAttachmentsManager';
+import { getEventCategoryLabel, useEventCategories } from '../../../../lib/events/categories';
+import { formatEventDateTime } from '../../../../lib/events/timezone';
 
 const eventLifecycleChipStatus = (event: Event): 'published' | 'draft' | 'past' | 'rejected' => {
   const lifecycle = getEventLifecycle(event);
@@ -27,6 +29,7 @@ export const ViewEventPage: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
+  const categories = useEventCategories(true);
 
   useEffect(() => {
     if (id) {
@@ -84,15 +87,16 @@ export const ViewEventPage: React.FC = () => {
 
   const locale = i18n.language.startsWith('fr') ? 'fr-CA' : 'en-CA';
 
-  const formatDate = (dateString: string) =>
-    new Intl.DateTimeFormat(locale, {
+  const formatDate = (dateString: string, timeZone?: string) =>
+    formatEventDateTime(dateString, locale, timeZone, {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
-    }).format(new Date(dateString));
+      timeZoneName: 'short',
+    });
 
   const formatShortDate = (dateString: string) =>
     new Intl.DateTimeFormat(locale, {
@@ -127,6 +131,10 @@ export const ViewEventPage: React.FC = () => {
   if (!event) {
     return null;
   }
+
+  const speakers = event.speakers ?? [];
+  const organizers = event.organizers ?? [];
+  const categoryLabel = getEventCategoryLabel(event.type, categories, i18n.language);
 
   return (
     <AdminDetailLayout
@@ -167,10 +175,19 @@ export const ViewEventPage: React.FC = () => {
           <div>
             <h2 className="font-display text-headline-sm text-green">{t('admin.events.detailsSection')}</h2>
             <DetailList>
-              <DetailRow label={t('admin.events.dateTime')} value={formatDate(event.date)} />
+              <DetailRow label={t('admin.events.form.startDate')} value={formatDate(event.date, event.timeZone)} />
+              {event.endDate && <DetailRow label={t('admin.events.form.endDate')} value={formatDate(event.endDate, event.timeZone)} />}
+              <DetailRow label={t('admin.events.form.timeZone')} value={event.timeZone || 'America/Toronto'} />
               {event.location && <DetailRow label={t('admin.common.location')} value={event.location} />}
-              {event.type && <DetailRow label={t('admin.common.type')} value={event.type} />}
+              {categoryLabel && <DetailRow label={t('admin.common.type')} value={categoryLabel} />}
+              <DetailRow label={t('admin.events.form.formatSection')} value={t(`admin.events.format.${event.format || 'InPerson'}`)} />
               {event.zone && <DetailRow label={t('admin.common.zone')} value={event.zone} />}
+              {speakers.length > 0 && (
+                <DetailRow label={t('admin.events.speakers')} value={speakers.join(', ')} />
+              )}
+              {organizers.length > 0 && (
+                <DetailRow label={t('admin.events.form.organizers')} value={organizers.join(', ')} />
+              )}
               {event.capacity && (
                 <DetailRow
                   label={t('admin.common.capacity')}
@@ -194,13 +211,22 @@ export const ViewEventPage: React.FC = () => {
             </div>
           )}
 
+          {event.registrationUrl && (
+            <div>
+              <h2 className="font-display text-headline-sm text-green">{t('admin.events.form.registrationUrl')}</h2>
+              <a href={event.registrationUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block break-all text-body-md text-red-link hover:text-green">
+                {event.ctaLabel || event.registrationUrl}
+              </a>
+            </div>
+          )}
+
           <div>
             <h2 className="font-display text-headline-sm text-green">{t('admin.events.additionalSection')}</h2>
             <DetailList>
               {event.registrationDeadline && (
                 <DetailRow
                   label={t('admin.events.registrationDeadline')}
-                  value={formatDate(event.registrationDeadline)}
+                  value={formatDate(event.registrationDeadline, event.timeZone)}
                 />
               )}
               <DetailRow label={t('admin.events.createdAt')} value={formatShortDate(event.createdAt)} />

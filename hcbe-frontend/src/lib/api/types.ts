@@ -87,17 +87,25 @@ export interface Event {
   description?: string;
   descriptionEn?: string;
   date: string;
+  endDate?: string;
+  timeZone: string;
   location?: string;
   locationEn?: string;
   type?: string;
+  format: 'InPerson' | 'Online' | 'Hybrid';
   zone?: string;
   capacity?: number;
   registrationDeadline?: string;
   meetingLink?: string;
+  registrationUrl?: string;
+  ctaLabel?: string;
+  ctaLabelEn?: string;
   imageUrl?: string;
   status: string;
   createdAt: string;
   updatedAt: string;
+  speakers: string[];
+  organizers: string[];
   media?: EventMedia[];
   attachments?: EventAttachment[];
 }
@@ -108,15 +116,23 @@ export interface CreateEventRequest {
   description?: string;
   descriptionEn?: string;
   date: string;
+  endDate?: string;
+  timeZone?: string;
   location?: string;
   locationEn?: string;
   type?: string;
+  format?: 'InPerson' | 'Online' | 'Hybrid';
   zone?: string;
   capacity?: number;
   registrationDeadline?: string;
   meetingLink?: string;
+  registrationUrl?: string;
+  ctaLabel?: string;
+  ctaLabelEn?: string;
   imageUrl?: string;
   status: string;
+  speakers?: string[];
+  organizers?: string[];
 }
 
 export interface UpdateEventRequest {
@@ -125,15 +141,49 @@ export interface UpdateEventRequest {
   description?: string;
   descriptionEn?: string;
   date?: string;
+  endDate?: string;
+  timeZone?: string;
   location?: string;
   locationEn?: string;
   type?: string;
+  format?: 'InPerson' | 'Online' | 'Hybrid';
   zone?: string;
   capacity?: number;
   registrationDeadline?: string;
   meetingLink?: string;
+  registrationUrl?: string;
+  ctaLabel?: string;
+  ctaLabelEn?: string;
   imageUrl?: string;
   status?: string;
+  speakers?: string[];
+  organizers?: string[];
+}
+
+export interface EventCategory {
+  id: string;
+  slug: string;
+  name: string;
+  nameEn?: string;
+  isActive: boolean;
+  displayOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateEventCategoryRequest {
+  name: string;
+  nameEn?: string;
+  slug?: string;
+  isActive?: boolean;
+  displayOrder?: number;
+}
+
+export interface UpdateEventCategoryRequest {
+  name?: string;
+  nameEn?: string;
+  isActive?: boolean;
+  displayOrder?: number;
 }
 
 export interface Association {

@@ -8,6 +8,16 @@ namespace HcbeApi.Services;
 
 public class EventService : IEventService
 {
+    private const int MaxSpeakers = 20;
+    private const int MaxOrganizers = 20;
+    private const int MaxSpeakerNameLength = 160;
+    private const string DefaultTimeZone = "America/Toronto";
+
+    private static readonly HashSet<string> AllowedFormats = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "InPerson", "Online", "Hybrid"
+    };
+
     private static readonly HashSet<string> AllowedVideoHosts = new(StringComparer.OrdinalIgnoreCase)
     {
         "youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be",
@@ -36,8 +46,11 @@ public class EventService : IEventService
         try
         {
             var events = await _context.Events
+                .Include(e => e.Speakers)
+                .Include(e => e.Organizers)
                 .Include(e => e.Media)
                 .Include(e => e.Attachments)
+                .AsSplitQuery()
                 .Where(e => e.Status != "Draft" && e.Status != "Cancelled"
                     && e.Status != "Brouillon" && e.Status != "Annulé")
                 .OrderByDescending(e => e.CreatedAt)
@@ -59,8 +72,11 @@ public class EventService : IEventService
         try
         {
             var events = await _context.Events
+                .Include(e => e.Speakers)
+                .Include(e => e.Organizers)
                 .Include(e => e.Media)
                 .Include(e => e.Attachments)
+                .AsSplitQuery()
                 .OrderByDescending(e => e.CreatedAt)
                 .ToListAsync();
             return ApiResponse<List<EventDto>>.SuccessResponse(events.Select(MapToDto).ToList());
@@ -76,8 +92,11 @@ public class EventService : IEventService
         try
         {
             var eventEntity = await _context.Events
+                .Include(e => e.Speakers)
+                .Include(e => e.Organizers)
                 .Include(e => e.Media)
                 .Include(e => e.Attachments)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(e => e.Id == id
                     && e.Status != "Draft" && e.Status != "Cancelled"
                     && e.Status != "Brouillon" && e.Status != "Annulé");
@@ -102,8 +121,11 @@ public class EventService : IEventService
         try
         {
             var eventEntity = await _context.Events
+                .Include(e => e.Speakers)
+                .Include(e => e.Organizers)
                 .Include(e => e.Media)
                 .Include(e => e.Attachments)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(e => e.Id == id);
             return eventEntity is null
                 ? ApiResponse<EventDto>.ErrorResponse("Event not found")
@@ -119,22 +141,82 @@ public class EventService : IEventService
     {
         try
         {
+            var speakerValidation = NormalizeSpeakers(request.Speakers);
+            if (speakerValidation.Error is not null)
+            {
+                return ApiResponse<EventDto>.ErrorResponse(speakerValidation.Error);
+            }
+
+            var organizerValidation = NormalizePeople(request.Organizers, MaxOrganizers, "organizers");
+            if (organizerValidation.Error is not null)
+            {
+                return ApiResponse<EventDto>.ErrorResponse(organizerValidation.Error);
+            }
+
+            var startDate = NormalizeUtc(request.Date);
+            var endDate = NormalizeUtc(request.EndDate);
+            var deadline = NormalizeUtc(request.RegistrationDeadline);
+            var scheduleError = ValidateSchedule(startDate, endDate, deadline);
+            if (scheduleError is not null)
+            {
+                return ApiResponse<EventDto>.ErrorResponse(scheduleError);
+            }
+
+            var timeZone = NormalizeTimeZone(request.TimeZone);
+            if (timeZone is null)
+            {
+                return ApiResponse<EventDto>.ErrorResponse("The selected time zone is invalid");
+            }
+
+            var format = NormalizeFormat(request.Format);
+            if (format is null)
+            {
+                return ApiResponse<EventDto>.ErrorResponse("Event format must be InPerson, Online, or Hybrid");
+            }
+
+            if (!IsValidWebUrl(request.MeetingLink) || !IsValidWebUrl(request.RegistrationUrl))
+            {
+                return ApiResponse<EventDto>.ErrorResponse("Meeting and registration links must use http or https");
+            }
+
+            var accessError = ValidatePublishedAccess(
+                request.Status,
+                format,
+                request.Location,
+                request.MeetingLink);
+            if (accessError is not null)
+            {
+                return ApiResponse<EventDto>.ErrorResponse(accessError);
+            }
+
             var eventEntity = new Event
             {
                 Title = request.Title,
                 TitleEn = NormalizeOptional(request.TitleEn),
                 Description = request.Description,
                 DescriptionEn = NormalizeOptional(request.DescriptionEn),
-                Date = NormalizeUtc(request.Date),
+                Date = startDate,
+                EndDate = endDate,
+                TimeZone = timeZone,
                 Location = request.Location,
                 LocationEn = NormalizeOptional(request.LocationEn),
-                Type = request.Type,
+                Type = NormalizeOptional(request.Type),
+                Format = format,
                 Zone = request.Zone,
                 Capacity = request.Capacity,
-                RegistrationDeadline = NormalizeUtc(request.RegistrationDeadline),
-                MeetingLink = request.MeetingLink,
+                RegistrationDeadline = deadline,
+                MeetingLink = NormalizeOptional(request.MeetingLink),
+                RegistrationUrl = NormalizeOptional(request.RegistrationUrl),
+                CtaLabel = NormalizeOptional(request.CtaLabel),
+                CtaLabelEn = NormalizeOptional(request.CtaLabelEn),
                 ImageUrl = request.ImageUrl,
-                Status = request.Status
+                Status = request.Status,
+                Speakers = speakerValidation.Names
+                    .Select((name, index) => new EventSpeaker { Name = name, DisplayOrder = index })
+                    .ToList(),
+                Organizers = organizerValidation.Names
+                    .Select((name, index) => new EventOrganizer { Name = name, DisplayOrder = index })
+                    .ToList()
             };
 
             _context.Events.Add(eventEntity);
@@ -164,8 +246,11 @@ public class EventService : IEventService
         try
         {
             var eventEntity = await _context.Events
+                .Include(e => e.Speakers)
+                .Include(e => e.Organizers)
                 .Include(e => e.Media)
                 .Include(e => e.Attachments)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(e => e.Id == id);
 
             if (eventEntity == null)
@@ -173,20 +258,147 @@ public class EventService : IEventService
                 return ApiResponse<EventDto>.ErrorResponse("Event not found");
             }
 
+            var proposedStart = request.Date.HasValue ? NormalizeUtc(request.Date.Value) : eventEntity.Date;
+            var proposedEnd = request.EndDate.HasValue ? NormalizeUtc(request.EndDate) : eventEntity.EndDate;
+            var proposedDeadline = request.RegistrationDeadline.HasValue
+                ? NormalizeUtc(request.RegistrationDeadline)
+                : eventEntity.RegistrationDeadline;
+            var scheduleError = ValidateSchedule(proposedStart, proposedEnd, proposedDeadline);
+            if (scheduleError is not null)
+            {
+                return ApiResponse<EventDto>.ErrorResponse(scheduleError);
+            }
+
+            if (request.TimeZone is not null && NormalizeTimeZone(request.TimeZone) is null)
+            {
+                return ApiResponse<EventDto>.ErrorResponse("The selected time zone is invalid");
+            }
+
+            if (request.Format is not null && NormalizeFormat(request.Format) is null)
+            {
+                return ApiResponse<EventDto>.ErrorResponse("Event format must be InPerson, Online, or Hybrid");
+            }
+
+            if (!IsValidWebUrl(request.MeetingLink) || !IsValidWebUrl(request.RegistrationUrl))
+            {
+                return ApiResponse<EventDto>.ErrorResponse("Meeting and registration links must use http or https");
+            }
+
+
+            var accessDetailsChanged = request.Status is not null ||
+                                       request.Format is not null ||
+                                       request.Location is not null ||
+                                       request.MeetingLink is not null;
+            if (accessDetailsChanged)
+            {
+                var proposedFormat = request.Format is not null
+                    ? NormalizeFormat(request.Format)!
+                    : NormalizeFormat(eventEntity.Format) ?? "InPerson";
+                var accessError = ValidatePublishedAccess(
+                    request.Status ?? eventEntity.Status,
+                    proposedFormat,
+                    request.Location ?? eventEntity.Location,
+                    request.MeetingLink ?? eventEntity.MeetingLink);
+                if (accessError is not null)
+                {
+                    return ApiResponse<EventDto>.ErrorResponse(accessError);
+                }
+            }
+
             if (request.Title != null) eventEntity.Title = request.Title;
             if (request.TitleEn != null) eventEntity.TitleEn = NormalizeOptional(request.TitleEn);
             if (request.Description != null) eventEntity.Description = request.Description;
             if (request.DescriptionEn != null) eventEntity.DescriptionEn = NormalizeOptional(request.DescriptionEn);
-            if (request.Date.HasValue) eventEntity.Date = NormalizeUtc(request.Date.Value);
+            if (request.Date.HasValue) eventEntity.Date = proposedStart;
+            if (request.EndDate.HasValue) eventEntity.EndDate = proposedEnd;
+            if (request.TimeZone is not null) eventEntity.TimeZone = NormalizeTimeZone(request.TimeZone)!;
             if (request.Location != null) eventEntity.Location = request.Location;
             if (request.LocationEn != null) eventEntity.LocationEn = NormalizeOptional(request.LocationEn);
-            if (request.Type != null) eventEntity.Type = request.Type;
+            if (request.Type != null) eventEntity.Type = NormalizeOptional(request.Type);
+            if (request.Format != null) eventEntity.Format = NormalizeFormat(request.Format)!;
             if (request.Zone != null) eventEntity.Zone = request.Zone;
             if (request.Capacity.HasValue) eventEntity.Capacity = request.Capacity;
-            if (request.RegistrationDeadline.HasValue) eventEntity.RegistrationDeadline = NormalizeUtc(request.RegistrationDeadline);
-            if (request.MeetingLink != null) eventEntity.MeetingLink = request.MeetingLink;
+            if (request.RegistrationDeadline.HasValue) eventEntity.RegistrationDeadline = proposedDeadline;
+            if (request.MeetingLink != null) eventEntity.MeetingLink = NormalizeOptional(request.MeetingLink);
+            if (request.RegistrationUrl != null) eventEntity.RegistrationUrl = NormalizeOptional(request.RegistrationUrl);
+            if (request.CtaLabel != null) eventEntity.CtaLabel = NormalizeOptional(request.CtaLabel);
+            if (request.CtaLabelEn != null) eventEntity.CtaLabelEn = NormalizeOptional(request.CtaLabelEn);
             if (request.ImageUrl != null) eventEntity.ImageUrl = request.ImageUrl;
             if (request.Status != null) eventEntity.Status = request.Status;
+
+            if (request.Speakers is not null)
+            {
+                var speakerValidation = NormalizeSpeakers(request.Speakers);
+                if (speakerValidation.Error is not null)
+                {
+                    return ApiResponse<EventDto>.ErrorResponse(speakerValidation.Error);
+                }
+
+                var existingSpeakers = eventEntity.Speakers
+                    .OrderBy(speaker => speaker.DisplayOrder)
+                    .ToList();
+                var sharedCount = Math.Min(existingSpeakers.Count, speakerValidation.Names.Count);
+
+                for (var index = 0; index < sharedCount; index++)
+                {
+                    existingSpeakers[index].Name = speakerValidation.Names[index];
+                    existingSpeakers[index].DisplayOrder = index;
+                }
+
+                if (existingSpeakers.Count > speakerValidation.Names.Count)
+                {
+                    _context.EventSpeakers.RemoveRange(existingSpeakers.Skip(speakerValidation.Names.Count));
+                }
+
+                for (var index = existingSpeakers.Count; index < speakerValidation.Names.Count; index++)
+                {
+                    var newSpeaker = new EventSpeaker
+                    {
+                        EventId = eventEntity.Id,
+                        Name = speakerValidation.Names[index],
+                        DisplayOrder = index
+                    };
+                    eventEntity.Speakers.Add(newSpeaker);
+                    _context.EventSpeakers.Add(newSpeaker);
+                }
+            }
+
+            if (request.Organizers is not null)
+            {
+                var organizerValidation = NormalizePeople(request.Organizers, MaxOrganizers, "organizers");
+                if (organizerValidation.Error is not null)
+                {
+                    return ApiResponse<EventDto>.ErrorResponse(organizerValidation.Error);
+                }
+
+                var existingOrganizers = eventEntity.Organizers
+                    .OrderBy(organizer => organizer.DisplayOrder)
+                    .ToList();
+                var sharedCount = Math.Min(existingOrganizers.Count, organizerValidation.Names.Count);
+
+                for (var index = 0; index < sharedCount; index++)
+                {
+                    existingOrganizers[index].Name = organizerValidation.Names[index];
+                    existingOrganizers[index].DisplayOrder = index;
+                }
+
+                if (existingOrganizers.Count > organizerValidation.Names.Count)
+                {
+                    _context.EventOrganizers.RemoveRange(existingOrganizers.Skip(organizerValidation.Names.Count));
+                }
+
+                for (var index = existingOrganizers.Count; index < organizerValidation.Names.Count; index++)
+                {
+                    var organizer = new EventOrganizer
+                    {
+                        EventId = eventEntity.Id,
+                        Name = organizerValidation.Names[index],
+                        DisplayOrder = index
+                    };
+                    eventEntity.Organizers.Add(organizer);
+                    _context.EventOrganizers.Add(organizer);
+                }
+            }
 
             eventEntity.UpdatedAt = DateTime.UtcNow;
 
@@ -196,6 +408,7 @@ public class EventService : IEventService
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Failed to update event {EventId}", id);
             return ApiResponse<EventDto>.ErrorResponse(
                 "Failed to update event",
                 new List<string> { ex.Message });
@@ -211,6 +424,108 @@ public class EventService : IEventService
 
     private static DateTime? NormalizeUtc(DateTime? value) =>
         value.HasValue ? NormalizeUtc(value.Value) : null;
+
+    private static (List<string> Names, string? Error) NormalizeSpeakers(IEnumerable<string>? speakers)
+    {
+        return NormalizePeople(speakers, MaxSpeakers, "speakers");
+    }
+
+    private static (List<string> Names, string? Error) NormalizePeople(
+        IEnumerable<string>? values,
+        int maximum,
+        string label)
+    {
+        var names = (values ?? Enumerable.Empty<string>())
+            .Select(name => name.Trim())
+            .Where(name => name.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (names.Count > maximum)
+        {
+            return (names, $"An event can have at most {maximum} {label}.");
+        }
+
+        if (names.Any(name => name.Length > MaxSpeakerNameLength))
+        {
+            return (names, $"Names cannot exceed {MaxSpeakerNameLength} characters.");
+        }
+
+        return (names, null);
+    }
+
+    private static string? ValidateSchedule(DateTime start, DateTime? end, DateTime? deadline)
+    {
+        if (end.HasValue && end.Value <= start)
+        {
+            return "Event end time must be after its start time";
+        }
+
+        if (deadline.HasValue && deadline.Value >= start)
+        {
+            return "Registration deadline must be before the event start time";
+        }
+
+        return null;
+    }
+
+    private static string? NormalizeTimeZone(string? value)
+    {
+        var timeZone = NormalizeOptional(value) ?? DefaultTimeZone;
+        try
+        {
+            _ = TimeZoneInfo.FindSystemTimeZoneById(timeZone);
+            return timeZone;
+        }
+        catch (TimeZoneNotFoundException)
+        {
+            return null;
+        }
+        catch (InvalidTimeZoneException)
+        {
+            return null;
+        }
+    }
+
+    private static string? NormalizeFormat(string? value)
+    {
+        var format = NormalizeOptional(value) ?? "InPerson";
+        return AllowedFormats.FirstOrDefault(item => item.Equals(format, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool IsValidWebUrl(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return true;
+        return Uri.TryCreate(value.Trim(), UriKind.Absolute, out var uri) &&
+               (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
+    }
+
+    private static string? ValidatePublishedAccess(
+        string status,
+        string format,
+        string? location,
+        string? meetingLink)
+    {
+        if (!IsPublishedStatus(status)) return null;
+
+        if (!format.Equals("Online", StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(location))
+        {
+            return "A location is required for published in-person and hybrid events";
+        }
+
+        if (!format.Equals("InPerson", StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(meetingLink))
+        {
+            return "A meeting link is required for published online and hybrid events";
+        }
+
+        return null;
+    }
+
+    private static bool IsPublishedStatus(string status)
+    {
+        var normalized = status.Trim().ToLowerInvariant();
+        return normalized is "active" or "published" or "publie" or "publié" or "a venir" or "à venir";
+    }
 
     public async Task<ApiResponse> DeleteAsync(Guid id)
     {
@@ -484,6 +799,16 @@ public class EventService : IEventService
             .Select(MapAttachmentToDto)
             .ToList();
 
+        var speakers = (eventEntity.Speakers ?? Enumerable.Empty<EventSpeaker>())
+            .OrderBy(s => s.DisplayOrder)
+            .Select(s => s.Name)
+            .ToList();
+
+        var organizers = (eventEntity.Organizers ?? Enumerable.Empty<EventOrganizer>())
+            .OrderBy(organizer => organizer.DisplayOrder)
+            .Select(organizer => organizer.Name)
+            .ToList();
+
         return new EventDto(
             eventEntity.Id,
             eventEntity.Title,
@@ -502,8 +827,16 @@ public class EventService : IEventService
             eventEntity.TitleEn,
             eventEntity.DescriptionEn,
             eventEntity.LocationEn,
+            speakers,
             media,
-            attachments
+            attachments,
+            eventEntity.EndDate,
+            eventEntity.TimeZone,
+            eventEntity.Format,
+            eventEntity.RegistrationUrl,
+            eventEntity.CtaLabel,
+            eventEntity.CtaLabelEn,
+            organizers
         );
     }
 

@@ -300,6 +300,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddSingleton<IGoogleIdentityTokenValidator, GoogleIdentityTokenValidator>();
 builder.Services.AddScoped<IMemberService, MemberService>();
 builder.Services.AddScoped<IEventService, EventService>();
+builder.Services.AddScoped<IEventCategoryService, EventCategoryService>();
 builder.Services.AddScoped<IAssociationService, AssociationService>();
 builder.Services.AddScoped<INewsService, NewsService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
@@ -1114,6 +1115,7 @@ app.MapMemberEndpoints();
 app.MapMembershipApplicationEndpoints();
 app.MapNewsletterEndpoints();
 app.MapEventEndpoints();
+app.MapEventCategoryEndpoints();
 app.MapAssociationEndpoints();
 app.MapNewsEndpoints();
 app.MapMediaEndpoints();
@@ -1231,6 +1233,45 @@ static bool IsPrivateOrLocalAddress(IPAddress address)
 
 static void EnsureSqliteSecuritySchema(ApplicationDbContext context)
 {
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE Events ADD COLUMN EndDate TEXT"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE Events ADD COLUMN TimeZone TEXT NOT NULL DEFAULT 'America/Toronto'"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE Events ADD COLUMN Format TEXT NOT NULL DEFAULT 'InPerson'"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE Events ADD COLUMN RegistrationUrl TEXT"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE Events ADD COLUMN CtaLabel TEXT"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE Events ADD COLUMN CtaLabelEn TEXT"); } catch { }
+
+    context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS EventSpeakers (
+        Id TEXT PRIMARY KEY,
+        EventId TEXT NOT NULL,
+        Name TEXT NOT NULL,
+        DisplayOrder INTEGER NOT NULL DEFAULT 0,
+        FOREIGN KEY (EventId) REFERENCES Events(Id) ON DELETE CASCADE
+    )");
+    context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_EventSpeakers_EventId_DisplayOrder ON EventSpeakers(EventId, DisplayOrder)");
+
+    context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS EventOrganizers (
+        Id TEXT PRIMARY KEY,
+        EventId TEXT NOT NULL,
+        Name TEXT NOT NULL,
+        DisplayOrder INTEGER NOT NULL DEFAULT 0,
+        FOREIGN KEY (EventId) REFERENCES Events(Id) ON DELETE CASCADE
+    )");
+    context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_EventOrganizers_EventId_DisplayOrder ON EventOrganizers(EventId, DisplayOrder)");
+
+    context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS EventCategories (
+        Id TEXT PRIMARY KEY,
+        Slug TEXT NOT NULL,
+        Name TEXT NOT NULL,
+        NameEn TEXT,
+        IsActive INTEGER NOT NULL DEFAULT 1,
+        DisplayOrder INTEGER NOT NULL DEFAULT 0,
+        CreatedAt TEXT NOT NULL,
+        UpdatedAt TEXT NOT NULL
+    )");
+    context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_EventCategories_Slug ON EventCategories(Slug)");
+    context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_EventCategories_DisplayOrder ON EventCategories(DisplayOrder)");
+    SeedSqliteEventCategories(context);
+
     try { context.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN FailedLoginAttempts INTEGER NOT NULL DEFAULT 0"); } catch { }
     try { context.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN LockoutEndUtc TEXT"); } catch { }
     try { context.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN LastLoginAtUtc TEXT"); } catch { }
@@ -1337,6 +1378,36 @@ static void EnsureSqliteSecuritySchema(ApplicationDbContext context)
         FOREIGN KEY (CmsContentItemId) REFERENCES CmsContentItems(Id) ON DELETE CASCADE
     )");
     context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_CmsContentRevisions_CmsContentItemId_Version ON CmsContentRevisions(CmsContentItemId, Version)");
+}
+
+static void SeedSqliteEventCategories(ApplicationDbContext context)
+{
+    var now = DateTime.UtcNow.ToString("O");
+    var categories = new[]
+    {
+        ("e1010000-0000-0000-0000-000000000001", "workshop", "Atelier", "Workshop"),
+        ("e1010000-0000-0000-0000-000000000002", "conference", "Conférence", "Conference"),
+        ("e1010000-0000-0000-0000-000000000003", "webinar", "Webinaire", "Webinar"),
+        ("e1010000-0000-0000-0000-000000000004", "professional-development", "Développement professionnel", "Professional development"),
+        ("e1010000-0000-0000-0000-000000000005", "diplomatic-community-meeting", "Rencontre diplomatique et communautaire", "Diplomatic and community meeting"),
+        ("e1010000-0000-0000-0000-000000000006", "business-investment", "Affaires et investissement", "Business and investment"),
+        ("e1010000-0000-0000-0000-000000000007", "networking", "Réseautage", "Networking"),
+        ("e1010000-0000-0000-0000-000000000008", "training", "Formation", "Training"),
+        ("e1010000-0000-0000-0000-000000000009", "cultural-festival", "Festival et culture", "Cultural festival"),
+        ("e1010000-0000-0000-0000-000000000010", "national-celebration", "Célébration nationale et civique", "National and civic celebration"),
+        ("e1010000-0000-0000-0000-000000000011", "fundraiser-solidarity", "Collecte et solidarité", "Fundraiser and solidarity"),
+        ("e1010000-0000-0000-0000-000000000012", "memorial-tribute", "Hommage et commémoration", "Memorial and tribute"),
+        ("e1010000-0000-0000-0000-000000000013", "social", "Activité sociale", "Social event"),
+        ("e1010000-0000-0000-0000-000000000014", "other", "Autre", "Other")
+    };
+
+    for (var index = 0; index < categories.Length; index++)
+    {
+        var item = categories[index];
+        context.Database.ExecuteSqlInterpolated($@"INSERT OR IGNORE INTO EventCategories
+            (Id, Slug, Name, NameEn, IsActive, DisplayOrder, CreatedAt, UpdatedAt)
+            VALUES ({item.Item1}, {item.Item2}, {item.Item3}, {item.Item4}, 1, {index}, {now}, {now})");
+    }
 }
 
 static Task WriteHealthResponse(HttpContext context, HealthReport report)

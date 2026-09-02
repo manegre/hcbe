@@ -125,7 +125,7 @@ public class EventServiceTests : IDisposable
             "Workshop",
             "Zone 1",
             50,
-            DateTime.UtcNow.AddDays(1),
+            DateTime.UtcNow.AddHours(20),
             null,
             null,
             "À venir",
@@ -178,6 +178,88 @@ public class EventServiceTests : IDisposable
         result.Data.RegistrationDeadline!.Value.Kind.Should().Be(DateTimeKind.Utc);
         result.Data.Date.Should().Be(DateTime.SpecifyKind(eventDate, DateTimeKind.Utc));
         result.Data.RegistrationDeadline.Should().Be(DateTime.SpecifyKind(deadline, DateTimeKind.Utc));
+    }
+
+    [Fact]
+    public async Task CreateAsync_ShouldNormalizeAndPersistOrderedSpeakers()
+    {
+        var request = new CreateEventRequest(
+            "Speaker event",
+            null,
+            DateTime.UtcNow.AddDays(2),
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "Draft",
+            Speakers: new List<string> { "  Aïssata Ouédraogo  ", "", "Moussa Traoré", "aïssata ouédraogo" });
+
+        var result = await _service.CreateAsync(request);
+
+        result.Success.Should().BeTrue();
+        result.Data!.Speakers.Should().Equal("Aïssata Ouédraogo", "Moussa Traoré");
+
+        var persisted = _context.EventSpeakers
+            .Where(speaker => speaker.EventId == result.Data.Id)
+            .OrderBy(speaker => speaker.DisplayOrder)
+            .ToList();
+        persisted.Select(speaker => speaker.Name).Should().Equal("Aïssata Ouédraogo", "Moussa Traoré");
+    }
+
+    [Fact]
+    public async Task CreateAsync_ShouldPersistExpandedEventExperience()
+    {
+        var start = DateTime.UtcNow.AddDays(3);
+        var request = new CreateEventRequest(
+            "Hybrid investment forum",
+            "Meet community investors",
+            start,
+            "Maison de l'Afrique, Montréal",
+            "business-investment",
+            "Montreal",
+            120,
+            start.AddDays(-1),
+            "https://meet.example.org/forum",
+            null,
+            "Active",
+            Speakers: new List<string> { "Awa Kaboré", "Issa Traoré" },
+            EndDate: start.AddHours(3),
+            TimeZone: "America/Toronto",
+            Format: "Hybrid",
+            RegistrationUrl: "https://tickets.example.org/forum",
+            CtaLabel: "Réserver ma place",
+            CtaLabelEn: "Reserve my place",
+            Organizers: new List<string> { "HCBE Canada", "Maison de l'Afrique" });
+
+        var result = await _service.CreateAsync(request);
+
+        result.Success.Should().BeTrue(string.Join("; ", result.Errors ?? new List<string>()));
+        result.Data!.EndDate.Should().Be(start.AddHours(3));
+        result.Data.TimeZone.Should().Be("America/Toronto");
+        result.Data.Format.Should().Be("Hybrid");
+        result.Data.RegistrationUrl.Should().Be("https://tickets.example.org/forum");
+        result.Data.Organizers.Should().Equal("HCBE Canada", "Maison de l'Afrique");
+        _context.EventOrganizers.Where(item => item.EventId == result.Data.Id).Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task CreateAsync_ShouldRejectInvalidScheduleAndLinks()
+    {
+        var start = DateTime.UtcNow.AddDays(3);
+        var invalidEnd = await _service.CreateAsync(new CreateEventRequest(
+            "Invalid end", null, start, null, null, null, null, null, null, null, "Draft",
+            EndDate: start.AddMinutes(-1)));
+        var invalidDeadline = await _service.CreateAsync(new CreateEventRequest(
+            "Invalid deadline", null, start, null, null, null, null, start, null, null, "Draft"));
+        var invalidLink = await _service.CreateAsync(new CreateEventRequest(
+            "Invalid URL", null, start, null, null, null, null, null, "javascript:alert(1)", null, "Draft"));
+
+        invalidEnd.Success.Should().BeFalse();
+        invalidDeadline.Success.Should().BeFalse();
+        invalidLink.Success.Should().BeFalse();
     }
 
     [Fact]
@@ -252,6 +334,41 @@ public class EventServiceTests : IDisposable
         result.Success.Should().BeFalse();
         result.Data.Should().BeNull();
         result.Message.Should().Be("Event not found");
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ShouldReplaceAndClearSpeakers()
+    {
+        var eventEntity = new Event
+        {
+            Title = "Panel",
+            Date = DateTime.UtcNow.AddDays(1),
+            Status = "Active",
+            Speakers = new List<EventSpeaker>
+            {
+                new() { Name = "Original speaker", DisplayOrder = 0 }
+            }
+        };
+        _context.Events.Add(eventEntity);
+        await _context.SaveChangesAsync();
+        _context.EventSpeakers.Count().Should().Be(1);
+
+        var replaceResult = await _service.UpdateAsync(
+            eventEntity.Id,
+            new UpdateEventRequest(null, null, null, null, null, null, null, null, null, null, null,
+                Speakers: new List<string> { "First speaker", "Second speaker" }));
+
+        replaceResult.Success.Should().BeTrue(string.Join("; ", replaceResult.Errors ?? new List<string>()));
+        replaceResult.Data!.Speakers.Should().Equal("First speaker", "Second speaker");
+
+        var clearResult = await _service.UpdateAsync(
+            eventEntity.Id,
+            new UpdateEventRequest(null, null, null, null, null, null, null, null, null, null, null,
+                Speakers: new List<string>()));
+
+        clearResult.Success.Should().BeTrue();
+        clearResult.Data!.Speakers.Should().BeEmpty();
+        _context.EventSpeakers.Where(speaker => speaker.EventId == eventEntity.Id).Should().BeEmpty();
     }
 
     [Fact]

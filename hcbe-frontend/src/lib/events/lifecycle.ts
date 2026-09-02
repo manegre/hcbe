@@ -11,6 +11,7 @@ export type EventLifecycle = 'upcoming' | 'ongoing' | 'past' | 'draft' | 'cancel
 
 type EventLike = {
   date: string;
+  endDate?: string;
   status: string;
 };
 
@@ -60,18 +61,19 @@ export const getEventLifecycle = (event: EventLike, now?: Date | string): EventL
   if (publication === 'cancelled') return 'cancelled';
   if (publication === 'completed') return 'past';
 
-  const eventDate = new Date(event.date);
-  if (Number.isNaN(eventDate.getTime())) return 'past';
+  const start = new Date(event.date);
+  if (Number.isNaN(start.getTime())) return 'past';
 
-  const todayStart = startOfLocalDay(now);
-  const eventDayStart = startOfLocalDay(eventDate);
-  const tomorrowStart = todayStart + 24 * 60 * 60 * 1000;
+  const current = toDate(now);
+  if (current.getTime() < start.getTime()) return 'upcoming';
 
-  if (eventDayStart < todayStart) return 'past';
-  if (eventDayStart >= tomorrowStart) return 'upcoming';
+  if (event.endDate) {
+    const end = new Date(event.endDate);
+    if (!Number.isNaN(end.getTime()) && current.getTime() <= end.getTime()) return 'ongoing';
+    return 'past';
+  }
 
-  // Same calendar day: treat as ongoing for the public agenda
-  return 'ongoing';
+  return startOfLocalDay(current) === startOfLocalDay(start) ? 'ongoing' : 'past';
 };
 
 export const isPublicAgendaEvent = (event: EventLike, now?: Date | string): boolean => {

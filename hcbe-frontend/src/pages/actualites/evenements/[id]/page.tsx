@@ -9,11 +9,12 @@ import { getEventLifecycle } from '../../../../lib/events/lifecycle';
 import { EventMediaGallery } from '../../../../components/events/EventMediaGallery';
 import type { Event } from '../../../../lib/api/types';
 import { localized, localizedOptional } from '../../../../lib/i18n/localized';
-import { getEventTypeLabelKey } from '../../../../lib/news/category-styles';
 import { formatFileSize } from '../../../../lib/api/media-url';
 import { isImageFile } from '../../../../lib/media/is-image-file';
 import ImageCarousel from '../../../../components/media/ImageCarousel';
 import { ArrowLink, Button, EmptyState, StatusChip, Tag } from '../../../../components/ui';
+import { getEventCategoryLabel, useEventCategories } from '../../../../lib/events/categories';
+import { formatEventDateTime } from '../../../../lib/events/timezone';
 
 export const EventDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -21,6 +22,7 @@ export const EventDetailPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const [event, setEvent] = useState<Event | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const categories = useEventCategories();
 
   useEffect(() => {
     if (id) {
@@ -47,15 +49,16 @@ export const EventDetailPage: React.FC = () => {
 
   const locale = i18n.language.startsWith('fr') ? 'fr-CA' : 'en-CA';
 
-  const formatDate = (dateString: string) =>
-    new Intl.DateTimeFormat(locale, {
+  const formatDate = (dateString: string, timeZone?: string) =>
+    formatEventDateTime(dateString, locale, timeZone, {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
-    }).format(new Date(dateString));
+      timeZoneName: 'short',
+    });
 
   if (isLoading) {
     return (
@@ -96,11 +99,11 @@ export const EventDetailPage: React.FC = () => {
   const lifecycle = getEventLifecycle(event);
   const isPast = lifecycle === 'past';
   const isVirtual =
-    Boolean(event.meetingLink) ||
-    (event.type || '').toLowerCase().includes('virtuel') ||
-    (event.type || '').toLowerCase().includes('virtual');
+    event.format === 'Online' || event.format === 'Hybrid' || Boolean(event.meetingLink);
 
   const attachments = event.attachments ?? [];
+  const speakers = event.speakers ?? [];
+  const organizers = event.organizers ?? [];
   const imageAttachments = attachments.filter((attachment) =>
     isImageFile(attachment.contentType, attachment.fileName),
   );
@@ -109,11 +112,7 @@ export const EventDetailPage: React.FC = () => {
   );
 
   const location = localizedOptional(event.location, event.locationEn, i18n.language);
-  const typeLabel = event.type
-    ? getEventTypeLabelKey(event.type)
-      ? t(getEventTypeLabelKey(event.type)!)
-      : event.type
-    : undefined;
+  const typeLabel = getEventCategoryLabel(event.type, categories, i18n.language);
 
   const statusForChip =
     lifecycle === 'ongoing' ? 'approved' : lifecycle === 'upcoming' ? 'pending' : lifecycle === 'past' ? 'past' : null;
@@ -126,15 +125,33 @@ export const EventDetailPage: React.FC = () => {
           ? t('public.news.evenements.status.past')
           : '';
 
-  const registerHref = event.meetingLink;
+  const registerHref = event.registrationUrl || event.meetingLink;
+  const actionLabel = localizedOptional(event.ctaLabel, event.ctaLabelEn, i18n.language) ||
+    (event.registrationUrl
+      ? t('public.news.evenements.cta.register')
+      : event.meetingLink
+        ? t('public.news.evenements.joinMeeting')
+        : t('public.news.evenements.cta.register'));
   const internalRegisterHref = `/contact?type=event-registration&referenceId=${encodeURIComponent(event.id)}&label=${encodeURIComponent(localized(event.title, event.titleEn, i18n.language))}`;
 
   const practicalDetails = [
-    { icon: 'ri-calendar-line', value: formatDate(event.date) },
+    { icon: 'ri-calendar-line', value: formatDate(event.date, event.timeZone) },
+    event.endDate
+      ? { icon: 'ri-time-line', value: `${t('public.news.evenements.endsAt')} · ${formatDate(event.endDate, event.timeZone)}` }
+      : null,
     location ? { icon: 'ri-map-pin-line', value: location } : null,
+    event.format
+      ? { icon: event.format === 'Online' ? 'ri-live-line' : event.format === 'Hybrid' ? 'ri-links-line' : 'ri-map-pin-2-line', value: t(`public.news.evenements.format.${event.format}`) }
+      : null,
     typeLabel ? { icon: 'ri-bookmark-line', value: typeLabel } : null,
     event.capacity
       ? { icon: 'ri-group-line', value: t('admin.events.attendees', { count: event.capacity }) }
+      : null,
+    event.registrationDeadline
+      ? {
+          icon: 'ri-calendar-check-line',
+          value: `${t('public.news.evenements.registrationDeadline')} ${formatDate(event.registrationDeadline, event.timeZone)}`,
+        }
       : null,
   ].filter((item): item is { icon: string; value: string } => item !== null);
 
@@ -157,8 +174,8 @@ export const EventDetailPage: React.FC = () => {
             {statusForChip && <StatusChip status={statusForChip} label={statusLabel} />}
             {isVirtual && (
               <Tag>
-                <i className="ri-video-line mr-1" aria-hidden="true"></i>
-                {t('public.news.evenements.status.virtual')}
+                <i className={`${event.format === 'Hybrid' ? 'ri-links-line' : 'ri-video-line'} mr-1`} aria-hidden="true"></i>
+                {t(`public.news.evenements.format.${event.format || 'Online'}`)}
               </Tag>
             )}
           </div>
@@ -169,9 +186,15 @@ export const EventDetailPage: React.FC = () => {
 
           <dl className="mt-8 grid grid-cols-1 divide-y divide-white/15 border-y border-white/15 sm:grid-cols-4 sm:divide-x sm:divide-y-0">
             <div className="py-4 sm:pr-6">
-              <dt className="text-[10px] font-bold uppercase tracking-[0.12em] text-gold">{t('admin.events.dateTime')}</dt>
-              <dd className="mt-2 text-body-md text-white/80">{formatDate(event.date)}</dd>
+              <dt className="text-[10px] font-bold uppercase tracking-[0.12em] text-gold">{t('public.news.evenements.startsAt')}</dt>
+              <dd className="mt-2 text-body-md text-white/80">{formatDate(event.date, event.timeZone)}</dd>
             </div>
+            {event.endDate && (
+              <div className="py-4 sm:px-6">
+                <dt className="text-[10px] font-bold uppercase tracking-[0.12em] text-gold">{t('public.news.evenements.endsAt')}</dt>
+                <dd className="mt-2 text-body-md text-white/80">{formatDate(event.endDate, event.timeZone)}</dd>
+              </div>
+            )}
             {location && (
               <div className="py-4 sm:px-6">
                 <dt className="text-[10px] font-bold uppercase tracking-[0.12em] text-gold">{t('admin.common.location')}</dt>
@@ -220,6 +243,42 @@ export const EventDetailPage: React.FC = () => {
 
           <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
             <div className="rounded-[20px] border border-green/10 bg-white p-6 shadow-[0_18px_48px_rgba(0,59,27,.07)] md:p-10 lg:col-span-2">
+              {speakers.length > 0 && (
+                <section className="mb-8 border-b border-line pb-8">
+                  <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-red-link">
+                    <i className="ri-user-voice-line text-base" aria-hidden="true" />
+                    {t('public.news.evenements.speakers')}
+                  </p>
+                  <ul className="mt-4 flex flex-wrap gap-2">
+                    {speakers.map((speaker) => (
+                      <li
+                        key={speaker}
+                        className="rounded-full border border-green/15 bg-surface-container px-4 py-2 text-body-md font-medium text-green"
+                      >
+                        {speaker}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
+              {organizers.length > 0 && (
+                <section className="mb-8 border-b border-line pb-8">
+                  <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-red-link">
+                    <i className="ri-community-line text-base" aria-hidden="true" />
+                    {t('public.news.evenements.organizers')}
+                  </p>
+                  <ul className="mt-4 flex flex-wrap gap-x-6 gap-y-2">
+                    {organizers.map((organizer) => (
+                      <li key={organizer} className="flex items-center gap-2 text-body-md font-medium text-green">
+                        <span className="h-1.5 w-1.5 rounded-full bg-gold" aria-hidden="true" />
+                        {organizer}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
               <div className="max-w-[65ch] whitespace-pre-line text-[17px] leading-8 text-ink-variant">
                 {localized(event.description, event.descriptionEn, i18n.language)}
               </div>
@@ -296,11 +355,11 @@ export const EventDetailPage: React.FC = () => {
                       rel="noopener noreferrer"
                       className="mt-6 inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-control border border-transparent bg-gold px-6 py-3 text-label-md uppercase text-green transition-colors hover:bg-gold-dim focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green"
                     >
-                      {t('public.news.evenements.cta.register')}
+                      {actionLabel}
                     </a>
                   ) : (
                     <Button to={internalRegisterHref} variant="primary" className="mt-6 w-full">
-                      {t('public.news.evenements.cta.register')}
+                      {actionLabel}
                     </Button>
                   ))}
               </div>

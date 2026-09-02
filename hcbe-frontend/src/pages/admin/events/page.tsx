@@ -3,7 +3,9 @@ import type { Event } from '../../../lib/api/types';
 import { getPublicationLabel, translateEventLifecycle } from '../../../lib/i18n/adminStatus';
 import { getEventLifecycle } from '../../../lib/events/lifecycle';
 import { AdminListPage } from '../../../components/admin/AdminListPage';
-import { Field, StatusChip, Td, inputClasses } from '../../../components/ui';
+import { Button, Field, StatusChip, Td, inputClasses } from '../../../components/ui';
+import { getEventCategoryLabel, useEventCategories } from '../../../lib/events/categories';
+import { formatEventDateTime } from '../../../lib/events/timezone';
 
 const eventLifecycleChipStatus = (event: Event): 'published' | 'draft' | 'past' | 'rejected' => {
   const lifecycle = getEventLifecycle(event);
@@ -20,6 +22,7 @@ export const AdminEventsList = () => {
   const [filter, setFilter] = useState('all');
   const [sortBy, setSortBy] = useState('date');
   const { t, i18n } = useTranslation();
+  const categories = useEventCategories(true);
 
   useEffect(() => {
     loadEvents();
@@ -91,15 +94,21 @@ export const AdminEventsList = () => {
     filterOptions.find((option) => option.value === filter)?.label ?? filter;
 
   const locale = i18n.language.startsWith('fr') ? 'fr-CA' : 'en-CA';
-  const formatListDate = (value: string) =>
-    new Intl.DateTimeFormat(locale, {
+  const formatListDate = (event: Event) =>
+    formatEventDateTime(event.date, locale, event.timeZone, {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
-    }).format(new Date(value));
+      hour: '2-digit',
+      minute: '2-digit',
+    });
 
   const toolbar = (
     <>
+      <Button to="/admin/events/categories" variant="secondary">
+        <i className="ri-price-tag-3-line" aria-hidden="true" />
+        {t('admin.events.categories.manage')}
+      </Button>
       <Field label={t('admin.common.filterBy')} htmlFor="event-filter">
         <select
           id="event-filter"
@@ -173,7 +182,7 @@ export const AdminEventsList = () => {
             )}
           </Td>
           <Td>
-            <div>{formatListDate(event.date)}</div>
+            <div>{formatListDate(event)}</div>
             {event.location && <div className="text-ink-variant">{event.location}</div>}
           </Td>
           <Td>
@@ -188,9 +197,10 @@ export const AdminEventsList = () => {
           <Td>
             {event.type && (
               <div>
-                {t('admin.common.type')}: {event.type}
+                {t('admin.common.type')}: {getEventCategoryLabel(event.type, categories, i18n.language)}
               </div>
             )}
+            <div>{t(`admin.events.format.${event.format || 'InPerson'}`)}</div>
             {event.zone && (
               <div>
                 {t('admin.common.zone')}: {event.zone}

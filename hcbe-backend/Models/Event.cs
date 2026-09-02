@@ -8,17 +8,25 @@ public class Event
     public string? Description { get; set; }
     public string? DescriptionEn { get; set; }
     public DateTime Date { get; set; }
+    public DateTime? EndDate { get; set; }
+    public string TimeZone { get; set; } = "America/Toronto";
     public string? Location { get; set; }
     public string? LocationEn { get; set; }
     public string? Type { get; set; }
+    public string Format { get; set; } = "InPerson";
     public string? Zone { get; set; }
     public int? Capacity { get; set; }
     public DateTime? RegistrationDeadline { get; set; }
     public string? MeetingLink { get; set; }
+    public string? RegistrationUrl { get; set; }
+    public string? CtaLabel { get; set; }
+    public string? CtaLabelEn { get; set; }
     public string? ImageUrl { get; set; }
     public string Status { get; set; } = "À venir";
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    public ICollection<EventSpeaker> Speakers { get; set; } = new List<EventSpeaker>();
+    public ICollection<EventOrganizer> Organizers { get; set; } = new List<EventOrganizer>();
     public ICollection<EventMedia> Media { get; set; } = new List<EventMedia>();
     public ICollection<EventAttachment> Attachments { get; set; } = new List<EventAttachment>();
 }
