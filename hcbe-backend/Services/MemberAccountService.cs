@@ -100,8 +100,6 @@ public class MemberAccountService : IMemberAccountService
             ("phone", member.Phone),
             ("city", member.City),
             ("province", member.Province),
-            ("profession", member.Profession),
-            ("professional field", member.Expertise),
             ("membership motivation", member.Interests)
         };
 

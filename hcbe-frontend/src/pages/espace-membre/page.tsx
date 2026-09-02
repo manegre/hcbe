@@ -25,17 +25,17 @@ const EspaceMembrePage = () => {
   return (
     <div className="min-h-screen bg-canvas text-ink">
       <Navbar />
-      <PageHeader
-        variant="interior"
-        title={t('public.member.gateway.heroTitle')}
-        description={t('public.member.gateway.heroDescription')}
-      />
+      {!hasMemberSession && (
+        <PageHeader
+          variant="interior"
+          title={t('public.member.gateway.heroTitle')}
+          description={t('public.member.gateway.heroDescription')}
+        />
+      )}
 
-      <main className="container-page py-10 md:py-16">
+      <main className={hasMemberSession ? 'w-full bg-canvas' : 'container-page py-10 md:py-16'}>
         {hasMemberSession ? (
-          <div className="mx-auto max-w-6xl">
-            <MemberLoginForm embedded />
-          </div>
+          <MemberLoginForm embedded />
         ) : (
           <section className="mx-auto grid max-w-[1120px] overflow-hidden rounded-[28px] border border-line bg-surface shadow-[0_28px_90px_rgba(0,59,27,.12)] lg:grid-cols-[0.78fr_1.22fr]">
             <aside className="relative order-2 overflow-hidden bg-green-deep px-7 py-9 text-white sm:px-10 sm:py-12 lg:order-1 lg:px-12 lg:py-14">
@@ -106,7 +106,7 @@ const EspaceMembrePage = () => {
                 ) : (
                   <div id="member-signup-panel" role="tabpanel">
                     <MemberLoginForm mode="signup" embedded />
-                    <MemberRegistrationForm />
+                    <MemberRegistrationForm onSwitchToLogin={() => setMode('login')} />
                   </div>
                 )}
               </div>
@@ -114,7 +114,7 @@ const EspaceMembrePage = () => {
           </section>
         )}
       </main>
-      <Footer />
+      {!hasMemberSession && <Footer />}
     </div>
   );
 };

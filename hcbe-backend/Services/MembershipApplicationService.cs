@@ -52,14 +52,12 @@ public class MembershipApplicationService : IMembershipApplicationService
                     "An account with this email already exists");
             }
 
+            // Applications created by the former approval-based workflow may still
+            // be pending. Reuse that audit record and activate the member immediately
+            // instead of leaving the applicant permanently blocked from registration.
             var pendingApplication = await _context.MembershipApplications
-                .AnyAsync(a => a.Email.ToLower() == normalizedEmail
+                .FirstOrDefaultAsync(a => a.Email.ToLower() == normalizedEmail
                     && a.Status == MembershipApplicationStatus.Pending);
-            if (pendingApplication)
-            {
-                return ApiResponse<MembershipApplicationDto>.ErrorResponse(
-                    "A pending application already exists for this email");
-            }
 
             var now = DateTime.UtcNow;
             var firstName = request.FirstName.Trim();
@@ -96,27 +94,24 @@ public class MembershipApplicationService : IMembershipApplicationService
 
             // Keep an approved registration record for audit/history without retaining
             // the submitted password hash in the application table.
-            var application = new MembershipApplication
-            {
-                FirstName = firstName,
-                LastName = lastName,
-                Email = email,
-                Phone = member.Phone,
-                City = member.City,
-                Province = member.Province,
-                Profession = member.Profession,
-                Expertise = member.Expertise,
-                Motivation = request.Motivation?.Trim(),
-                PasswordHash = null,
-                Status = MembershipApplicationStatus.Approved,
-                MemberId = member.Id,
-                CreatedAt = now,
-                ReviewedAt = now
-            };
+            var application = pendingApplication ?? new MembershipApplication { CreatedAt = now };
+            application.FirstName = firstName;
+            application.LastName = lastName;
+            application.Email = email;
+            application.Phone = member.Phone;
+            application.City = member.City;
+            application.Province = member.Province;
+            application.Profession = member.Profession;
+            application.Expertise = member.Expertise;
+            application.Motivation = request.Motivation?.Trim();
+            application.PasswordHash = null;
+            application.Status = MembershipApplicationStatus.Approved;
+            application.MemberId = member.Id;
+            application.ReviewedAt = now;
 
             _context.Members.Add(member);
             _context.Users.Add(user);
-            _context.MembershipApplications.Add(application);
+            if (pendingApplication is null) _context.MembershipApplications.Add(application);
             QueueWelcome(member);
             await _context.SaveChangesAsync();
 

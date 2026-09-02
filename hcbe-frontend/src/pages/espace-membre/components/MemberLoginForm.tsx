@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Field, inputClasses } from '../../../components/ui';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -15,8 +15,6 @@ const isMemberProfileComplete = (member: MemberDto) => [
   member.phone,
   member.city,
   member.province,
-  member.profession,
-  member.expertise,
   member.interests,
 ].every((value) => Boolean(value?.trim()));
 
@@ -34,7 +32,6 @@ const MemberLoginForm = ({ mode = 'login', embedded = false }: MemberLoginFormPr
   const [status, setStatus] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [resetPassword, setResetPassword] = useState('');
-  const [editingProfile, setEditingProfile] = useState(false);
   const [profileData, setProfileData] = useState({
     firstName: '', lastName: '', phone: '', city: '', province: '', profession: '',
     expertise: '', interests: '', availability: '',
@@ -138,7 +135,6 @@ const MemberLoginForm = ({ mode = 'login', embedded = false }: MemberLoginFormPr
     const response = await memberAccountApi.updateMe(profileData);
     if (response.success && response.data) {
       setMember(response.data);
-      setEditingProfile(false);
       setStatus(t(completingOnboarding ? 'public.member.onboarding.complete' : 'public.member.login.profileSaved'));
     } else {
       setStatus(response.message || t('public.member.login.error'));
@@ -147,7 +143,8 @@ const MemberLoginForm = ({ mode = 'login', embedded = false }: MemberLoginFormPr
   };
 
   const profileFields = (
-    <div className="grid gap-5 md:grid-cols-2">
+    <div className="space-y-8">
+      <div className="grid gap-5 md:grid-cols-2">
       <Field label={t('public.member.form.fields.firstName')} htmlFor="member-profile-first-name" required>
         <input id="member-profile-first-name" className={inputClasses} required autoComplete="given-name" value={profileData.firstName} onChange={(e) => setProfileData({ ...profileData, firstName: e.target.value })} />
       </Field>
@@ -166,20 +163,30 @@ const MemberLoginForm = ({ mode = 'login', embedded = false }: MemberLoginFormPr
           {memberProvinces.map((province) => <option key={province} value={province}>{province}</option>)}
         </select>
       </Field>
-      <Field label={t('public.member.form.fields.profession')} htmlFor="member-profile-profession" required>
-        <input id="member-profile-profession" className={inputClasses} required value={profileData.profession} onChange={(e) => setProfileData({ ...profileData, profession: e.target.value })} />
-      </Field>
-      <Field label={t('public.member.form.fields.domain')} htmlFor="member-profile-expertise" required>
-        <select id="member-profile-expertise" className={`${inputClasses} cursor-pointer`} required value={profileData.expertise} onChange={(e) => setProfileData({ ...profileData, expertise: e.target.value })}>
-          <option value="">{t('public.member.form.select')}</option>
-          {memberProfessionalDomains.map((domain) => <option key={domain} value={domain}>{domain}</option>)}
-        </select>
-      </Field>
       <div className="md:col-span-2">
         <Field label={t('public.member.form.fields.motivation')} htmlFor="member-profile-interests" required hint={t('public.member.form.charCount', { count: profileData.interests.length })}>
           <textarea id="member-profile-interests" rows={4} maxLength={500} required className={`${inputClasses} resize-none`} value={profileData.interests} onChange={(e) => setProfileData({ ...profileData, interests: e.target.value })} />
         </Field>
       </div>
+      </div>
+
+      <fieldset className="rounded-2xl border border-line bg-canvas/45 p-5 sm:p-6">
+        <legend className="px-2 text-label-md uppercase text-green">
+          {t('public.member.form.sections.professionalOptional')}
+        </legend>
+        <p className="mb-5 text-sm leading-6 text-ink-variant">{t('public.member.form.professionalOptionalHint')}</p>
+        <div className="grid gap-5 md:grid-cols-2">
+          <Field label={t('public.member.form.fields.profession')} htmlFor="member-profile-profession" hint={t('public.member.form.optional')}>
+            <input id="member-profile-profession" className={inputClasses} value={profileData.profession} onChange={(e) => setProfileData({ ...profileData, profession: e.target.value })} />
+          </Field>
+          <Field label={t('public.member.form.fields.domain')} htmlFor="member-profile-expertise" hint={t('public.member.form.optional')}>
+            <select id="member-profile-expertise" className={`${inputClasses} cursor-pointer`} value={profileData.expertise} onChange={(e) => setProfileData({ ...profileData, expertise: e.target.value })}>
+              <option value="">{t('public.member.form.select')}</option>
+              {memberProfessionalDomains.map((domain) => <option key={domain} value={domain}>{domain}</option>)}
+            </select>
+          </Field>
+        </div>
+      </fieldset>
     </div>
   );
 
@@ -274,33 +281,37 @@ const MemberLoginForm = ({ mode = 'login', embedded = false }: MemberLoginFormPr
       );
     }
 
-    return (
-      <div className="space-y-7">
-      <div className="rounded-2xl border border-line bg-surface p-6 shadow-[0_16px_45px_rgba(0,59,27,.07)]">
-        <p className="text-label-md uppercase text-red-link">{t('public.member.login.accountBadge')}</p>
-        <h2 className="mt-3 font-display text-headline-md text-green">{member.firstName} {member.lastName}</h2>
-        {!editingProfile && (
-          <div className="mt-4 space-y-2 text-body-md text-ink-variant">
-            <p>{member.email}</p>
-            <p>{[member.city, member.province].filter(Boolean).join(', ')}</p>
-            <p>{member.profession}</p>
+    const accountPanel = (
+      <form className="overflow-hidden rounded-[24px] border border-line bg-surface shadow-[0_14px_40px_rgba(0,59,27,.06)]" onSubmit={handleProfileSave}>
+        <div className="flex flex-col gap-4 border-b border-line bg-green/[0.045] px-6 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-7">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-green text-lg text-white"><i className="ri-mail-check-line" aria-hidden="true" /></span>
+            <div>
+              <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-green">{t('public.member.login.accountBadge')}</p>
+              <p className="mt-1 text-sm text-ink-variant">{member.email}</p>
+            </div>
           </div>
-        )}
-        {editingProfile && (
-          <form className="mt-6 space-y-6 border-t border-line pt-6" onSubmit={handleProfileSave}>
-            {profileFields}
-            <Field label={t('public.member.login.availability')} htmlFor="member-profile-availability">
-              <input id="member-profile-availability" className={inputClasses} value={profileData.availability} onChange={(e) => setProfileData({ ...profileData, availability: e.target.value })} />
-            </Field>
-            <div className="flex gap-3"><Button type="submit" variant="primary" disabled={submitting}>{t('public.member.login.saveProfile')}</Button><Button type="button" variant="tertiary" onClick={() => setEditingProfile(false)}>{t('admin.common.cancel')}</Button></div>
-          </form>
-        )}
-        {status && <p className="mt-4 border border-line p-3 text-sm text-ink-variant">{status}</p>}
-        {!editingProfile && <div className="mt-6 flex flex-col gap-3 sm:flex-row"><Button type="button" variant="primary" className="flex-1" onClick={() => setEditingProfile(true)}>{t('public.member.login.editProfile')}</Button><Button type="button" variant="secondary" className="flex-1" onClick={logout}>{t('public.member.login.logout')}</Button></div>}
-      </div>
-      <MemberCommunityWorkspace />
-      </div>
+          <span className="inline-flex w-fit items-center gap-2 rounded-full border border-green/20 bg-green/8 px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-green">
+            <span className="h-2 w-2 rounded-full bg-green" />{t('public.member.login.accountActive')}
+          </span>
+        </div>
+        <div className="space-y-6 p-6 sm:p-7">
+          {profileFields}
+          <Field label={t('public.member.login.availability')} htmlFor="member-profile-availability" hint={t('public.member.form.optional')}>
+            <input id="member-profile-availability" className={inputClasses} value={profileData.availability} onChange={(e) => setProfileData({ ...profileData, availability: e.target.value })} />
+          </Field>
+          {status && <p className="rounded-xl border border-green/15 bg-green/[0.055] px-4 py-3 text-sm text-green">{status}</p>}
+          <div className="flex justify-end border-t border-line pt-5">
+            <Button type="submit" variant="primary" disabled={submitting} className="w-full sm:w-auto sm:min-w-64">
+              {submitting ? <i className="ri-loader-4-line animate-spin" aria-hidden="true" /> : <i className="ri-save-line" aria-hidden="true" />}
+              {t('public.member.login.saveProfile')}
+            </Button>
+          </div>
+        </div>
+      </form>
     );
+
+    return <MemberCommunityWorkspace member={member} accountPanel={accountPanel} onLogout={logout} />;
   }
 
   const signupMode = mode === 'signup';

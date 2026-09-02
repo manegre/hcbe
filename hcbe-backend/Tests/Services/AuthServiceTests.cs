@@ -329,6 +329,35 @@ public class AuthServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task CreateOrLinkMemberExternalSessionAsync_TreatsProfessionalProfileAsOptional()
+    {
+        var member = new Member
+        {
+            Email = "community.member@example.com",
+            FirstName = "Awa",
+            LastName = "Traore",
+            Phone = "+1 416 555 0199",
+            City = "Toronto",
+            Province = "Ontario",
+            Interests = "Participate in the HCBE community.",
+            Profession = null,
+            Expertise = null
+        };
+        _context.Members.Add(member);
+        await _context.SaveChangesAsync();
+
+        var outbox = new EmailOutbox(_context);
+        var templates = new EmailTemplateRenderer(_configuration);
+        var service = new AuthService(_context, _configuration, outbox, templates);
+
+        await service.CreateOrLinkMemberExternalSessionAsync(
+            member.Email, member.FirstName, member.LastName, "127.0.0.1");
+
+        var message = await _context.EmailOutboxMessages.SingleAsync();
+        message.Subject.Should().Contain("Welcome");
+    }
+
+    [Fact]
     public async Task CreateOrLinkMemberExternalSessionAsync_RejectsInactiveAccount()
     {
         _context.Users.Add(new User

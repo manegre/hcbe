@@ -6,6 +6,8 @@ export default {
   'public.nav.news': 'Actualités',
   'public.nav.engagement': 'Engagement',
   'public.nav.members': 'Membres',
+  'public.nav.memberSpace': 'Mon espace membre',
+  'public.nav.memberAccess': 'Espace membre',
   'public.nav.contact': 'Contact',
   'public.nav.brandSubtitle': "Haut Conseil des Burkinabè de l'Extérieur",
   'public.nav.documents': 'Documents officiels',

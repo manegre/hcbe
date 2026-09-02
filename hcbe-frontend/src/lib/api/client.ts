@@ -91,8 +91,17 @@ export class ApiClient {
         const errorText = await response.text();
         if (errorText) {
           try {
-            const errorJson = JSON.parse(errorText);
-            errorMessage = errorJson.message || errorText;
+            const errorJson = JSON.parse(errorText) as {
+              message?: string;
+              title?: string;
+              errors?: Record<string, string[]> | string[];
+            };
+            const validationMessage = Array.isArray(errorJson.errors)
+              ? errorJson.errors[0]
+              : errorJson.errors
+                ? Object.values(errorJson.errors).flat()[0]
+                : undefined;
+            errorMessage = errorJson.message || validationMessage || errorJson.title || errorText;
           } catch {
             errorMessage = errorText;
           }

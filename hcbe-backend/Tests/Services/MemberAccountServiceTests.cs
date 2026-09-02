@@ -44,6 +44,27 @@ public sealed class MemberAccountServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task UpdateAsync_CompletesMemberProfile_WithoutProfessionalOrMentorshipDetails()
+    {
+        var (user, _) = await CreateLinkedGoogleMemberAsync();
+        var service = new MemberAccountService(_context);
+        var communityOnlyProfile = CompleteProfileRequest() with
+        {
+            Profession = null,
+            Expertise = null,
+            Availability = null
+        };
+
+        var result = await service.UpdateAsync(user.Id, communityOnlyProfile);
+
+        result.Success.Should().BeTrue();
+        result.Data.Should().NotBeNull();
+        result.Data!.Profession.Should().BeNull();
+        result.Data.Expertise.Should().BeNull();
+        result.Data.Interests.Should().Be("Contribute to the HCBE community.");
+    }
+
+    [Fact]
     public async Task UpdateAsync_AllowsCompleteMemberToUpdateAnOptionalField()
     {
         var (user, member) = await CreateLinkedGoogleMemberAsync();

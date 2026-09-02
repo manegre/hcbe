@@ -74,6 +74,37 @@ public sealed class MembershipApplicationServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task SubmitAsync_UpgradesLegacyPendingApplicationToActiveMember()
+    {
+        var pending = new MembershipApplication
+        {
+            FirstName = "Old",
+            LastName = "Applicant",
+            Email = "legacy.pending@example.org",
+            Status = MembershipApplicationStatus.Pending,
+            CreatedAt = DateTime.UtcNow.AddMonths(-2)
+        };
+        _context.MembershipApplications.Add(pending);
+        await _context.SaveChangesAsync();
+        var service = new MembershipApplicationService(_context);
+
+        var result = await service.SubmitAsync(
+            CreateRequest("LEGACY.PENDING@example.org", "MemberPassword!23"));
+
+        result.Success.Should().BeTrue();
+        result.Data!.Status.Should().Be(nameof(MembershipApplicationStatus.Approved));
+        (await _context.Members.CountAsync()).Should().Be(1);
+        (await _context.Users.CountAsync()).Should().Be(1);
+        (await _context.MembershipApplications.CountAsync()).Should().Be(1);
+
+        var upgraded = await _context.MembershipApplications.SingleAsync();
+        upgraded.Id.Should().Be(pending.Id);
+        upgraded.MemberId.Should().NotBeNull();
+        upgraded.ReviewedAt.Should().NotBeNull();
+        upgraded.FirstName.Should().Be("Awa");
+    }
+
+    [Fact]
     public async Task SubmitAsync_QueuesBrandedWelcomeEmail()
     {
         var configuration = EmailConfiguration();

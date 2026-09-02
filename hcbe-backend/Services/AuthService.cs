@@ -283,8 +283,6 @@ public class AuthService : IAuthService
         && !string.IsNullOrWhiteSpace(member.Phone)
         && !string.IsNullOrWhiteSpace(member.City)
         && !string.IsNullOrWhiteSpace(member.Province)
-        && !string.IsNullOrWhiteSpace(member.Profession)
-        && !string.IsNullOrWhiteSpace(member.Expertise)
         && !string.IsNullOrWhiteSpace(member.Interests);
 
     private static string CreateSecureToken() =>

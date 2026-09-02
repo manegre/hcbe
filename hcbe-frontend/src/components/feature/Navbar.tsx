@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import PublicLanguageSwitcher from './PublicLanguageSwitcher';
 import { HcbeLogoMark } from '../brand/HcbeLogo';
 import ThemeToggle from './ThemeToggle';
+import { useAuth } from '../../contexts/AuthContext';
 import { siteContentApi } from '../../lib/api/site-content';
 import type { NavigationItemDto } from '../../lib/api/types';
 
@@ -13,6 +14,7 @@ const Navbar = () => {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const location = useLocation();
   const { t, i18n } = useTranslation();
+  const { user } = useAuth();
   const [cmsNavigation, setCmsNavigation] = useState<NavigationItemDto[]>([]);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -107,6 +109,8 @@ const Navbar = () => {
   };
 
   const mainLinks = navLinks.filter((link) => link.path !== '/espace-membre');
+  const hasMemberSession = Boolean(user?.memberId);
+  const memberCtaLabel = hasMemberSession ? t('public.nav.memberSpace') : t('public.nav.memberAccess');
 
   const mobileMenu = isMobileMenuOpen
     ? createPortal(
@@ -232,9 +236,10 @@ const Navbar = () => {
               <Link
                 to="/espace-membre"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="mt-4 flex min-h-[48px] w-full items-center justify-center gap-2 rounded-full bg-red-link px-6 py-3 text-[11px] font-bold uppercase tracking-[0.1em] text-white shadow-[0_10px_24px_rgba(174,45,31,.2)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-red-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-link"
+                className={`mt-4 flex min-h-[48px] w-full items-center justify-center gap-2 rounded-full px-6 py-3 text-[11px] font-bold uppercase tracking-[0.1em] text-white transition-all duration-200 hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${hasMemberSession ? 'bg-green shadow-[0_10px_24px_rgba(0,59,27,.2)] hover:bg-green-deep focus-visible:outline-green' : 'bg-red-link shadow-[0_10px_24px_rgba(174,45,31,.2)] hover:bg-red-deep focus-visible:outline-red-link'}`}
               >
-                {t('public.home.hero.cta.member')}
+                <i className={hasMemberSession ? 'ri-user-smile-line text-base' : 'ri-user-add-line text-base'} aria-hidden="true" />
+                {memberCtaLabel}
                 <i className="ri-arrow-right-line text-base" aria-hidden="true" />
               </Link>
             </div>
@@ -311,7 +316,8 @@ const Navbar = () => {
             to="/espace-membre"
             className="ml-4 inline-flex min-h-[44px] items-center justify-center gap-2 whitespace-nowrap rounded-full bg-green px-6 py-3 text-[11px] font-bold uppercase tracking-[0.1em] text-white shadow-[0_8px_20px_rgba(0,59,27,.16)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-green-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green"
           >
-            {t('public.home.hero.cta.member')}
+            <i className={hasMemberSession ? 'ri-user-smile-line text-base' : 'ri-user-add-line text-base'} aria-hidden="true" />
+            {memberCtaLabel}
           </Link>
         </div>
 
