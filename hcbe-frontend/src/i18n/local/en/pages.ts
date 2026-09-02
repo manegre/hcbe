@@ -226,6 +226,15 @@ export default {
   'public.news.evenements.cta.details': 'Details',
   'public.news.evenements.cta.recap': 'View recap',
   'public.news.evenements.cta.register': 'Register',
+  'public.news.evenements.detail.eventDate': 'Event date',
+  'public.news.evenements.detail.communityEvent': 'Community event',
+  'public.news.evenements.detail.about': 'About this event',
+  'public.news.evenements.detail.noDescription': 'More details about this event will be published soon.',
+  'public.news.evenements.detail.people': 'Speakers and partners',
+  'public.news.evenements.detail.registration': 'Attend this event',
+  'public.news.evenements.detail.practical': 'Practical information',
+  'public.news.evenements.detail.access': 'Access format',
+  'public.news.evenements.detail.meetingLink': 'Meeting link',
 
   // News — memories
   'public.news.souvenirs.badge': 'Memories',

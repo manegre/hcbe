@@ -226,6 +226,15 @@ export default {
   'public.news.evenements.cta.details': 'Détails',
   'public.news.evenements.cta.recap': 'Voir le récapitulatif',
   'public.news.evenements.cta.register': "S'inscrire",
+  'public.news.evenements.detail.eventDate': "Date de l'événement",
+  'public.news.evenements.detail.communityEvent': 'Événement communautaire',
+  'public.news.evenements.detail.about': "À propos de l'événement",
+  'public.news.evenements.detail.noDescription': 'Les détails de cet événement seront publiés prochainement.',
+  'public.news.evenements.detail.people': 'Intervenants et partenaires',
+  'public.news.evenements.detail.registration': 'Participer à cet événement',
+  'public.news.evenements.detail.practical': 'Informations pratiques',
+  'public.news.evenements.detail.access': "Mode d'accès",
+  'public.news.evenements.detail.meetingLink': 'Lien de la réunion',
 
   // Actualités — souvenirs
   'public.news.souvenirs.badge': 'Souvenirs',
