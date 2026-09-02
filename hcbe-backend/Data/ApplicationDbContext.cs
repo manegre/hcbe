@@ -56,6 +56,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<AuditLog> AuditLogs { get; set; }
     public DbSet<EmailOutboxMessage> EmailOutboxMessages { get; set; }
     public DbSet<PrivacyRequest> PrivacyRequests { get; set; }
+    public DbSet<CmsContentItem> CmsContentItems { get; set; }
+    public DbSet<CmsContentRevision> CmsContentRevisions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -175,6 +177,23 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<SiteSetting>()
             .HasIndex(s => s.Key)
+            .IsUnique();
+
+        modelBuilder.Entity<CmsContentItem>()
+            .HasIndex(item => item.Key)
+            .IsUnique();
+
+        modelBuilder.Entity<CmsContentItem>()
+            .HasIndex(item => new { item.Page, item.Section });
+
+        modelBuilder.Entity<CmsContentRevision>()
+            .HasOne(revision => revision.CmsContentItem)
+            .WithMany(item => item.Revisions)
+            .HasForeignKey(revision => revision.CmsContentItemId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<CmsContentRevision>()
+            .HasIndex(revision => new { revision.CmsContentItemId, revision.Version })
             .IsUnique();
 
         modelBuilder.Entity<Notification>()

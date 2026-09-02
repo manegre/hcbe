@@ -8,6 +8,7 @@ import ScrollToTop from "./components/ScrollToTop";
 import BackToTopButton from "./components/feature/BackToTopButton";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import CookieConsent from "./components/feature/CookieConsent";
+import { CmsContentProvider } from "./contexts/CmsContentContext";
 
 
 function App() {
@@ -17,10 +18,12 @@ function App() {
         <DocumentLanguageSync />
         <AuthProvider>
           <BrowserRouter basename={__BASE_PATH__}>
-            <ScrollToTop />
-            <AppRoutes />
-            <BackToTopButton />
-            <CookieConsent />
+            <CmsContentProvider>
+              <ScrollToTop />
+              <AppRoutes />
+              <BackToTopButton />
+              <CookieConsent />
+            </CmsContentProvider>
           </BrowserRouter>
         </AuthProvider>
       </I18nextProvider>

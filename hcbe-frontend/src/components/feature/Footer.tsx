@@ -18,9 +18,12 @@ const Footer = () => {
   const currentYear = new Date().getFullYear();
 
   useEffect(() => {
-    siteContentApi.getFooter().then((response) => {
+    const loadFooter = () => siteContentApi.getFooter().then((response) => {
       if (response.success && response.data) setCmsLinks(response.data);
     }).catch(() => undefined);
+    void loadFooter();
+    window.addEventListener('hcbe:content-published', loadFooter);
+    return () => window.removeEventListener('hcbe:content-published', loadFooter);
   }, []);
 
   const footerGroups = useMemo(() => {

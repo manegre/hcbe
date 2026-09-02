@@ -1,43 +1,46 @@
+import { useTranslation } from 'react-i18next';
 import zone1DelegatePhoto from '../../../assets/delegates/zone1-delegate.png';
 import zone1DeputyPhoto from '../../../assets/delegates/zone1-deputy.png';
 import zone2DelegatePhoto from '../../../assets/delegates/zone2-delegate.png';
 import zone2DeputyPhoto from '../../../assets/delegates/zone2-deputy.png';
 import { ArrowLink, SectionHeading } from '../../../components/ui';
+import { useCmsContent } from '../../../contexts/CmsContentContext';
+import { resolveMediaUrl } from '../../../lib/api/media-url';
 
 const ZonesSection = () => {
-  const { t, i18n } = useTranslation();
-  const isEnglish = i18n.language.startsWith('en');
+  const { t } = useTranslation();
+  const { getValue } = useCmsContent();
+  const cmsImage = (key: string, fallback: string) => {
+    const value = getValue(key, fallback);
+    return value === fallback ? fallback : resolveMediaUrl(value);
+  };
 
   const zones = [
     {
       name: 'Zone 1',
       welcomeKey: 'public.home.zones.zone1.welcome',
       delegate: {
-        name: 'Mâ Ouédraogo Diallo',
-        photo: zone1DelegatePhoto,
+        name: t('public.home.zones.zone1.delegateName'),
+        photo: cmsImage('media.home.zones.zone1.delegate', zone1DelegatePhoto),
       },
       deputy: {
-        name: 'Ismaël Ratouissanmda Zeba',
-        photo: zone1DeputyPhoto,
+        name: t('public.home.zones.zone1.deputyName'),
+        photo: cmsImage('media.home.zones.zone1.deputy', zone1DeputyPhoto),
       },
-      regions: isEnglish
-        ? ['Ontario', 'Manitoba', 'Saskatchewan', 'Alberta', 'British Columbia', 'Northwest Territories']
-        : ['Ontario', 'Manitoba', 'Saskatchewan', 'Alberta', 'Colombie-Britannique', 'Territoires du Nord'],
+      regions: t('public.home.zones.zone1.regions').split('|').map((region) => region.trim()),
     },
     {
       name: 'Zone 2',
       welcomeKey: 'public.home.zones.zone2.welcome',
       delegate: {
-        name: 'Aziz Ismaël Daboné',
-        photo: zone2DelegatePhoto,
+        name: t('public.home.zones.zone2.delegateName'),
+        photo: cmsImage('media.home.zones.zone2.delegate', zone2DelegatePhoto),
       },
       deputy: {
-        name: 'Ahmed Arnaud Dao',
-        photo: zone2DeputyPhoto,
+        name: t('public.home.zones.zone2.deputyName'),
+        photo: cmsImage('media.home.zones.zone2.deputy', zone2DeputyPhoto),
       },
-      regions: isEnglish
-        ? ['Quebec', 'New Brunswick', 'Nova Scotia', 'Prince Edward Island', 'Newfoundland and Labrador']
-        : ['Québec', 'Nouveau-Brunswick', 'Nouvelle-Écosse', 'Île-du-Prince-Édouard', 'Terre-Neuve-et-Labrador'],
+      regions: t('public.home.zones.zone2.regions').split('|').map((region) => region.trim()),
     },
   ];
 

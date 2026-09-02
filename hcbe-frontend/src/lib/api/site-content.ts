@@ -1,5 +1,33 @@
 import { apiClient } from './client';
-import type { ApiResponse, FooterLinkDto, NavigationItemDto, PageSectionDto, ServiceContentDto, StatisticDto } from './types';
+import { getApiBaseUrl } from './base-url';
+import type {
+  ApiResponse,
+  CmsContentItemDto,
+  CmsContentRevisionDto,
+  CmsPublishedBundleDto,
+  CmsPublishResultDto,
+  FooterLinkDto,
+  MediaUpload,
+  NavigationItemDto,
+  PageSectionDto,
+  ServiceContentDto,
+  StatisticDto,
+  UpsertCmsContentRequest,
+} from './types';
+
+const uploadCmsMedia = async (file: File): Promise<ApiResponse<MediaUpload>> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('folder', 'cms');
+  const token = localStorage.getItem('hcbe_token');
+  const response = await fetch(`${getApiBaseUrl()}/api/media/upload`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    body: formData,
+  });
+  return (await response.json()) as ApiResponse<MediaUpload>;
+};
 
 export const siteContentApi = {
   getStatistics: (): Promise<ApiResponse<StatisticDto[]>> => apiClient.get<StatisticDto[]>('/api/statistics'),
@@ -21,4 +49,20 @@ export const siteContentApi = {
   createService: (data: Omit<ServiceContentDto, 'id'>) => apiClient.post<ServiceContentDto>('/api/content/services', data),
   updateService: (id: string, data: Partial<ServiceContentDto>) => apiClient.put<ServiceContentDto>(`/api/content/services/${id}`, data),
   deleteService: (id: string) => apiClient.delete<void>(`/api/content/services/${id}`),
+  getPublishedCms: (): Promise<ApiResponse<CmsPublishedBundleDto>> => apiClient.get<CmsPublishedBundleDto>('/api/cms/content'),
+  getCmsItems: (page?: string): Promise<ApiResponse<CmsContentItemDto[]>> =>
+    apiClient.get<CmsContentItemDto[]>(`/api/cms/admin/content${page ? `?page=${encodeURIComponent(page)}` : ''}`),
+  upsertCmsItem: (data: UpsertCmsContentRequest): Promise<ApiResponse<CmsContentItemDto>> =>
+    apiClient.put<CmsContentItemDto>('/api/cms/admin/content', data),
+  publishCmsItem: (id: string): Promise<ApiResponse<CmsContentItemDto>> =>
+    apiClient.post<CmsContentItemDto>(`/api/cms/admin/content/${id}/publish`),
+  publishAllCms: (): Promise<ApiResponse<CmsPublishResultDto>> =>
+    apiClient.post<CmsPublishResultDto>('/api/cms/admin/publish'),
+  getCmsRevisions: (id: string): Promise<ApiResponse<CmsContentRevisionDto[]>> =>
+    apiClient.get<CmsContentRevisionDto[]>(`/api/cms/admin/content/${id}/revisions`),
+  rollbackCmsItem: (id: string, version: number): Promise<ApiResponse<CmsContentItemDto>> =>
+    apiClient.post<CmsContentItemDto>(`/api/cms/admin/content/${id}/rollback/${version}`),
+  deleteCmsItem: (id: string): Promise<ApiResponse<void>> =>
+    apiClient.delete<void>(`/api/cms/admin/content/${id}`),
+  uploadCmsMedia,
 };

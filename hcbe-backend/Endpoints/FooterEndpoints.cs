@@ -27,7 +27,7 @@ public static class FooterEndpoints
             return (await footerService.GetAllAsync(true)).HandleServiceResponse();
         }).RequireAuthorization();
 
-        group.MapPost("/", async (CreateFooterLinkRequest request, HttpContext context, IFooterService footerService) =>
+        group.MapPost("/", async (CreateFooterLinkRequest request, HttpContext context, IFooterService footerService, ICmsContentNotifier notifier) =>
         {
             if (!context.IsAdmin())
             {
@@ -35,6 +35,7 @@ public static class FooterEndpoints
             }
 
             var response = await footerService.CreateAsync(request);
+            if (response.Success) await notifier.NotifyPublishedAsync(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
             return response.HandleServiceResponse($"/api/footer/{response.Data?.Id}");
         })
         .WithName("CreateFooterLink")
@@ -43,7 +44,7 @@ public static class FooterEndpoints
         .Produces(403)
         .Produces(400);
 
-        group.MapPut("/{id:guid}", async (Guid id, UpdateFooterLinkRequest request, HttpContext context, IFooterService footerService) =>
+        group.MapPut("/{id:guid}", async (Guid id, UpdateFooterLinkRequest request, HttpContext context, IFooterService footerService, ICmsContentNotifier notifier) =>
         {
             if (!context.IsAdmin())
             {
@@ -51,6 +52,7 @@ public static class FooterEndpoints
             }
 
             var response = await footerService.UpdateAsync(id, request);
+            if (response.Success) await notifier.NotifyPublishedAsync(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
             return response.HandleServiceResponse();
         })
         .WithName("UpdateFooterLink")
@@ -60,7 +62,7 @@ public static class FooterEndpoints
         .Produces(404)
         .Produces(400);
 
-        group.MapDelete("/{id:guid}", async (Guid id, HttpContext context, IFooterService footerService) =>
+        group.MapDelete("/{id:guid}", async (Guid id, HttpContext context, IFooterService footerService, ICmsContentNotifier notifier) =>
         {
             if (!context.IsAdmin())
             {
@@ -68,6 +70,7 @@ public static class FooterEndpoints
             }
 
             var response = await footerService.DeleteAsync(id);
+            if (response.Success) await notifier.NotifyPublishedAsync(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
             return response.HandleServiceResponse();
         })
         .WithName("DeleteFooterLink")

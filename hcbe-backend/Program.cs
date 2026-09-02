@@ -309,6 +309,8 @@ builder.Services.AddScoped<IStatisticService, StatisticService>();
 builder.Services.AddScoped<ISettingService, SettingService>();
 builder.Services.AddScoped<INavigationService, NavigationService>();
 builder.Services.AddScoped<IFooterService, FooterService>();
+builder.Services.AddScoped<ICmsContentService, CmsContentService>();
+builder.Services.AddSingleton<ICmsContentNotifier, CmsContentNotifier>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<ITeamMemberService, TeamMemberService>();
 builder.Services.AddScoped<IMembershipApplicationService, MembershipApplicationService>();
@@ -1121,6 +1123,7 @@ app.MapConsultationEndpoints();
 app.MapUserEndpoints();
 app.MapDocumentEndpoints();
 app.MapContentEndpoints();
+app.MapCmsEndpoints();
 app.MapStatisticEndpoints();
 app.MapSettingEndpoints();
 app.MapNavigationEndpoints();
@@ -1134,6 +1137,7 @@ app.MapPartnerEndpoints();
 app.MapAuditEndpoints();
 app.MapEmailOutboxEndpoints();
 app.MapHub<MessagingHub>("/hubs/messaging");
+app.MapHub<CmsHub>("/hubs/cms");
 app.MapPrivacyEndpoints();
 
 // Direct test route for team members
@@ -1296,6 +1300,42 @@ static void EnsureSqliteSecuritySchema(ApplicationDbContext context)
     )");
     context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_PrivacyRequests_Status_ExecuteAfterUtc ON PrivacyRequests(Status, ExecuteAfterUtc)");
     context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_PrivacyRequests_UserId ON PrivacyRequests(UserId)");
+
+    // Local SQLite databases predate the versioned PostgreSQL CMS migration.
+    // Keep development data intact while adding the same draft/publish schema.
+    context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS CmsContentItems (
+        Id TEXT PRIMARY KEY,
+        Key TEXT NOT NULL,
+        Page TEXT NOT NULL,
+        Section TEXT NOT NULL,
+        ContentType TEXT NOT NULL,
+        Label TEXT,
+        DraftValueFr TEXT,
+        DraftValueEn TEXT,
+        PublishedValueFr TEXT,
+        PublishedValueEn TEXT,
+        IsPublished INTEGER NOT NULL DEFAULT 0,
+        Version INTEGER NOT NULL DEFAULT 0,
+        UpdatedByUserId TEXT,
+        PublishedByUserId TEXT,
+        CreatedAt TEXT NOT NULL,
+        UpdatedAt TEXT NOT NULL,
+        PublishedAt TEXT
+    )");
+    context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_CmsContentItems_Key ON CmsContentItems(Key)");
+    context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_CmsContentItems_Page_Section ON CmsContentItems(Page, Section)");
+
+    context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS CmsContentRevisions (
+        Id TEXT PRIMARY KEY,
+        CmsContentItemId TEXT NOT NULL,
+        Version INTEGER NOT NULL,
+        ValueFr TEXT,
+        ValueEn TEXT,
+        PublishedByUserId TEXT,
+        PublishedAt TEXT NOT NULL,
+        FOREIGN KEY (CmsContentItemId) REFERENCES CmsContentItems(Id) ON DELETE CASCADE
+    )");
+    context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_CmsContentRevisions_CmsContentItemId_Version ON CmsContentRevisions(CmsContentItemId, Version)");
 }
 
 static Task WriteHealthResponse(HttpContext context, HealthReport report)

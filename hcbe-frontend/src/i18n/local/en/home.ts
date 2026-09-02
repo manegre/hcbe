@@ -1,4 +1,10 @@
 export default {
+  'public.home.zones.zone1.delegateName': 'Mâ Ouédraogo Diallo',
+  'public.home.zones.zone1.deputyName': 'Ismaël Ratouissanmda Zeba',
+  'public.home.zones.zone1.regions': 'Ontario | Manitoba | Saskatchewan | Alberta | British Columbia | Northwest Territories',
+  'public.home.zones.zone2.delegateName': 'Aziz Ismaël Daboné',
+  'public.home.zones.zone2.deputyName': 'Ahmed Arnaud Dao',
+  'public.home.zones.zone2.regions': 'Quebec | New Brunswick | Nova Scotia | Prince Edward Island | Newfoundland and Labrador',
   'public.common.required': 'required',
   'public.common.learnMore': 'Learn more',
   'public.common.discover': 'Discover',

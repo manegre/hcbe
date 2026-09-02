@@ -21,7 +21,7 @@ public static class StatisticEndpoints
         .Produces<ApiResponse<List<StatisticDto>>>()
         .Produces(400);
 
-        group.MapPut("/{key}", async (string key, string value, HttpContext context, IStatisticService statisticService) =>
+        group.MapPut("/{key}", async (string key, string value, HttpContext context, IStatisticService statisticService, ICmsContentNotifier notifier) =>
         {
             if (!context.IsAdmin())
             {
@@ -29,6 +29,8 @@ public static class StatisticEndpoints
             }
 
             var response = await statisticService.UpdateAsync(key, value);
+            if (response.Success)
+                await notifier.NotifyPublishedAsync(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
             return response.HandleServiceResponse();
         })
         .WithName("UpdateStatistic")

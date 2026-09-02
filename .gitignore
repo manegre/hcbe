@@ -8,6 +8,7 @@
 *.db-shm
 *.db-wal
 .db-initialized
+hcbe-backend/App_Data/
 
 # Environment files and secrets
 .env
@@ -19,4 +20,3 @@
 Thumbs.db
 .idea/
 .vscode/
-

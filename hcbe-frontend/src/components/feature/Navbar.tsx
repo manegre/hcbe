@@ -55,9 +55,12 @@ const Navbar = () => {
   );
 
   useEffect(() => {
-    siteContentApi.getNavigation().then((response) => {
+    const loadNavigation = () => siteContentApi.getNavigation().then((response) => {
       if (response.success && response.data) setCmsNavigation(response.data);
     }).catch(() => undefined);
+    void loadNavigation();
+    window.addEventListener('hcbe:content-published', loadNavigation);
+    return () => window.removeEventListener('hcbe:content-published', loadNavigation);
   }, []);
 
   const navLinks = useMemo(() => {

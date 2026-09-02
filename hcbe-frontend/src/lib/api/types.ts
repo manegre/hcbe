@@ -525,6 +525,66 @@ export interface PageSectionDto {
   displayOrder?: number;
 }
 
+export type CmsContentType = 'text' | 'richtext' | 'image' | 'url' | 'seo';
+
+export interface CmsPublishedContentDto {
+  key: string;
+  contentType: CmsContentType;
+  valueFr?: string;
+  valueEn?: string;
+  version: number;
+}
+
+export interface CmsPublishedBundleDto {
+  version: number;
+  publishedAt?: string;
+  items: CmsPublishedContentDto[];
+}
+
+export interface CmsContentItemDto {
+  id: string;
+  key: string;
+  page: string;
+  section: string;
+  contentType: CmsContentType;
+  label?: string;
+  draftValueFr?: string;
+  draftValueEn?: string;
+  publishedValueFr?: string;
+  publishedValueEn?: string;
+  isPublished: boolean;
+  hasUnpublishedChanges: boolean;
+  version: number;
+  updatedAt: string;
+  publishedAt?: string;
+}
+
+export interface UpsertCmsContentRequest {
+  key: string;
+  page?: string;
+  section?: string;
+  contentType?: CmsContentType;
+  label?: string;
+  valueFr?: string;
+  valueEn?: string;
+  publish?: boolean;
+}
+
+export interface CmsContentRevisionDto {
+  id: string;
+  version: number;
+  valueFr?: string;
+  valueEn?: string;
+  publishedByUserId?: string;
+  publishedAt: string;
+}
+
+export interface CmsPublishResultDto {
+  publishedCount: number;
+  version: number;
+  publishedAt: string;
+}
+
 export interface ServiceContentDto {
   id: string;
   title: string;

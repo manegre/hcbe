@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button, ArrowLink, PageHeader, StatBar, Reveal } from '../../../components/ui';
 import { HeroCarousel } from '../../../components/feature/HeroCarousel';
 import heroPhoto from '../../../assets/hero/hero-1.jpg';
@@ -5,35 +7,37 @@ import heroAssemblee from '../../../assets/hero/hero-2-assemblee.jpg';
 import heroChambre from '../../../assets/hero/hero-3-chambre.jpg';
 import heroHautCommissariat from '../../../assets/hero/hero-4-haut-commissariat.jpg';
 import { siteContentApi } from '../../../lib/api/site-content';
-import type { PageSectionDto, StatisticDto } from '../../../lib/api/types';
+import type { StatisticDto } from '../../../lib/api/types';
+import { useCmsContent } from '../../../contexts/CmsContentContext';
+import { resolveMediaUrl } from '../../../lib/api/media-url';
 
 // Photographies décoratives du carrousel du hero (rendues aria-hidden par HeroCarousel).
-const heroSlides: { src: string; alt: string }[] = [
-  { src: heroPhoto, alt: '' },
-  { src: heroAssemblee, alt: '' },
-  { src: heroChambre, alt: '' },
-  { src: heroHautCommissariat, alt: '' },
-];
-
 const HeroSection = () => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
+  const { getValue } = useCmsContent();
   const [statistics, setStatistics] = useState<StatisticDto[]>([]);
-  const [heroContent, setHeroContent] = useState<PageSectionDto | null>(null);
 
   useEffect(() => {
-    siteContentApi.getStatistics().then((response) => {
+    const loadStatistics = () => siteContentApi.getStatistics().then((response) => {
       if (response.success && response.data) setStatistics(response.data);
     }).catch(() => undefined);
-    siteContentApi.getPageSections('home').then((response) => {
-      if (response.success && response.data) setHeroContent(response.data.find((item) => item.section === 'hero') || null);
-    }).catch(() => undefined);
+    void loadStatistics();
+    window.addEventListener('hcbe:content-published', loadStatistics);
+    return () => window.removeEventListener('hcbe:content-published', loadStatistics);
   }, []);
 
   const statisticValue = (keys: string[], fallback: string) =>
     statistics.find((item) => keys.includes(item.key))?.value || fallback;
-  const english = i18n.language.startsWith('en');
-  const cmsTitle = english ? heroContent?.titleEn || heroContent?.title : heroContent?.title;
-  const cmsDescription = english ? heroContent?.contentEn || heroContent?.content : heroContent?.content;
+  const cmsImage = (key: string, fallback: string) => {
+    const value = getValue(key, fallback);
+    return value === fallback ? fallback : resolveMediaUrl(value);
+  };
+  const heroSlides: { src: string; alt: string }[] = [
+    { src: cmsImage('media.home.hero.slide1', heroPhoto), alt: '' },
+    { src: cmsImage('media.home.hero.slide2', heroAssemblee), alt: '' },
+    { src: cmsImage('media.home.hero.slide3', heroChambre), alt: '' },
+    { src: cmsImage('media.home.hero.slide4', heroHautCommissariat), alt: '' },
+  ];
 
   return (
     <>
@@ -43,8 +47,8 @@ const HeroSection = () => {
           variant="hero"
           immersive
           align="left"
-          title={cmsTitle || t('public.home.hero.title')}
-          description={cmsDescription || t('public.home.hero.subtitle')}
+          title={t('public.home.hero.title')}
+          description={t('public.home.hero.subtitle')}
           actions={
             <>
               <Button to="/services" variant="primary">
@@ -75,5 +79,3 @@ const HeroSection = () => {
 };
 
 export default HeroSection;
-import { useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';

@@ -27,7 +27,7 @@ public static class NavigationEndpoints
             return (await navigationService.GetAllAsync(true)).HandleServiceResponse();
         }).RequireAuthorization();
 
-        group.MapPost("/", async (CreateNavigationItemRequest request, HttpContext context, INavigationService navigationService) =>
+        group.MapPost("/", async (CreateNavigationItemRequest request, HttpContext context, INavigationService navigationService, ICmsContentNotifier notifier) =>
         {
             if (!context.IsAdmin())
             {
@@ -35,6 +35,7 @@ public static class NavigationEndpoints
             }
 
             var response = await navigationService.CreateAsync(request);
+            if (response.Success) await notifier.NotifyPublishedAsync(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
             return response.HandleServiceResponse($"/api/navigation/{response.Data?.Id}");
         })
         .WithName("CreateNavigationItem")
@@ -43,7 +44,7 @@ public static class NavigationEndpoints
         .Produces(403)
         .Produces(400);
 
-        group.MapPut("/{id:guid}", async (Guid id, UpdateNavigationItemRequest request, HttpContext context, INavigationService navigationService) =>
+        group.MapPut("/{id:guid}", async (Guid id, UpdateNavigationItemRequest request, HttpContext context, INavigationService navigationService, ICmsContentNotifier notifier) =>
         {
             if (!context.IsAdmin())
             {
@@ -51,6 +52,7 @@ public static class NavigationEndpoints
             }
 
             var response = await navigationService.UpdateAsync(id, request);
+            if (response.Success) await notifier.NotifyPublishedAsync(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
             return response.HandleServiceResponse();
         })
         .WithName("UpdateNavigationItem")
@@ -60,7 +62,7 @@ public static class NavigationEndpoints
         .Produces(404)
         .Produces(400);
 
-        group.MapDelete("/{id:guid}", async (Guid id, HttpContext context, INavigationService navigationService) =>
+        group.MapDelete("/{id:guid}", async (Guid id, HttpContext context, INavigationService navigationService, ICmsContentNotifier notifier) =>
         {
             if (!context.IsAdmin())
             {
@@ -68,6 +70,7 @@ public static class NavigationEndpoints
             }
 
             var response = await navigationService.DeleteAsync(id);
+            if (response.Success) await notifier.NotifyPublishedAsync(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
             return response.HandleServiceResponse();
         })
         .WithName("DeleteNavigationItem")

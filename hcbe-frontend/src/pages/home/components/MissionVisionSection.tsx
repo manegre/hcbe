@@ -1,8 +1,5 @@
-import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowLink, Card, Reveal, SectionHeading } from '../../../components/ui';
-import { siteContentApi } from '../../../lib/api/site-content';
-import type { PageSectionDto } from '../../../lib/api/types';
 
 // Les clés i18n restent écrites en toutes lettres : elles doivent rester
 // trouvables au grep, la règle anti-doublon de `src/i18n/local/` en dépend.
@@ -46,25 +43,13 @@ const accents: Record<(typeof domains)[number]['accent'], string> = {
 };
 
 const MissionVisionSection = () => {
-  const { t, i18n } = useTranslation();
-  const [missionContent, setMissionContent] = useState<PageSectionDto | null>(null);
-
-  useEffect(() => {
-    siteContentApi.getPageSections('home').then((response) => {
-      if (response.success && response.data) setMissionContent(response.data.find((item) => item.section === 'mission') || null);
-    }).catch(() => undefined);
-  }, []);
-
-  const english = i18n.language.startsWith('en');
-  const cmsTitle = english ? missionContent?.titleEn || missionContent?.title : missionContent?.title;
-  const cmsContent = english ? missionContent?.contentEn || missionContent?.content : missionContent?.content;
+  const { t } = useTranslation();
 
   return (
     <section className="relative overflow-hidden bg-background py-24">
       <div className="pointer-events-none absolute -left-32 top-10 h-80 w-80 rounded-full bg-gold/[0.08] blur-3xl" aria-hidden="true" />
       <div className="container-page">
-        <SectionHeading title={cmsTitle || t('public.home.mission.sectionTitle')} />
-        {cmsContent && <p className="-mt-10 mb-12 max-w-3xl text-body-lg leading-8 text-ink-variant">{cmsContent}</p>}
+        <SectionHeading title={t('public.home.mission.sectionTitle')} />
 
         <div className="grid grid-cols-1 gap-gutter md:grid-cols-3">
           {domains.map((domain, index) => (

@@ -12,6 +12,7 @@ public static class MediaEndpoints
         "associations",
         "events",
         "partners",
+        "cms",
     };
 
     public static void MapMediaEndpoints(this WebApplication app)

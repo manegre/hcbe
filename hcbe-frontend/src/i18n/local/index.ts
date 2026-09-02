@@ -1,6 +1,6 @@
 const modules = import.meta.glob('./*/*.ts', { eager: true });
 
-const messages: Record<string, { translation: Record<string, string> }> = {};
+export const messages: Record<string, { translation: Record<string, string> }> = {};
 
 Object.keys(modules).forEach((path) => {
   const match = path.match(/\.\/([^/]+)\/([^/]+)\.ts$/);
@@ -22,4 +22,4 @@ Object.keys(modules).forEach((path) => {
   }
 });
 
-export default messages; 
+export default messages;
