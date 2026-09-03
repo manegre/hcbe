@@ -63,11 +63,11 @@ aws --endpoint-url "$S3_ENDPOINT" s3 cp "$encrypted_file.sha256" "$s3_base/$(bas
 aws --endpoint-url "$S3_ENDPOINT" s3 cp "$verification_file" "$s3_base/$(basename "$verification_file")" --only-show-errors
 
 echo "Removing backup objects older than $retention_days days"
-cutoff_epoch="$(date -u -d "-$retention_days days" +%s)"
+cutoff_epoch="$(( $(date -u +%s) - retention_days * 86400 ))"
 aws --endpoint-url "$S3_ENDPOINT" s3api list-objects-v2 --bucket "$S3_BUCKET" --prefix "$object_prefix/" \
   --query 'Contents[].[LastModified,Key]' --output text | while read -r modified_at object_key; do
     [ -n "${object_key:-}" ] || continue
-    object_epoch="$(date -u -d "$modified_at" +%s)"
+    object_epoch="$(python3 -c "import datetime, sys; print(int(datetime.datetime.fromisoformat(sys.argv[1].replace('Z', '+00:00')).timestamp()))" "$modified_at")"
     if [ "$object_epoch" -lt "$cutoff_epoch" ]; then
       aws --endpoint-url "$S3_ENDPOINT" s3 rm "s3://$S3_BUCKET/$object_key" --only-show-errors
     fi

@@ -28,6 +28,9 @@ jobs:
             command -v gosu
             command -v aws
             command -v gpg
+            command -v python3
+            test "$(( $(date -u +%s) - 30 * 86400 ))" -gt 0
+            test "$(python3 -c "import datetime, sys; print(int(datetime.datetime.fromisoformat(sys.argv[1]).timestamp()))" "2026-09-03T00:00:00+00:00")" -gt 0
             work_directory="$(mktemp -d)"
             postgres_directory="$work_directory/postgres"
             socket_directory="$work_directory/socket"
