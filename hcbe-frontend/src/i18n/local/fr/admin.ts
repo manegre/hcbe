@@ -91,6 +91,7 @@ export default {
   'admin.nav.groups.administration': 'Administration',
 
   'admin.nav.dashboard': 'Tableau de bord',
+  'admin.nav.monitoring': 'Surveillance',
   'admin.nav.impact': 'Impact',
   'admin.nav.news': 'Actualités',
   'admin.nav.events': 'Événements',

@@ -1,12 +1,13 @@
 # Railway production deployment
 
-This project is prepared for a Railway Pro deployment using one GitHub monorepo and five Railway resources in one project and region:
+This project is prepared for a Railway Pro deployment using one GitHub monorepo and production resources in one project and region:
 
 - `frontend` with the service root directory `/hcbe-frontend`
 - `api` with the service root directory `/hcbe-backend`
 - `Postgres` from Railway's PostgreSQL template
 - `Redis` from Railway's Redis template
 - `Bucket` from Railway Storage Buckets
+- `postgres-backup`, a private daily cron service rooted at `/` that uses `/railway.json`
 
 Use the `production` Railway environment. Create a separate Railway environment with its own database, Redis instance, bucket, and domains for staging.
 
@@ -36,6 +37,7 @@ ASPNETCORE_ENVIRONMENT=Production
 Database__Provider=PostgreSQL
 ConnectionStrings__DefaultConnection=Host=${{Postgres.PGHOST}};Port=${{Postgres.PGPORT}};Database=${{Postgres.PGDATABASE}};Username=${{Postgres.PGUSER}};Password=${{Postgres.PGPASSWORD}};SSL Mode=Prefer
 ConnectionStrings__Redis=${{Redis.REDISHOST}}:${{Redis.REDISPORT}},password=${{Redis.REDISPASSWORD}},abortConnect=false
+DataProtection__KeyEncryptionKeys=<base64-encoded-32-byte-key>
 JwtSettings__Secret=<generate-and-seal-at-least-64-random-characters>
 Cors__AllowedOrigins__0=https://${{frontend.RAILWAY_PUBLIC_DOMAIN}}
 PublicAppUrl=https://${{frontend.RAILWAY_PUBLIC_DOMAIN}}
@@ -65,7 +67,10 @@ Email__Smtp__Username=<provider-username>
 Email__Smtp__Password=<sealed-provider-password>
 Email__FromAddress=<verified-sender-address>
 Email__FromName=HCBE Canada
+Operations__AlertEmail=<operations-team-address>
 ```
+
+`DataProtection__KeyEncryptionKeys` protects the ASP.NET Data Protection key ring. In production the key ring is shared through the private Redis service, so restarts and multiple API replicas keep cookies and protected payloads valid. Generate this value with a cryptographically secure random source and seal it in Railway. For rotation, prepend the new Base64 key and retain the old one after a comma until every Data Protection key encrypted with it has expired.
 
 ## 3. Frontend variables
 
@@ -96,4 +101,17 @@ Remove both bootstrap variables immediately afterward.
 
 After custom domains are attached, replace `Cors__AllowedOrigins__0`, `PublicAppUrl`, `PublicApiUrl`, and `VITE_API_URL` with the custom HTTPS domains and redeploy both services.
 
-Enable daily PostgreSQL volume backups and PITR. In addition, schedule an encrypted `pg_dump` to storage outside the Railway project and perform a restore drill before launch. Set Railway usage alerts and a hard spending limit high enough that an ordinary traffic spike does not take the public site offline.
+Enable daily PostgreSQL volume backups and PITR. The `/ops/postgres-backup` Railway cron service also creates a daily custom-format dump over Railway's private network, restores it into an isolated PostgreSQL 16 process, validates the migration history and core tables, encrypts it with AES-256, and retains only encrypted objects for 30 days. It must reference `Postgres.DATABASE_URL`, use a long random `BACKUP_ENCRYPTION_KEY`, and receive private bucket credentials through `S3_ENDPOINT`, `S3_BUCKET`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_DEFAULT_REGION`. It must not have a public domain.
+
+`production-monitor.yml` checks the frontend plus API liveness and readiness every ten minutes. A failure opens or updates one GitHub issue and a recovery closes it. Subscribe the operations team to repository issue notifications. Application exceptions are also persisted in `ErrorIncidents`, shown under **Administration → Surveillance**, written as structured container logs, and emailed to `Operations__AlertEmail` through the reliable outbox.
+
+## 6. Restore procedure
+
+1. Download the three matching timestamped objects from the backup bucket and verify the encrypted dump with `sha256sum --check hcbe-*.dump.gpg.sha256`.
+2. Decrypt it with `gpg --batch --decrypt --output hcbe.dump hcbe-*.dump.gpg`; retrieve the passphrase from the protected `HCBE_BACKUP_ENCRYPTION_KEY` secret owner.
+3. Provision an empty PostgreSQL database with the same or newer major version than production.
+4. Restore with `pg_restore --exit-on-error --no-owner --no-acl --dbname="$TARGET_DATABASE_URL" hcbe.dump`.
+5. Verify `SELECT COUNT(*) FROM "__EFMigrationsHistory";` and confirm the `Users`, `Members`, and `Events` tables exist.
+6. Point a staging API at the restored database, check `/health/ready`, then test admin login and one read-only public flow before any production cutover.
+
+Never test restoration over the production database. Quarterly, perform this procedure in an isolated Railway environment in addition to the automated daily container restore.

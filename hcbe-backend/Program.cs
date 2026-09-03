@@ -18,6 +18,8 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using StackExchange.Redis;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
 
 if (args.Length > 0 && args[0] == "MigrateDatabase")
 {
@@ -126,6 +128,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddExceptionHandler<BadRequestExceptionHandler>();
+builder.Services.AddExceptionHandler<UnhandledExceptionHandler>();
 builder.Services.AddProblemDetails(options =>
 {
     options.CustomizeProblemDetails = context =>
@@ -148,6 +151,20 @@ if (!string.IsNullOrWhiteSpace(redisConnection))
     {
         options.Configuration.ChannelPrefix = RedisChannel.Literal("hcbe");
     });
+
+    if (builder.Environment.IsProduction())
+    {
+        var encryptionKeys = builder.Configuration["DataProtection:KeyEncryptionKeys"];
+        if (string.IsNullOrWhiteSpace(encryptionKeys))
+            throw new InvalidOperationException("DataProtection:KeyEncryptionKeys is required in production.");
+        var dataProtectionRedis = ConnectionMultiplexer.Connect(redisConnection);
+        builder.Services.AddSingleton<IConnectionMultiplexer>(dataProtectionRedis);
+        builder.Services.AddDataProtection()
+            .SetApplicationName("HCBE Canada")
+            .PersistKeysToStackExchangeRedis(dataProtectionRedis, "hcbe:data-protection:key-ring");
+        builder.Services.Configure<KeyManagementOptions>(options =>
+            options.XmlEncryptor = new AesGcmXmlKeyEncryptor(encryptionKeys));
+    }
 }
 else if (builder.Environment.IsProduction())
 {
@@ -1203,6 +1220,7 @@ app.MapMemberAccountEndpoints();
 app.MapPartnerEndpoints();
 app.MapAuditEndpoints();
 app.MapEmailOutboxEndpoints();
+app.MapErrorIncidentEndpoints();
 app.MapHub<MessagingHub>("/hubs/messaging");
 app.MapHub<CmsHub>("/hubs/cms");
 app.MapPrivacyEndpoints();

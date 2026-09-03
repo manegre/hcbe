@@ -77,6 +77,7 @@ const AdminServiceCasesPage = lazy(() => import('../pages/admin/service-cases/pa
 const AdminAssociationRequestsPage = lazy(() => import('../pages/admin/association-requests/page'));
 const AdminOpportunitiesPage = lazy(() => import('../pages/admin/opportunities/page'));
 const AdminImpactPage = lazy(() => import('../pages/admin/impact/page'));
+const AdminMonitoringPage = lazy(() => import('../pages/admin/monitoring/page'));
 
 // Admin Grants Pages
 const AdminGrantsList = lazy(() => import('../pages/admin/grants/page').then(module => ({ default: module.default })));
@@ -343,6 +344,10 @@ const routes: RouteObject[] = [
       {
         path: 'impact',
         element: <AdminImpactPage />,
+      },
+      {
+        path: 'monitoring',
+        element: <AdminMonitoringPage />,
       },
       {
         path: 'site-content',

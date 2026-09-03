@@ -71,6 +71,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<ServiceCase> ServiceCases { get; set; }
     public DbSet<ServiceCaseMessage> ServiceCaseMessages { get; set; }
     public DbSet<ServiceCaseAttachment> ServiceCaseAttachments { get; set; }
+    public DbSet<ErrorIncident> ErrorIncidents { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -134,6 +135,18 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<EmailOutboxMessage>()
             .HasIndex(message => new { message.RelatedEntityType, message.RelatedEntityId });
+
+        modelBuilder.Entity<ErrorIncident>().Property(item => item.Fingerprint).HasMaxLength(64);
+        modelBuilder.Entity<ErrorIncident>().Property(item => item.TraceId).HasMaxLength(200);
+        modelBuilder.Entity<ErrorIncident>().Property(item => item.HttpMethod).HasMaxLength(10);
+        modelBuilder.Entity<ErrorIncident>().Property(item => item.Path).HasMaxLength(1000);
+        modelBuilder.Entity<ErrorIncident>().Property(item => item.ExceptionType).HasMaxLength(500);
+        modelBuilder.Entity<ErrorIncident>().Property(item => item.Message).HasMaxLength(2000);
+        modelBuilder.Entity<ErrorIncident>().Property(item => item.StackTrace).HasMaxLength(8000);
+        modelBuilder.Entity<ErrorIncident>()
+            .HasIndex(item => new { item.ResolvedAtUtc, item.LastOccurredAtUtc });
+        modelBuilder.Entity<ErrorIncident>()
+            .HasIndex(item => item.Fingerprint);
 
         modelBuilder.Entity<PrivacyRequest>()
             .HasIndex(request => new { request.Status, request.ExecuteAfterUtc });
