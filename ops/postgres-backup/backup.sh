@@ -33,6 +33,7 @@ echo "Creating PostgreSQL logical backup"
 pg_dump "$DATABASE_URL" --format=custom --compress=9 --no-owner --no-acl --file="$dump_file"
 
 echo "Restoring backup into an isolated PostgreSQL 18 instance"
+chown postgres:postgres "$work_directory"
 install -d -o postgres -g postgres "$postgres_directory" "$socket_directory"
 gosu postgres initdb -D "$postgres_directory" --auth=trust --no-locale >/dev/null
 gosu postgres pg_ctl -D "$postgres_directory" -o "-k $socket_directory -p 55432 -c listen_addresses=''" -w start >/dev/null

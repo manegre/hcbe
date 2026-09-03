@@ -20,7 +20,24 @@ jobs:
       - name: Build backup worker container
         run: docker build --file ops/postgres-backup/Dockerfile --tag hcbe-postgres-backup:${{ github.sha }} .
       - name: Verify PostgreSQL backup runtime
-        run: docker run --rm --entrypoint sh hcbe-postgres-backup:${{ github.sha }} -c 'command -v pg_dump && command -v pg_restore && command -v gosu && command -v aws && command -v gpg'
+        run: |
+          docker run --rm --entrypoint sh hcbe-postgres-backup:${{ github.sha }} -c '
+            set -eu
+            command -v pg_dump
+            command -v pg_restore
+            command -v gosu
+            command -v aws
+            command -v gpg
+            work_directory="$(mktemp -d)"
+            postgres_directory="$work_directory/postgres"
+            socket_directory="$work_directory/socket"
+            chown postgres:postgres "$work_directory"
+            install -d -o postgres -g postgres "$postgres_directory" "$socket_directory"
+            gosu postgres initdb -D "$postgres_directory" --auth=trust --no-locale >/dev/null
+            gosu postgres pg_ctl -D "$postgres_directory" -o "-k $socket_directory -c listen_addresses=" -w start >/dev/null
+            psql --host="$socket_directory" --username=postgres --dbname=postgres --command="SELECT 1;" >/dev/null
+            gosu postgres pg_ctl -D "$postgres_directory" -m fast -w stop >/dev/null
+          '
 
   backend:
     name: Backend
