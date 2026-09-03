@@ -23,7 +23,7 @@ postgres_started=0
 
 cleanup() {
   if [ "$postgres_started" -eq 1 ]; then
-    su-exec postgres pg_ctl -D "$postgres_directory" -m fast -w stop >/dev/null 2>&1 || true
+    gosu postgres pg_ctl -D "$postgres_directory" -m fast -w stop >/dev/null 2>&1 || true
   fi
   rm -rf "$work_directory"
 }
@@ -34,8 +34,8 @@ pg_dump "$DATABASE_URL" --format=custom --compress=9 --no-owner --no-acl --file=
 
 echo "Restoring backup into an isolated PostgreSQL 18 instance"
 install -d -o postgres -g postgres "$postgres_directory" "$socket_directory"
-su-exec postgres initdb -D "$postgres_directory" --auth=trust --no-locale >/dev/null
-su-exec postgres pg_ctl -D "$postgres_directory" -o "-k $socket_directory -p 55432 -c listen_addresses=''" -w start >/dev/null
+gosu postgres initdb -D "$postgres_directory" --auth=trust --no-locale >/dev/null
+gosu postgres pg_ctl -D "$postgres_directory" -o "-k $socket_directory -p 55432 -c listen_addresses=''" -w start >/dev/null
 postgres_started=1
 createdb --host="$socket_directory" --port=55432 --username=postgres hcbe_restore_verify
 pg_restore --host="$socket_directory" --port=55432 --username=postgres --dbname=hcbe_restore_verify \

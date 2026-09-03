@@ -19,6 +19,8 @@ jobs:
         run: sh -n ops/postgres-backup/backup.sh
       - name: Build backup worker container
         run: docker build --file ops/postgres-backup/Dockerfile --tag hcbe-postgres-backup:${{ github.sha }} .
+      - name: Verify PostgreSQL backup runtime
+        run: docker run --rm --entrypoint sh hcbe-postgres-backup:${{ github.sha }} -c 'command -v pg_dump && command -v pg_restore && command -v gosu && command -v aws && command -v gpg'
 
   backend:
     name: Backend
