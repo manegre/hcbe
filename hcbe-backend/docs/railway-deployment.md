@@ -101,17 +101,19 @@ Remove both bootstrap variables immediately afterward.
 
 After custom domains are attached, replace `Cors__AllowedOrigins__0`, `PublicAppUrl`, `PublicApiUrl`, and `VITE_API_URL` with the custom HTTPS domains and redeploy both services.
 
-Enable daily PostgreSQL volume backups and PITR. The `/ops/postgres-backup` Railway cron service also creates a daily custom-format dump over Railway's private network, restores it into an isolated PostgreSQL 18 process matching production, validates the migration history and core tables, encrypts it with AES-256, and retains only encrypted objects for 30 days. It must reference `Postgres.DATABASE_URL`, use a long random `BACKUP_ENCRYPTION_KEY`, and receive private bucket credentials through `S3_ENDPOINT`, `S3_BUCKET`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_DEFAULT_REGION`. It must not have a public domain.
+The `/ops/postgres-backup` Railway cron service creates a daily custom-format dump over Railway's private network, restores it into an isolated PostgreSQL 18 process matching production, validates the migration history and core tables, encrypts it with AES-256, and retains only encrypted objects for 30 days. It must reference `Postgres.DATABASE_URL`, use a long random `BACKUP_ENCRYPTION_KEY`, and receive private bucket credentials through `S3_ENDPOINT`, `S3_BUCKET`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_DEFAULT_REGION`. It must not have a public domain. Railway PITR can be added as a separate recovery layer after its plan and storage cost are approved and a PITR restore drill is completed.
 
 `production-monitor.yml` checks the frontend plus API liveness and readiness every ten minutes. A failure opens or updates one GitHub issue and a recovery closes it. Subscribe the operations team to repository issue notifications. Application exceptions are also persisted in `ErrorIncidents`, shown under **Administration → Surveillance**, written as structured container logs, and emailed to `Operations__AlertEmail` through the reliable outbox.
 
 ## 6. Restore procedure
 
 1. Download the three matching timestamped objects from the backup bucket and verify the encrypted dump with `sha256sum --check hcbe-*.dump.gpg.sha256`.
-2. Decrypt it with `gpg --batch --decrypt --output hcbe.dump hcbe-*.dump.gpg`; retrieve the passphrase from the protected `HCBE_BACKUP_ENCRYPTION_KEY` secret owner.
+2. Decrypt it with `gpg --batch --decrypt --output hcbe.dump hcbe-*.dump.gpg`; retrieve the passphrase from the protected `BACKUP_ENCRYPTION_KEY` secret owner.
 3. Provision an empty PostgreSQL database with the same or newer major version than production.
 4. Restore with `pg_restore --exit-on-error --no-owner --no-acl --dbname="$TARGET_DATABASE_URL" hcbe.dump`.
 5. Verify `SELECT COUNT(*) FROM "__EFMigrationsHistory";` and confirm the `Users`, `Members`, and `Events` tables exist.
 6. Point a staging API at the restored database, check `/health/ready`, then test admin login and one read-only public flow before any production cutover.
 
 Never test restoration over the production database. Quarterly, perform this procedure in an isolated Railway environment in addition to the automated daily container restore.
+
+Last verified production drill: 2026-09-03. The isolated PostgreSQL 18 restore validated 12 EF Core migrations plus the `Users`, `Members`, and `Events` tables, and the private bucket received the encrypted dump, SHA-256 checksum, and restore-verification report.

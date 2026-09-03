@@ -6,7 +6,7 @@
 - The API writes JSON logs with correlation identifiers to Railway.
 - Unhandled API exceptions are grouped in PostgreSQL and visible at `/admin/monitoring`.
 - New and recurring incidents generate a maximum of one operations email per hour through the email outbox.
-- Database backup or restore-verification failures open a separate GitHub issue.
+- Database backup or restore-verification failures mark the Railway cron deployment as crashed and trigger Railway deployment notifications.
 
 For every production alert, record the trace identifier, affected route, first observed time, user impact, mitigation, root cause, and follow-up action. Resolve the in-app incident only after the correction is deployed and verified.
 
@@ -25,9 +25,11 @@ Do not delete `hcbe:data-protection:key-ring` from Redis during routine deployme
 
 ## Backup ownership and recovery objectives
 
-- Railway native database backups/PITR are the primary rapid-recovery layer and must remain enabled.
-- GitHub Actions produces one independently verified logical dump each day with a 30-day retention window.
+- The Railway `postgres-backup` cron produces one independently verified logical dump each day with a 30-day retention window.
+- Railway PITR is an optional additional rapid-recovery layer; it is currently disabled and must not be assumed in the recovery objective until it is explicitly enabled and restore-tested.
 - Operations reviews the workflow every week and completes an isolated Railway restore drill quarterly.
 - Initial targets: recovery point objective of 24 hours for the independent dump, and recovery time objective of four hours. Tighten these targets after Railway PITR is verified under a real drill.
 
 The exact restore commands and validation checks are maintained in `hcbe-backend/docs/railway-deployment.md` and `ops/postgres-backup/backup.sh`.
+
+The production drill completed successfully on 2026-09-03: PostgreSQL 18 restored the encrypted logical dump in isolation, validated 12 EF Core migrations plus the `Users`, `Members`, and `Events` tables, and uploaded the dump, SHA-256 checksum, and verification report to the private backup bucket.
