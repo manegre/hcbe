@@ -6,6 +6,7 @@ using HcbeApi.Tests.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 
 namespace HcbeApi.Tests.Services;
 
@@ -37,12 +38,15 @@ public sealed class PrivacyServiceTests
     public async Task ProcessDueDeletionsAsync_AnonymizesAccountAndRevokesSessions()
     {
         await using var context = TestDbContextFactory.CreateInMemoryContext();
+        var member = new Member { FirstName = "Remove", LastName = "Me", Email = "remove-me@example.com" };
         var user = new User
         {
             Email = "remove-me@example.com",
             FirstName = "Remove",
             LastName = "Me",
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword("CurrentPassword123!")
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("CurrentPassword123!"),
+            Member = member,
+            MemberId = member.Id
         };
         context.Users.Add(user);
         context.RefreshTokens.Add(new RefreshToken
@@ -56,8 +60,26 @@ public sealed class PrivacyServiceTests
             UserId = user.Id,
             ExecuteAfterUtc = DateTime.UtcNow.AddMinutes(-1)
         });
+        var serviceCase = new ServiceCase { MemberId = member.Id, TicketNumber = "HCBE-PRIVACY-1" };
+        context.ServiceCases.Add(serviceCase);
+        context.ServiceCaseAttachments.Add(new ServiceCaseAttachment
+        {
+            ServiceCaseId = serviceCase.Id,
+            UploadedByUserId = user.Id,
+            FileName = "identity.pdf",
+            Url = "/uploads/service-cases/identity.pdf"
+        });
+        context.PublicSubmissions.Add(new PublicSubmission
+        {
+            Email = user.Email,
+            FirstName = "Remove",
+            LastName = "Me",
+            Details = "Personal contact request"
+        });
         await context.SaveChangesAsync();
-        var service = CreateService(context);
+        var files = new Mock<IFileStorageService>();
+        files.Setup(item => item.DeleteAsync("/uploads/service-cases/identity.pdf")).ReturnsAsync(true);
+        var service = CreateService(context, files.Object);
 
         var processed = await service.ProcessDueDeletionsAsync(CancellationToken.None);
 
@@ -70,6 +92,11 @@ public sealed class PrivacyServiceTests
         request.Status.Should().Be("Completed");
         request.UserId.Should().BeNull();
         request.SubjectReference.Should().NotBeNullOrWhiteSpace();
+        (await context.ServiceCaseAttachments.CountAsync()).Should().Be(0);
+        files.Verify(item => item.DeleteAsync("/uploads/service-cases/identity.pdf"), Times.Once);
+        var submission = await context.PublicSubmissions.SingleAsync();
+        submission.Email.Should().EndWith("@invalid.local");
+        submission.Details.Should().Be("[redacted]");
     }
 
     [Fact]
@@ -86,13 +113,90 @@ public sealed class PrivacyServiceTests
         (await context.PrivacyRequests.CountAsync()).Should().Be(0);
     }
 
-    private static PrivacyService CreateService(HcbeApi.Data.ApplicationDbContext context)
+    [Fact]
+    public async Task ProcessDueDeletionsAsync_WhenStorageFails_DoesNotPersistPartialAnonymization()
+    {
+        await using var context = TestDbContextFactory.CreateInMemoryContext();
+        var member = new Member { FirstName = "Keep", LastName = "Until Retry", Email = "retry@example.com" };
+        var user = new User { Email = member.Email, PasswordHash = "hash", Member = member, MemberId = member.Id, IsActive = true };
+        var serviceCase = new ServiceCase { MemberId = member.Id, TicketNumber = "HCBE-PRIVACY-RETRY" };
+        var privacyRequest = new PrivacyRequest { UserId = user.Id, ExecuteAfterUtc = DateTime.UtcNow.AddMinutes(-1) };
+        context.AddRange(user, serviceCase, privacyRequest, new ServiceCaseAttachment
+        {
+            ServiceCaseId = serviceCase.Id,
+            UploadedByUserId = user.Id,
+            FileName = "retry.pdf",
+            Url = "/uploads/service-cases/retry.pdf"
+        });
+        await context.SaveChangesAsync();
+        var files = new Mock<IFileStorageService>();
+        files.Setup(item => item.DeleteAsync("/uploads/service-cases/retry.pdf"))
+            .ThrowsAsync(new IOException("Object storage unavailable"));
+
+        await CreateService(context, files.Object).ProcessDueDeletionsAsync(CancellationToken.None);
+
+        var unchangedUser = await context.Users.AsNoTracking().SingleAsync();
+        unchangedUser.Email.Should().Be("retry@example.com");
+        unchangedUser.IsActive.Should().BeTrue();
+        (await context.ServiceCaseAttachments.CountAsync()).Should().Be(1);
+        var failedRequest = await context.PrivacyRequests.AsNoTracking().SingleAsync();
+        failedRequest.Status.Should().Be("Failed");
+        failedRequest.FailureReason.Should().Contain("Object storage unavailable");
+    }
+
+    [Fact]
+    public async Task RequestDeletionAsync_ImmediatelyWithdrawsOptionalSharingAndCommunications()
+    {
+        await using var context = TestDbContextFactory.CreateInMemoryContext();
+        var member = new Member { FirstName = "Awa", LastName = "Test", Email = "awa@example.com" };
+        var user = new User { Email = member.Email, PasswordHash = "hash", Member = member, MemberId = member.Id };
+        var preferences = new MemberPreference
+        {
+            UserId = user.Id,
+            EmailEvents = true,
+            EmailOpportunities = true,
+            EmailMentorship = true,
+            EmailServiceUpdates = true,
+            EmailNewsletter = true,
+            PushNotifications = true,
+            HasCompletedPreferences = true
+        };
+        var profile = new NetworkingProfile { MemberId = member.Id, IsVisible = true, AllowContactRequests = true };
+        var mentorship = new MentorshipApplication { MemberId = member.Id, ConsentToShare = true };
+        var newsletter = new NewsletterSubscription
+        {
+            Email = user.Email,
+            FullName = "Awa Test",
+            ConsentAcceptedAt = DateTime.UtcNow,
+            IsActive = true,
+            UnsubscribeToken = "token"
+        };
+        context.AddRange(user, preferences, profile, mentorship, newsletter);
+        await context.SaveChangesAsync();
+
+        var result = await CreateService(context).RequestDeletionAsync(user.Id, CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        result.Data!.Status.Should().Be("Pending");
+        preferences.EmailEvents.Should().BeFalse();
+        preferences.EmailOpportunities.Should().BeFalse();
+        preferences.EmailMentorship.Should().BeFalse();
+        preferences.EmailServiceUpdates.Should().BeFalse();
+        preferences.EmailNewsletter.Should().BeFalse();
+        preferences.PushNotifications.Should().BeFalse();
+        profile.IsVisible.Should().BeFalse();
+        profile.AllowContactRequests.Should().BeFalse();
+        mentorship.ConsentToShare.Should().BeFalse();
+        newsletter.IsActive.Should().BeFalse();
+    }
+
+    private static PrivacyService CreateService(HcbeApi.Data.ApplicationDbContext context, IFileStorageService? fileStorage = null)
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Privacy:DeletionDelayDays"] = "30",
             ["Privacy:AuditRetentionDays"] = "730"
         }).Build();
-        return new PrivacyService(context, configuration, NullLogger<PrivacyService>.Instance);
+        return new PrivacyService(context, configuration, fileStorage ?? Mock.Of<IFileStorageService>(), NullLogger<PrivacyService>.Instance);
     }
 }

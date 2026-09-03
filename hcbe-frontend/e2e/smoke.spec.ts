@@ -20,6 +20,14 @@ test('public services and events pages load against the real API', async ({ page
   }
 });
 
+test('privacy policy publishes account rights and the privacy contact', async ({ page }) => {
+  await page.goto('/confidentialite');
+
+  await expect(page.getByRole('heading', { name: /compte membre et finalités|member account and purposes/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /vos droits|your rights/i })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'contact@hcbe.ca' })).toHaveAttribute('href', /^mailto:contact@hcbe\.ca/);
+});
+
 test('admin login page exposes an accessible sign-in form', async ({ page }) => {
   await page.goto('/admin/login');
 
@@ -54,4 +62,8 @@ test('member can register and enter the member portal', async ({ page }) => {
   await page.locator('#inscription-membre-form button[type="submit"]').click();
 
   await expect(page.getByRole('navigation', { name: /communauté des membres|member community/i })).toBeVisible();
+  await page.getByRole('tab', { name: /mes préférences|my preferences/i }).click();
+  await expect(page.getByRole('heading', { name: /confidentialité et données personnelles|privacy and personal data/i })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^télécharger$|^download$/i })).toBeEnabled();
+  await expect(page.getByRole('button', { name: /demander la suppression|request deletion/i })).toBeEnabled();
 });

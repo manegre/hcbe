@@ -80,7 +80,7 @@ export class ApiClient {
       // Unauthorized - clear token and redirect to login (but not for login endpoint itself)
       localStorage.removeItem('hcbe_token');
       localStorage.removeItem('hcbe_user');
-      window.location.href = '/admin/login';
+      window.location.href = window.location.pathname.startsWith('/admin') ? '/admin/login' : '/espace-membre';
       throw new Error('Unauthorized');
     }
 
@@ -207,6 +207,26 @@ export class ApiClient {
       });
 
       return this.handleResponse<T>(response);
+    } catch (error) {
+      this.handleFetchError(error, endpoint);
+    }
+  }
+
+  async download(endpoint: string): Promise<{ blob: Blob; fileName: string | null }> {
+    try {
+      const response = await this.fetchWithSession(endpoint, { method: 'GET' });
+      if (!response.ok) {
+        await this.handleResponse<never>(response);
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const disposition = response.headers.get('content-disposition');
+      const encodedName = disposition?.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+      const quotedName = disposition?.match(/filename="([^"]+)"/i)?.[1];
+      return {
+        blob: await response.blob(),
+        fileName: encodedName ? decodeURIComponent(encodedName) : quotedName ?? null,
+      };
     } catch (error) {
       this.handleFetchError(error, endpoint);
     }

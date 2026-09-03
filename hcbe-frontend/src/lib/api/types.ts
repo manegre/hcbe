@@ -77,6 +77,16 @@ export interface MemberOnboarding {
 
 export type UpdateMemberPreferenceRequest = Omit<MemberPreference, 'hasCompletedPreferences' | 'updatedAt'>;
 
+export interface PrivacyRequest {
+  id: string;
+  type: string;
+  status: 'Pending' | 'Cancelled' | 'Completed' | 'Failed';
+  requestedAtUtc: string;
+  executeAfterUtc: string;
+  cancelledAtUtc?: string | null;
+  completedAtUtc?: string | null;
+}
+
 export interface AdminRole {
   key: string;
   name: string;

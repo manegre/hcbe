@@ -152,7 +152,7 @@ public class NewsletterCampaignService : INewsletterCampaignService
         item.Audience, item.PreferenceCategory, item.TargetProvince, item.TargetZone,
         item.TargetLanguage, item.TargetInterest, item.ScheduledAtUtc);
 
-    private static bool Allows(MemberPreference? preference, string category) => preference is null || category switch
+    private static bool Allows(MemberPreference? preference, string category) => preference is { HasCompletedPreferences: true } && category switch
     {
         "events" => preference.EmailEvents,
         "opportunities" => preference.EmailOpportunities,

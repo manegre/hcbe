@@ -78,7 +78,8 @@ export default {
   'public.member.form.submit.loading': 'Envoi en cours...',
   'public.member.form.submit.label': 'Créer mon compte',
   'public.member.form.consent':
-    'En soumettant ce formulaire, vous acceptez que vos informations soient utilisées dans le cadre de votre adhésion au HCBE Canada.',
+    'Nous utilisons ces renseignements pour créer et gérer votre compte et fournir les services demandés. Les communications facultatives sont désactivées par défaut.',
+  'public.member.form.privacyNotice': 'Consultez les finalités, la conservation et vos droits.',
   'public.member.login.badge': 'Connexion',
   'public.member.login.title': 'Espace membre existant',
   'public.member.login.subtitle': 'Accédez à votre compte avec Google ou avec votre courriel.',

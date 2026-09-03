@@ -4,9 +4,11 @@ import { PageHeader } from '../../components/ui';
 import { openCookieSettings } from '../../lib/cookie-consent';
 
 const sections = [
+  { id: 'account', titleKey: 'public.privacy.accountTitle', bodyKey: 'public.privacy.accountBody' },
   { id: 'newsletter', titleKey: 'public.privacy.newsletterTitle', bodyKey: 'public.privacy.newsletterBody' },
   { id: 'analytics', titleKey: 'public.privacy.analyticsTitle', bodyKey: 'public.privacy.analyticsBody' },
   { id: 'cookies', titleKey: 'public.privacy.cookiesTitle', bodyKey: 'public.privacy.cookiesBody' },
+  { id: 'providers', titleKey: 'public.privacy.providersTitle', bodyKey: 'public.privacy.providersBody' },
   { id: 'retention', titleKey: 'public.privacy.retentionTitle', bodyKey: 'public.privacy.retentionBody' },
   { id: 'rights', titleKey: 'public.privacy.rightsTitle', bodyKey: 'public.privacy.rightsBody' },
 ] as const;
@@ -22,6 +24,7 @@ const PrivacyPage = () => {
 
       <main className="container-page py-16 md:py-24">
         <div className="mx-auto max-w-[65ch]">
+          <p className="mb-6 text-label-md uppercase text-ink-variant">{t('public.privacy.updated')}</p>
           <nav aria-label={t('public.privacy.toc')} className="border border-line bg-surface p-6">
             <p className="text-label-md uppercase text-ink-variant">{t('public.privacy.toc')}</p>
             <ol className="mt-4 space-y-3">
@@ -46,9 +49,13 @@ const PrivacyPage = () => {
             </div>
           ))}
 
-          <p className="mt-8 border-t border-line pt-8 text-body-md text-ink-variant">
-            {t('public.privacy.contact')}
-          </p>
+          <div className="mt-8 border-t border-line pt-8 text-body-md text-ink-variant">
+            <p className="font-semibold text-green-deep">{t('public.privacy.officer')}</p>
+            <a href="mailto:contact@hcbe.ca?subject=Demande%20relative%20aux%20renseignements%20personnels" className="mt-2 inline-flex min-h-11 items-center gap-2 text-gold-ink hover:text-green">
+              <i className="ri-mail-line" aria-hidden="true" />contact@hcbe.ca
+            </a>
+            <p className="mt-2">{t('public.privacy.contact')}</p>
+          </div>
           <button
             type="button"
             onClick={openCookieSettings}

@@ -11,6 +11,7 @@ namespace HcbeApi.Services;
 public sealed class PrivacyService(
     ApplicationDbContext context,
     IConfiguration configuration,
+    IFileStorageService fileStorage,
     ILogger<PrivacyService> logger) : IPrivacyService
 {
     public async Task<byte[]?> ExportAsync(Guid userId, CancellationToken cancellationToken)
@@ -65,6 +66,12 @@ public sealed class PrivacyService(
                 item.Id, item.FirstName, item.LastName, item.Email, item.Phone, item.City, item.Province,
                 item.Profession, item.Expertise, item.Motivation, item.Status, item.MemberId, item.CreatedAt, item.ReviewedAt
             }).ToListAsync(cancellationToken),
+            publicSubmissions = await context.PublicSubmissions.AsNoTracking().Where(item => item.Email == user.Email).Select(item => new
+            {
+                item.Id, item.Type, item.FirstName, item.LastName, item.Email, item.Phone,
+                item.Subject, item.City, item.Details, item.MetadataJson, item.Status,
+                item.CreatedAt, item.ReviewedAt
+            }).ToListAsync(cancellationToken),
             newsletterSubscriptions = await context.NewsletterSubscriptions.AsNoTracking().Where(item => item.Email == user.Email).Select(item => new
             {
                 item.Id, item.Email, item.FullName, item.PreferredLanguage, item.ConsentAcceptedAt,
@@ -95,6 +102,49 @@ public sealed class PrivacyService(
             ExecuteAfterUtc = DateTime.UtcNow.AddDays(delayDays)
         };
         context.PrivacyRequests.Add(request);
+
+        // Respect the withdrawal immediately while keeping the account recoverable
+        // during the grace period. Cancelling deletion never silently opts the member
+        // back in; they can make that choice again in the preference centre.
+        var preferences = await context.MemberPreferences.SingleOrDefaultAsync(item => item.UserId == userId, cancellationToken);
+        if (preferences == null)
+        {
+            preferences = new MemberPreference { UserId = userId };
+            context.MemberPreferences.Add(preferences);
+        }
+
+        preferences.EmailEvents = false;
+        preferences.EmailOpportunities = false;
+        preferences.EmailMentorship = false;
+        preferences.EmailServiceUpdates = false;
+        preferences.EmailNewsletter = false;
+        preferences.PushNotifications = false;
+        preferences.HasCompletedPreferences = true;
+        preferences.UpdatedAt = DateTime.UtcNow;
+
+        if (user.MemberId is Guid memberId)
+        {
+            var profile = await context.NetworkingProfiles.SingleOrDefaultAsync(item => item.MemberId == memberId, cancellationToken);
+            if (profile != null)
+            {
+                profile.IsVisible = false;
+                profile.AllowContactRequests = false;
+            }
+
+            foreach (var application in await context.MentorshipApplications
+                         .Where(item => item.MemberId == memberId && item.ConsentToShare)
+                         .ToListAsync(cancellationToken))
+                application.ConsentToShare = false;
+        }
+
+        foreach (var subscription in await context.NewsletterSubscriptions
+                     .Where(item => item.Email == user.Email && item.IsActive)
+                     .ToListAsync(cancellationToken))
+        {
+            subscription.IsActive = false;
+            subscription.UpdatedAt = DateTime.UtcNow;
+        }
+
         await context.SaveChangesAsync(cancellationToken);
         return ApiResponse<PrivacyRequestDto>.SuccessResponse(Map(request));
     }
@@ -125,8 +175,17 @@ public sealed class PrivacyService(
             }
             catch (Exception exception)
             {
-                request.Status = "Failed";
-                request.FailureReason = exception.Message.Length > 1000 ? exception.Message[..1000] : exception.Message;
+                // Do not persist partially anonymized tracked entities when one step
+                // fails. The failed request remains visible for operational follow-up
+                // and the member can submit it again after the cause is corrected.
+                context.ChangeTracker.Clear();
+                var failedRequest = await context.PrivacyRequests
+                    .SingleOrDefaultAsync(item => item.Id == request.Id, cancellationToken);
+                if (failedRequest != null)
+                {
+                    failedRequest.Status = "Failed";
+                    failedRequest.FailureReason = exception.Message.Length > 1000 ? exception.Message[..1000] : exception.Message;
+                }
                 logger.LogError(exception, "Privacy deletion request {PrivacyRequestId} failed", request.Id);
                 await context.SaveChangesAsync(cancellationToken);
             }
@@ -235,6 +294,14 @@ public sealed class PrivacyService(
             }
             foreach (var item in await context.ServiceCaseMessages.Where(item => item.AuthorUserId == user.Id).ToListAsync(cancellationToken))
                 item.Body = "[message removed]";
+            var uploadedAttachments = await context.ServiceCaseAttachments
+                .Where(item => item.UploadedByUserId == user.Id)
+                .ToListAsync(cancellationToken);
+            foreach (var attachment in uploadedAttachments)
+            {
+                await fileStorage.DeleteAsync(attachment.Url);
+            }
+            context.RemoveRange(uploadedAttachments);
             foreach (var item in await context.Associations.Where(item => item.OwnerMemberId == memberId).ToListAsync(cancellationToken))
                 item.OwnerMemberId = null;
             foreach (var item in await context.AssociationClaimRequests.Where(item => item.MemberId == memberId).ToListAsync(cancellationToken))
@@ -261,6 +328,12 @@ public sealed class PrivacyService(
             item.FirstName = "Deleted"; item.LastName = "Member"; item.Email = anonymousEmail;
             item.Phone = null; item.City = null; item.Province = null; item.Profession = null;
             item.Expertise = null; item.Motivation = null; item.PasswordHash = null;
+        }
+        foreach (var item in await context.PublicSubmissions.Where(item => item.Email == originalEmail).ToListAsync(cancellationToken))
+        {
+            item.FirstName = "Deleted"; item.LastName = "Member"; item.Email = anonymousEmail;
+            item.Phone = null; item.Subject = "[redacted]"; item.City = null;
+            item.Details = "[redacted]"; item.MetadataJson = null;
         }
         foreach (var item in await context.NewsletterSubscriptions.Where(item => item.Email == originalEmail).ToListAsync(cancellationToken))
         {

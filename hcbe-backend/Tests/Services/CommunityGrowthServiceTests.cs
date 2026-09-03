@@ -29,6 +29,15 @@ public sealed class CommunityGrowthServiceTests : IDisposable
         var member = new Member { FirstName = "Aminata", LastName = "Ouédraogo", Email = "aminata@example.com" };
         var user = new User { Email = member.Email, Member = member, MemberId = member.Id, IsActive = true };
         _context.Add(user);
+        var subscription = new NewsletterSubscription
+        {
+            Email = member.Email,
+            FullName = "Aminata Ouédraogo",
+            ConsentAcceptedAt = DateTime.UtcNow,
+            IsActive = true,
+            UnsubscribeToken = "newsletter-token"
+        };
+        _context.Add(subscription);
         await _context.SaveChangesAsync();
         var service = new MemberExperienceService(_context);
 
@@ -38,8 +47,10 @@ public sealed class CommunityGrowthServiceTests : IDisposable
         var after = await service.GetOnboardingAsync(user.Id);
 
         before.Data!.CompletionPercent.Should().Be(0);
+        before.Data.Preferences.EmailNewsletter.Should().BeFalse();
         updated.Success.Should().BeTrue();
         updated.Data!.HasCompletedPreferences.Should().BeTrue();
+        subscription.IsActive.Should().BeFalse();
         after.Data!.CompletionPercent.Should().Be(25);
         after.Data.IsComplete.Should().BeFalse();
     }

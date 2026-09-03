@@ -33,7 +33,8 @@ public sealed class MemberExperienceService(ApplicationDbContext context) : IMem
     {
         if (request.PreferredLanguage is not ("fr" or "en")) return ApiResponse<MemberPreferenceDto>.ErrorResponse("Preferred language must be fr or en");
         if (string.IsNullOrWhiteSpace(request.TimeZone) || request.TimeZone.Length > 100) return ApiResponse<MemberPreferenceDto>.ErrorResponse("A valid time zone is required");
-        if (!await context.Users.AnyAsync(item => item.Id == userId && item.IsActive && item.MemberId != null)) return ApiResponse<MemberPreferenceDto>.ErrorResponse("Member account not found");
+        var user = await context.Users.AsNoTracking().SingleOrDefaultAsync(item => item.Id == userId && item.IsActive && item.MemberId != null);
+        if (user is null) return ApiResponse<MemberPreferenceDto>.ErrorResponse("Member account not found");
         var item = await GetOrCreateAsync(userId);
         item.PreferredLanguage = request.PreferredLanguage;
         item.TimeZone = request.TimeZone.Trim();
@@ -45,6 +46,21 @@ public sealed class MemberExperienceService(ApplicationDbContext context) : IMem
         item.PushNotifications = request.PushNotifications;
         item.HasCompletedPreferences = true;
         item.UpdatedAt = DateTime.UtcNow;
+
+        // A preference-centre opt-out must also override a newsletter subscription
+        // created separately on the public website. Re-enabling remains an explicit
+        // choice here; it never silently recreates a deleted subscription record.
+        if (!request.EmailNewsletter)
+        {
+            var subscriptions = await context.NewsletterSubscriptions
+                .Where(subscription => subscription.Email == user.Email && subscription.IsActive)
+                .ToListAsync();
+            foreach (var subscription in subscriptions)
+            {
+                subscription.IsActive = false;
+                subscription.UpdatedAt = DateTime.UtcNow;
+            }
+        }
         await context.SaveChangesAsync();
         return ApiResponse<MemberPreferenceDto>.SuccessResponse(Map(item));
     }

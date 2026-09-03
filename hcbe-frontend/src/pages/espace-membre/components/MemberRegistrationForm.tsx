@@ -132,7 +132,12 @@ const MemberRegistrationForm = ({ onSwitchToLogin }: { onSwitchToLogin?: () => v
             <i className={isSubmitting ? 'ri-loader-4-line animate-spin' : 'ri-user-add-line'} aria-hidden="true" />
             {t(isSubmitting ? 'public.member.form.submit.loading' : 'public.member.form.submit.label')}
           </Button>
-          <p className="mt-4 max-w-2xl text-xs leading-5 text-ink-variant">{t('public.member.form.consent')}</p>
+          <p className="mt-4 max-w-2xl text-xs leading-5 text-ink-variant">
+            {t('public.member.form.consent')}{' '}
+            <Link to="/confidentialite#account" className="font-semibold text-green underline decoration-gold underline-offset-4 hover:text-red-link">
+              {t('public.member.form.privacyNotice')}
+            </Link>
+          </p>
         </div>
       </form>
     </div>

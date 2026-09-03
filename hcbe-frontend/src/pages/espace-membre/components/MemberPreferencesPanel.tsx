@@ -5,11 +5,12 @@ import { Button, Field, inputClasses } from '../../../components/ui';
 import { memberAccountApi } from '../../../lib/api/member-account';
 import type { MemberOnboarding, UpdateMemberPreferenceRequest } from '../../../lib/api/types';
 import { setAppNotificationsEnabled } from '../../../lib/pwa/notifications';
+import MemberPrivacyPanel from './MemberPrivacyPanel';
 
 const defaults: UpdateMemberPreferenceRequest = {
-  preferredLanguage: 'fr', timeZone: 'America/Toronto', emailEvents: true,
-  emailOpportunities: true, emailMentorship: true, emailServiceUpdates: true,
-  emailNewsletter: true, pushNotifications: false,
+  preferredLanguage: 'fr', timeZone: 'America/Toronto', emailEvents: false,
+  emailOpportunities: false, emailMentorship: false, emailServiceUpdates: false,
+  emailNewsletter: false, pushNotifications: false,
 };
 
 export default function MemberPreferencesPanel() {
@@ -24,22 +25,43 @@ export default function MemberPreferencesPanel() {
     const response = await memberAccountApi.getOnboarding();
     if (response.data) {
       setOnboarding(response.data);
-      const { hasCompletedPreferences: _done, updatedAt: _updated, ...preferences } = response.data.preferences;
-      setForm(preferences);
+      const { hasCompletedPreferences, updatedAt: _updated, ...preferences } = response.data.preferences;
+      setForm(hasCompletedPreferences ? preferences : { ...defaults, preferredLanguage: preferences.preferredLanguage, timeZone: preferences.timeZone });
     }
   };
   useEffect(() => { void load(); }, []);
 
-  const save = async (event: React.FormEvent) => {
-    event.preventDefault(); setBusy(true); setNotice(null);
+  const persist = async (preferences: UpdateMemberPreferenceRequest) => {
+    setBusy(true); setNotice(null);
     try {
-      const response = await memberAccountApi.updatePreferences(form);
+      const response = await memberAccountApi.updatePreferences(preferences);
       setNotice(response.success ? (fr ? 'Vos préférences sont enregistrées.' : 'Your preferences have been saved.') : response.message || 'Error');
       if (response.success) {
-        setAppNotificationsEnabled(form.pushNotifications);
+        setAppNotificationsEnabled(preferences.pushNotifications);
         await load();
       }
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : (fr ? 'Impossible d’enregistrer vos préférences.' : 'Unable to save your preferences.'));
     } finally { setBusy(false); }
+  };
+
+  const save = async (event: React.FormEvent) => {
+    event.preventDefault();
+    await persist(form);
+  };
+
+  const withdrawOptional = async () => {
+    const withdrawn = {
+      ...form,
+      emailEvents: false,
+      emailOpportunities: false,
+      emailMentorship: false,
+      emailServiceUpdates: false,
+      emailNewsletter: false,
+      pushNotifications: false,
+    };
+    setForm(withdrawn);
+    await persist(withdrawn);
   };
 
   const options: Array<[keyof UpdateMemberPreferenceRequest, string, string]> = [
@@ -75,6 +97,8 @@ export default function MemberPreferencesPanel() {
           <div className="flex justify-end"><Button type="submit" variant="secondary" disabled={busy}><i className={busy ? 'ri-loader-4-line animate-spin' : 'ri-save-line'} />{fr ? 'Enregistrer mes préférences' : 'Save my preferences'}</Button></div>
         </div>
       </form>
+
+      <MemberPrivacyPanel fr={fr} withdrawing={busy} onWithdrawOptional={withdrawOptional} />
     </div>
   );
 }

@@ -20,6 +20,7 @@ using StackExchange.Redis;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
+using Microsoft.AspNetCore.RateLimiting;
 
 if (args.Length > 0 && args[0] == "MigrateDatabase")
 {
@@ -282,6 +283,26 @@ builder.Services.AddRateLimiter(options =>
                 PermitLimit = 8,
                 Window = TimeSpan.FromMinutes(5),
                 SegmentsPerWindow = 5,
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+    options.AddPolicy("PrivacyExport", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.GetUserId()?.ToString() ?? httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 3,
+                Window = TimeSpan.FromHours(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+    options.AddPolicy("PrivacyWrite", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.GetUserId()?.ToString() ?? httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 2,
+                Window = TimeSpan.FromHours(1),
                 QueueLimit = 0,
                 AutoReplenishment = true
             }));
@@ -1364,9 +1385,9 @@ static void EnsureSqliteSecuritySchema(ApplicationDbContext context)
     try { context.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN AdminPermissions TEXT"); } catch { }
     context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS MemberPreferences (
         UserId TEXT NOT NULL PRIMARY KEY, PreferredLanguage TEXT NOT NULL DEFAULT 'fr', TimeZone TEXT NOT NULL DEFAULT 'America/Toronto',
-        EmailEvents INTEGER NOT NULL DEFAULT 1, EmailOpportunities INTEGER NOT NULL DEFAULT 1,
-        EmailMentorship INTEGER NOT NULL DEFAULT 1, EmailServiceUpdates INTEGER NOT NULL DEFAULT 1,
-        EmailNewsletter INTEGER NOT NULL DEFAULT 1, PushNotifications INTEGER NOT NULL DEFAULT 0,
+        EmailEvents INTEGER NOT NULL DEFAULT 0, EmailOpportunities INTEGER NOT NULL DEFAULT 0,
+        EmailMentorship INTEGER NOT NULL DEFAULT 0, EmailServiceUpdates INTEGER NOT NULL DEFAULT 0,
+        EmailNewsletter INTEGER NOT NULL DEFAULT 0, PushNotifications INTEGER NOT NULL DEFAULT 0,
         HasCompletedPreferences INTEGER NOT NULL DEFAULT 0, UpdatedAt TEXT NOT NULL,
         FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE CASCADE
     )");

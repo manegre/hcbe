@@ -19,7 +19,11 @@ export default {
 
   'public.privacy.title': 'Privacy policy',
   'public.privacy.subtitle': 'How HCBE Canada handles your personal data.',
+  'public.privacy.updated': 'Last updated: September 3, 2026',
   'public.privacy.toc': 'Contents',
+  'public.privacy.accountTitle': 'Member account and purposes',
+  'public.privacy.accountBody':
+    'To create and operate your account, we collect the contact and profile information you provide, along with limited sign-in and security data. We use it to authenticate your account, provide the community services you request, manage registrations and requests, keep the service secure, and meet our obligations. We limit collection to information necessary for those purposes.',
   'public.privacy.newsletterTitle': 'Newsletter',
   'public.privacy.newsletterBody':
     'When you subscribe to the newsletter, we collect your first name, email address and language preference to send communications about HCBE Canada activities. Your consent is stored with the acceptance timestamp.',
@@ -29,11 +33,15 @@ export default {
   'public.privacy.cookiesTitle': 'Cookies and local storage',
   'public.privacy.cookiesBody':
     'We use one essential cookie to remember your privacy choice. Secure sign-in uses a protected session cookie, while your selected language and theme may be stored locally on your device. These items are never used for advertising or cross-site tracking.',
+  'public.privacy.providersTitle': 'Service providers and processing outside Québec',
+  'public.privacy.providersBody':
+    'We use a limited number of providers to operate the service, including Railway for hosting and the database, Brevo for email delivery, and Google when you choose Google sign-in. Some processing may occur outside Québec. Before such disclosure, HCBE Canada must assess the applicable protection factors and bind the provider by contract. We do not sell personal information.',
   'public.privacy.retentionTitle': 'Retention',
   'public.privacy.retentionBody':
-    'Your information is kept while your subscription remains active. You can request deactivation by writing to contact@hcbe.ca.',
+    'Account data is retained while the account is active. A deletion request starts a 30-day cancellation period; at the end, the account is disabled and personal information is deleted or anonymized. Certain security and audit logs may be retained for up to 730 days, and some records longer where required by law, litigation, or fraud prevention. Data is then destroyed or irreversibly anonymized.',
   'public.privacy.rightsTitle': 'Your rights',
   'public.privacy.rightsBody':
-    'You may request access, correction or removal of your data by contacting us. We do not sell your information to third parties.',
-  'public.privacy.contact': 'Questions: contact@hcbe.ca',
+    'From your member space, you can correct your profile, turn off optional communications, remove your profile from the directory, download a structured copy of your data, and request account deletion. You may also request in writing access, correction, portability, or—where the law provides—cessation of dissemination or de-indexing. We respond within 30 days after receiving a written request and verifying identity. Withdrawing consent does not invalidate processing that was already lawful.',
+  'public.privacy.officer': 'Privacy Officer — HCBE Canada',
+  'public.privacy.contact': 'Write to us to exercise a right, report a confidentiality incident, or ask a question. You may also complain to Québec’s Commission d’accès à l’information.',
 };
