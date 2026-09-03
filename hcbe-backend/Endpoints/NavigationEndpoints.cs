@@ -23,13 +23,13 @@ public static class NavigationEndpoints
 
         group.MapGet("/admin", async (HttpContext context, INavigationService navigationService) =>
         {
-            if (!context.IsAdmin()) return Results.Forbid();
+            if (!context.HasPermission(AdminPermissions.ContentManage)) return Results.Forbid();
             return (await navigationService.GetAllAsync(true)).HandleServiceResponse();
         }).RequireAuthorization();
 
         group.MapPost("/", async (CreateNavigationItemRequest request, HttpContext context, INavigationService navigationService, ICmsContentNotifier notifier) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.ContentManage))
             {
                 return Results.Forbid();
             }
@@ -46,7 +46,7 @@ public static class NavigationEndpoints
 
         group.MapPut("/{id:guid}", async (Guid id, UpdateNavigationItemRequest request, HttpContext context, INavigationService navigationService, ICmsContentNotifier notifier) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.ContentManage))
             {
                 return Results.Forbid();
             }
@@ -64,7 +64,7 @@ public static class NavigationEndpoints
 
         group.MapDelete("/{id:guid}", async (Guid id, HttpContext context, INavigationService navigationService, ICmsContentNotifier notifier) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.ContentManage))
             {
                 return Results.Forbid();
             }

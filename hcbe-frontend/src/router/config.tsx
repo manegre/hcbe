@@ -73,6 +73,10 @@ const AdminSiteContentPage = lazy(() => import('../pages/admin/site-content/page
 const AdminPartnersPage = lazy(() => import('../pages/admin/partners/page').then(module => ({ default: module.default })));
 const AdminMentorshipPage = lazy(() => import('../pages/admin/mentorship/page').then(module => ({ default: module.default })));
 const AdminMessageReportsPage = lazy(() => import('../pages/admin/message-reports/page').then(module => ({ default: module.default })));
+const AdminServiceCasesPage = lazy(() => import('../pages/admin/service-cases/page'));
+const AdminAssociationRequestsPage = lazy(() => import('../pages/admin/association-requests/page'));
+const AdminOpportunitiesPage = lazy(() => import('../pages/admin/opportunities/page'));
+const AdminImpactPage = lazy(() => import('../pages/admin/impact/page'));
 
 // Admin Grants Pages
 const AdminGrantsList = lazy(() => import('../pages/admin/grants/page').then(module => ({ default: module.default })));
@@ -323,6 +327,22 @@ const routes: RouteObject[] = [
       {
         path: 'submissions',
         element: <AdminSubmissionsPage />,
+      },
+      {
+        path: 'service-cases',
+        element: <AdminServiceCasesPage />,
+      },
+      {
+        path: 'association-requests',
+        element: <AdminAssociationRequestsPage />,
+      },
+      {
+        path: 'opportunities',
+        element: <AdminOpportunitiesPage />,
+      },
+      {
+        path: 'impact',
+        element: <AdminImpactPage />,
       },
       {
         path: 'site-content',

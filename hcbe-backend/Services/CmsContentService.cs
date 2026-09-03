@@ -87,6 +87,10 @@ public sealed partial class CmsContentService(
         item.UpdatedByUserId = userId;
         item.UpdatedAt = DateTime.UtcNow;
 
+        item.ScheduledPublishAtUtc = request.ScheduledPublishAtUtc > DateTime.UtcNow
+            ? request.ScheduledPublishAtUtc.Value.ToUniversalTime()
+            : null;
+
         if (request.Publish)
             PublishEntity(item, userId, DateTime.UtcNow);
 
@@ -114,6 +118,7 @@ public sealed partial class CmsContentService(
             .Where(item => !item.IsPublished ||
                 item.DraftValueFr != item.PublishedValueFr ||
                 item.DraftValueEn != item.PublishedValueEn)
+            .Where(item => item.ScheduledPublishAtUtc == null || item.ScheduledPublishAtUtc <= DateTime.UtcNow)
             .ToListAsync();
 
         var publishedAt = DateTime.UtcNow;
@@ -173,6 +178,19 @@ public sealed partial class CmsContentService(
         return ApiResponse.CreateSuccess("Content override deleted");
     }
 
+    public async Task<int> PublishDueAsync(CancellationToken cancellationToken)
+    {
+        var items = await context.CmsContentItems
+            .Where(item => item.ScheduledPublishAtUtc != null && item.ScheduledPublishAtUtc <= DateTime.UtcNow)
+            .OrderBy(item => item.ScheduledPublishAtUtc).Take(50).ToListAsync(cancellationToken);
+        if (items.Count == 0) return 0;
+        var publishedAt = DateTime.UtcNow;
+        foreach (var item in items) PublishEntity(item, item.UpdatedByUserId, publishedAt);
+        await context.SaveChangesAsync(cancellationToken);
+        await notifier.NotifyPublishedAsync(ToBundleVersion(publishedAt), cancellationToken);
+        return items.Count;
+    }
+
     private void PublishEntity(CmsContentItem item, Guid? userId, DateTime publishedAt)
     {
         item.PublishedValueFr = item.DraftValueFr;
@@ -182,6 +200,7 @@ public sealed partial class CmsContentService(
         item.PublishedAt = publishedAt;
         item.PublishedByUserId = userId;
         item.UpdatedAt = publishedAt;
+        item.ScheduledPublishAtUtc = null;
         context.CmsContentRevisions.Add(new CmsContentRevision
         {
             CmsContentItemId = item.Id,
@@ -208,7 +227,8 @@ public sealed partial class CmsContentService(
         !item.IsPublished || item.DraftValueFr != item.PublishedValueFr || item.DraftValueEn != item.PublishedValueEn,
         item.Version,
         item.UpdatedAt,
-        item.PublishedAt);
+        item.PublishedAt,
+        item.ScheduledPublishAtUtc);
 
     private static (string Page, string Section) InferLocation(string key)
     {

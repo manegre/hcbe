@@ -4,6 +4,11 @@ import { Button, Field, inputClasses } from '../../../components/ui';
 import { communityApi } from '../../../lib/api/community';
 import { messagingApi } from '../../../lib/api/messaging';
 import MemberMessagingPanel from './MemberMessagingPanel';
+import MemberServiceCasesPanel from './MemberServiceCasesPanel';
+import MemberPreferencesPanel from './MemberPreferencesPanel';
+import MemberAssociationsPanel from './MemberAssociationsPanel';
+import MemberOpportunitiesPanel from './MemberOpportunitiesPanel';
+import MentorshipJourneyPanel from './MentorshipJourneyPanel';
 import type {
   ConnectionRequestDto,
   CreateMentorshipApplicationRequest,
@@ -14,7 +19,7 @@ import type {
   UpsertNetworkingProfileRequest,
 } from '../../../lib/api/types';
 
-type Tab = 'overview' | 'network' | 'mentorship' | 'requests' | 'messages' | 'profile';
+type Tab = 'overview' | 'services' | 'opportunities' | 'associations' | 'network' | 'mentorship' | 'requests' | 'messages' | 'profile' | 'preferences';
 
 interface MemberCommunityWorkspaceProps {
   member: MemberDto;
@@ -58,7 +63,10 @@ const Badge = ({ value }: { value: string }) => (
 const MemberCommunityWorkspace = ({ member, accountPanel, onLogout }: MemberCommunityWorkspaceProps) => {
   const { i18n } = useTranslation();
   const fr = !i18n.language.startsWith('en');
-  const [tab, setTab] = useState<Tab>('overview');
+  const [tab, setTab] = useState<Tab>(() => {
+    const requested = new URLSearchParams(window.location.search).get('section');
+    return ['overview', 'services', 'opportunities', 'associations', 'network', 'mentorship', 'requests', 'messages', 'profile', 'preferences'].includes(requested ?? '') ? requested as Tab : 'overview';
+  });
   const [applications, setApplications] = useState<MentorshipApplicationDto[]>([]);
   const [matches, setMatches] = useState<MentorshipMatchDto[]>([]);
   const [profile, setProfile] = useState<UpsertNetworkingProfileRequest>(emptyProfile);
@@ -76,7 +84,7 @@ const MemberCommunityWorkspace = ({ member, accountPanel, onLogout }: MemberComm
   const copy = fr ? {
     eyebrow: 'Espace privé', title: 'Communauté des membres',
     intro: 'Développez des relations utiles dans un cadre confidentiel, volontaire et modéré par le HCBE Canada.',
-    mentorship: 'Mentorat', network: 'Annuaire privé', requests: 'Mises en relation', messages: 'Messages',
+    mentorship: 'Mentorat', network: 'Annuaire privé', requests: 'Mises en relation', messages: 'Messages', services: 'Mes demandes', preferences: 'Mes préférences', associations: 'Associations', opportunities: 'Occasions',
     apply: 'Proposer mon profil', myApplications: 'Mes candidatures', myMatches: 'Mes jumelages',
     noApplications: 'Aucune candidature de mentorat pour le moment.', noMatches: 'Aucun jumelage proposé.',
     summary: 'Parcours professionnel', expertise: 'Expertise et domaines', objectives: 'Objectifs du mentorat',
@@ -128,7 +136,7 @@ const MemberCommunityWorkspace = ({ member, accountPanel, onLogout }: MemberComm
   } : {
     eyebrow: 'Private workspace', title: 'Member community',
     intro: 'Build useful relationships in a confidential, voluntary environment moderated by HCBE Canada.',
-    mentorship: 'Mentorship', network: 'Private directory', requests: 'Connections', messages: 'Messages',
+    mentorship: 'Mentorship', network: 'Private directory', requests: 'Connections', messages: 'Messages', services: 'My requests', preferences: 'My preferences', associations: 'Associations', opportunities: 'Opportunities',
     apply: 'Submit my profile', myApplications: 'My applications', myMatches: 'My matches',
     noApplications: 'No mentorship applications yet.', noMatches: 'No match has been proposed.',
     summary: 'Professional background', expertise: 'Expertise and fields', objectives: 'Mentorship goals',
@@ -270,11 +278,15 @@ const MemberCommunityWorkspace = ({ member, accountPanel, onLogout }: MemberComm
 
   const tabs = [
     ['overview', 'ri-layout-grid-line', copy.overview, 0],
+    ['services', 'ri-customer-service-2-line', copy.services, 0],
+    ['opportunities', 'ri-briefcase-4-line', copy.opportunities, 0],
+    ['associations', 'ri-building-2-line', copy.associations, 0],
     ['network', 'ri-team-line', copy.network, directory.length],
     ['mentorship', 'ri-user-heart-line', copy.mentorship, applications.length],
     ['requests', 'ri-links-line', copy.requests, pendingRequestCount],
     ['messages', 'ri-chat-smile-2-line', copy.messages, unreadMessages],
     ['profile', 'ri-user-settings-line', copy.profile, 0],
+    ['preferences', 'ri-notification-3-line', copy.preferences, 0],
   ] as const;
 
   const memberInitials = `${member.firstName?.[0] || ''}${member.lastName?.[0] || ''}`.toUpperCase();
@@ -618,6 +630,7 @@ const MemberCommunityWorkspace = ({ member, accountPanel, onLogout }: MemberComm
                         {match.committeeNotes && <p className="mt-2 text-sm leading-6 text-ink-variant">{match.committeeNotes}</p>}
                         {match.status === 'Proposed' && <div className="mt-4 flex gap-2"><Button type="button" variant="primary" disabled={busy} onClick={() => void run(() => communityApi.respondToMatch(match.id, 'Accept'))}>{copy.accept}</Button><Button type="button" variant="tertiary" disabled={busy} onClick={() => void run(() => communityApi.respondToMatch(match.id, 'Decline'))}>{copy.decline}</Button></div>}
                         {match.counterpartEmail && <p className="mt-4 rounded-lg bg-green/5 px-3 py-2 text-sm text-green"><span className="font-semibold">{copy.contact}:</span> {match.counterpartEmail}</p>}
+                        {match.status === 'Active' && <MentorshipJourneyPanel matchId={match.id} />}
                       </article>
                     ))}
                   </MentorshipRecordSection>
@@ -682,6 +695,10 @@ const MemberCommunityWorkspace = ({ member, accountPanel, onLogout }: MemberComm
         )}
 
         {!loading && tab === 'messages' && <MemberMessagingPanel onUnreadChange={setUnreadMessages} />}
+        {!loading && tab === 'services' && <MemberServiceCasesPanel />}
+        {!loading && tab === 'preferences' && <MemberPreferencesPanel />}
+        {!loading && tab === 'associations' && <MemberAssociationsPanel />}
+        {!loading && tab === 'opportunities' && <MemberOpportunitiesPanel />}
       </div>
       </div>
 

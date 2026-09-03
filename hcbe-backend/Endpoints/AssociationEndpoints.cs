@@ -73,7 +73,7 @@ public static class AssociationEndpoints
         IAssociationService associationService,
         HttpContext context)
     {
-        if (!context.IsAdmin())
+        if (!context.HasPermission(AdminPermissions.CommunityManage))
         {
             return Results.Forbid();
         }
@@ -92,7 +92,7 @@ public static class AssociationEndpoints
         IAssociationService associationService,
         HttpContext context)
     {
-        if (!context.IsAdmin())
+        if (!context.HasPermission(AdminPermissions.CommunityManage))
         {
             return Results.Forbid();
         }
@@ -110,7 +110,7 @@ public static class AssociationEndpoints
         IAssociationService associationService,
         HttpContext context)
     {
-        if (!context.IsAdmin())
+        if (!context.HasPermission(AdminPermissions.CommunityManage))
         {
             return Results.Forbid();
         }
@@ -127,7 +127,7 @@ public static class AssociationEndpoints
         IAssociationService associationService,
         HttpContext context)
     {
-        if (!context.IsAdmin())
+        if (!context.HasPermission(AdminPermissions.CommunityManage))
         {
             return Results.Forbid();
         }
@@ -141,7 +141,7 @@ public static class AssociationEndpoints
         IAssociationService associationService,
         HttpContext context)
     {
-        if (!context.IsAdmin())
+        if (!context.HasPermission(AdminPermissions.CommunityManage))
         {
             return Results.Forbid();
         }
@@ -160,7 +160,7 @@ public static class AssociationEndpoints
         IAssociationService associationService,
         HttpContext context)
     {
-        if (!context.IsAdmin())
+        if (!context.HasPermission(AdminPermissions.CommunityManage))
         {
             return Results.Forbid();
         }

@@ -28,7 +28,26 @@ public sealed record AuthSession(string AccessToken, string RefreshToken, DateTi
 
 public record UserDto(
     Guid Id, string Email, string? FirstName, string? LastName, bool IsAdmin,
-    Guid? MemberId, bool MustChangePassword);
+    Guid? MemberId, bool MustChangePassword, string? AdminRole = null,
+    IReadOnlyList<string>? Permissions = null);
+
+public record MemberPreferenceDto(
+    string PreferredLanguage, string TimeZone, bool EmailEvents, bool EmailOpportunities,
+    bool EmailMentorship, bool EmailServiceUpdates, bool EmailNewsletter,
+    bool PushNotifications, bool HasCompletedPreferences, DateTime UpdatedAt);
+
+public record UpdateMemberPreferenceRequest(
+    [Required] string PreferredLanguage,
+    [Required] string TimeZone,
+    bool EmailEvents,
+    bool EmailOpportunities,
+    bool EmailMentorship,
+    bool EmailServiceUpdates,
+    bool EmailNewsletter,
+    bool PushNotifications);
+
+public record OnboardingStepDto(string Key, string Title, bool Completed, string ActionUrl);
+public record MemberOnboardingDto(int CompletionPercent, bool IsComplete, IReadOnlyList<OnboardingStepDto> Steps, MemberPreferenceDto Preferences);
 
 public record PrivacyRequestDto(
     Guid Id, string Type, string Status, DateTime RequestedAtUtc, DateTime ExecuteAfterUtc,
@@ -36,19 +55,26 @@ public record PrivacyRequestDto(
 
 public record AdminUserDto(
     Guid Id, string Email, string? FirstName, string? LastName, bool IsAdmin,
-    bool MustChangePassword, Guid? MemberId, DateTime CreatedAt);
+    bool MustChangePassword, Guid? MemberId, DateTime CreatedAt,
+    string AdminRole, IReadOnlyList<string> Permissions);
+
+public record AdminRoleDto(string Key, string Name, IReadOnlyCollection<string> Permissions);
 
 public record CreateAdminUserRequest(
     [Required][EmailAddress] string Email,
     [Required][MinLength(12)] string Password,
     string? FirstName,
-    string? LastName);
+    string? LastName,
+    string? AdminRole = null,
+    IReadOnlyList<string>? Permissions = null);
 
 public record UpdateAdminUserRequest(
     string? FirstName,
     string? LastName,
     [MinLength(6)] string? Password,
-    bool? IsAdmin);
+    bool? IsAdmin,
+    string? AdminRole = null,
+    IReadOnlyList<string>? Permissions = null);
 
 // Member DTOs
 public record MemberDto(
@@ -181,7 +207,58 @@ public record EventDto(
     string? RegistrationUrl,
     string? CtaLabel,
     string? CtaLabelEn,
-    List<string> Organizers);
+    List<string> Organizers,
+    string RegistrationMode,
+    bool AllowWaitlist,
+    bool RestrictMeetingLinkToRegistrants,
+    int ConfirmedRegistrationCount,
+    int WaitlistCount,
+    int? RemainingCapacity);
+
+public record EventRegistrationDto(
+    Guid Id,
+    Guid EventId,
+    string EventTitle,
+    Guid MemberId,
+    string MemberName,
+    string MemberEmail,
+    string Status,
+    string ConfirmationCode,
+    string? AccessibilityNeeds,
+    string? AdminNotes,
+    int? WaitlistPosition,
+    DateTime RegisteredAt,
+    DateTime UpdatedAt,
+    DateTime? CancelledAt,
+    DateTime? CheckedInAt,
+    string? MeetingLink);
+
+public record CreateEventRegistrationRequest(
+    [MaxLength(500)] string? AccessibilityNeeds = null);
+
+public record UpdateEventRegistrationRequest(
+    [Required] string Status,
+    [MaxLength(1000)] string? AdminNotes = null);
+
+public record ServiceCaseMessageDto(Guid Id, Guid AuthorUserId, string AuthorName, string Body, bool IsInternal, DateTime CreatedAt);
+public record ServiceCaseAttachmentDto(Guid Id, string FileName, string Url, string ContentType, long SizeBytes, bool IsInternal, DateTime CreatedAt);
+public record ServiceCaseDto(
+    Guid Id, string TicketNumber, Guid MemberId, string MemberName, string MemberEmail,
+    string Category, string Subject, string Description, string Status, string Priority,
+    Guid? AssignedToUserId, string? AssignedToName, string? InternalNotes,
+    DateTime CreatedAt, DateTime UpdatedAt, DateTime? LastResponseAt, DateTime? ResolvedAt,
+    List<ServiceCaseMessageDto> Messages, List<ServiceCaseAttachmentDto> Attachments);
+public record CreateServiceCaseRequest(
+    [Required, MaxLength(80)] string Category,
+    [Required, MaxLength(180)] string Subject,
+    [Required, MinLength(20), MaxLength(5000)] string Description);
+public record AddServiceCaseMessageRequest([Required, MinLength(2), MaxLength(5000)] string Body, bool IsInternal = false);
+public record UpdateServiceCaseRequest(
+    string? Status = null,
+    string? Priority = null,
+    Guid? AssignedToUserId = null,
+    bool ClearAssignee = false,
+    [MaxLength(4000)] string? InternalNotes = null);
 
 public record CreateEventRequest(
     [Required] string Title,
@@ -205,7 +282,10 @@ public record CreateEventRequest(
     string? RegistrationUrl = null,
     string? CtaLabel = null,
     string? CtaLabelEn = null,
-    List<string>? Organizers = null);
+    List<string>? Organizers = null,
+    string? RegistrationMode = null,
+    bool AllowWaitlist = true,
+    bool RestrictMeetingLinkToRegistrants = false);
 
 public record UpdateEventRequest(
     string? Title, string? Description, DateTime? Date, string? Location,
@@ -221,7 +301,10 @@ public record UpdateEventRequest(
     string? RegistrationUrl = null,
     string? CtaLabel = null,
     string? CtaLabelEn = null,
-    List<string>? Organizers = null);
+    List<string>? Organizers = null,
+    string? RegistrationMode = null,
+    bool? AllowWaitlist = null,
+    bool? RestrictMeetingLinkToRegistrants = null);
 
 public record EventCategoryDto(
     Guid Id,
@@ -343,6 +426,35 @@ public record AssociationDto(
     int? FoundedYear, string? ImageUrl, string? Website, List<string> Domains,
     bool IsActive, DateTime CreatedAt, DateTime UpdatedAt,
     string? NameEn = null, string? DescriptionEn = null, List<string>? DomainsEn = null);
+
+public record AssociationClaimDto(
+    Guid Id, Guid AssociationId, string AssociationName, Guid MemberId, string MemberName,
+    string MemberEmail, string Message, string Status, string? AdminNotes,
+    DateTime CreatedAt, DateTime UpdatedAt, DateTime? ReviewedAt);
+public record CreateAssociationClaimRequest([Required][StringLength(1000, MinimumLength = 20)] string Message);
+public record ReviewAssociationClaimRequest([Required] string Status, string? AdminNotes);
+
+public record OpportunityDto(Guid Id, string Title, string? TitleEn, string Description, string? DescriptionEn,
+    string Type, string Organization, string? Location, bool IsRemote, string? Skills, string? ApplyUrl,
+    DateTime? DeadlineUtc, string Status, int ApplicationCount, DateTime CreatedAt, DateTime UpdatedAt);
+public record UpsertOpportunityRequest([Required]string Title, string? TitleEn, [Required]string Description,
+    string? DescriptionEn, [Required]string Type, [Required]string Organization, string? Location,
+    bool IsRemote, string? Skills, string? ApplyUrl, DateTime? DeadlineUtc, string Status = "Draft");
+public record OpportunityApplicationDto(Guid Id, Guid OpportunityId, string OpportunityTitle, Guid MemberId,
+    string MemberName, string MemberEmail, string Message, string Status, string? AdminNotes, DateTime CreatedAt, DateTime UpdatedAt);
+public record CreateOpportunityApplicationRequest([Required][StringLength(1500, MinimumLength = 20)] string Message);
+public record ReviewOpportunityApplicationRequest([Required]string Status, string? AdminNotes);
+
+public record MentorshipGoalDto(Guid Id, Guid MatchId, Guid CreatedByMemberId, string Title, string Status, DateTime? DueAtUtc, DateTime CreatedAt, DateTime UpdatedAt);
+public record MentorshipCheckInDto(Guid Id, Guid MatchId, Guid MemberId, string MemberName, string Summary, int Rating, bool NeedsCommitteeSupport, DateTime CreatedAt);
+public record MentorshipJourneyDto(Guid MatchId, IReadOnlyList<MentorshipGoalDto> Goals, IReadOnlyList<MentorshipCheckInDto> CheckIns);
+public record CreateMentorshipGoalRequest([Required][StringLength(300, MinimumLength = 3)] string Title, DateTime? DueAtUtc);
+public record UpdateMentorshipGoalRequest([Required] string Status);
+public record CreateMentorshipCheckInRequest([Required][StringLength(1500, MinimumLength = 10)] string Summary, [Range(1, 5)] int Rating, bool NeedsCommitteeSupport);
+
+public record ImpactMetricDto(string Key, string Label, double Value, double? ChangePercent, string Unit);
+public record ImpactPeriodDto(string Period, int NewMembers, int EventRegistrations, int ServiceRequests, int OpportunityApplications);
+public record ImpactDashboardDto(DateTime GeneratedAtUtc, IReadOnlyList<ImpactMetricDto> Metrics, IReadOnlyList<ImpactPeriodDto> Periods);
 
 public record CreateAssociationRequest(
     [Required] string Name,
@@ -696,13 +808,22 @@ public record UpdateNewsletterSubscriptionRequest(
 public record NewsletterCampaignDto(
     Guid Id, string Subject, string? SubjectEn, string Body, string? BodyEn,
     string Status, int RecipientCount, int SentCount, int FailedCount,
-    string? LastError, DateTime CreatedAt, DateTime? SentAt);
+    string? LastError, DateTime CreatedAt, DateTime? SentAt,
+    string Audience, string PreferenceCategory, string? TargetProvince,
+    string? TargetZone, string? TargetLanguage, string? TargetInterest, DateTime? ScheduledAtUtc);
 
 public record CreateNewsletterCampaignRequest(
     [Required] [MaxLength(200)] string Subject,
     [MaxLength(200)] string? SubjectEn,
     [Required] [MaxLength(20000)] string Body,
-    [MaxLength(20000)] string? BodyEn);
+    [MaxLength(20000)] string? BodyEn,
+    string Audience = "Newsletter",
+    string PreferenceCategory = "newsletter",
+    string? TargetProvince = null,
+    string? TargetZone = null,
+    string? TargetLanguage = null,
+    string? TargetInterest = null,
+    DateTime? ScheduledAtUtc = null);
 
 // Mentorship and member networking
 public record MentorshipApplicationDto(

@@ -8,6 +8,8 @@ public class User
     public string? FirstName { get; set; }
     public string? LastName { get; set; }
     public bool IsAdmin { get; set; } = false;
+    public string AdminRole { get; set; } = "super-admin";
+    public string? AdminPermissions { get; set; }
     public bool IsActive { get; set; } = true;
     public bool MustChangePassword { get; set; }
     public Guid? MemberId { get; set; }

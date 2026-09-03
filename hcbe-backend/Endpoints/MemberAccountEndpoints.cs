@@ -31,5 +31,15 @@ public static class MemberAccountEndpoints
                 ? Results.Unauthorized()
                 : (await service.UpdateAsync(userId.Value, request)).HandleServiceResponse();
         });
+
+        group.MapGet("/onboarding", async (HttpContext context, IMemberExperienceService service) =>
+            context.GetUserId() is Guid userId
+                ? (await service.GetOnboardingAsync(userId)).HandleServiceResponse()
+                : Results.Unauthorized());
+
+        group.MapPut("/preferences", async (UpdateMemberPreferenceRequest request, HttpContext context, IMemberExperienceService service) =>
+            context.GetUserId() is Guid userId
+                ? (await service.UpdatePreferencesAsync(userId, request)).HandleServiceResponse()
+                : Results.Unauthorized());
     }
 }

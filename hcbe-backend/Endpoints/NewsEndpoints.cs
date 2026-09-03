@@ -23,7 +23,7 @@ public static class NewsEndpoints
 
         group.MapGet("/admin", async (HttpContext context, INewsService newsService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.ContentManage))
             {
                 return Results.Forbid();
             }
@@ -39,7 +39,7 @@ public static class NewsEndpoints
 
         group.MapGet("/admin/{id:guid}", async (Guid id, HttpContext context, INewsService newsService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.ContentManage))
             {
                 return Results.Forbid();
             }
@@ -66,7 +66,7 @@ public static class NewsEndpoints
 
         group.MapPost("/", async (CreateNewsRequest request, HttpContext context, INewsService newsService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.ContentManage))
             {
                 return Results.Forbid();
             }
@@ -82,7 +82,7 @@ public static class NewsEndpoints
 
         group.MapPut("/{id:guid}", async (Guid id, CreateNewsRequest request, HttpContext context, INewsService newsService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.ContentManage))
             {
                 return Results.Forbid();
             }
@@ -99,7 +99,7 @@ public static class NewsEndpoints
 
         group.MapDelete("/{id:guid}", async (Guid id, HttpContext context, INewsService newsService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.ContentManage))
             {
                 return Results.Forbid();
             }
@@ -116,7 +116,7 @@ public static class NewsEndpoints
 
         group.MapPost("/{id:guid}/cover", async (Guid id, HttpRequest request, HttpContext context, INewsService newsService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.ContentManage))
             {
                 return Results.Forbid();
             }
@@ -146,7 +146,7 @@ public static class NewsEndpoints
 
         group.MapPost("/{id:guid}/attachments", async (Guid id, HttpRequest request, HttpContext context, INewsService newsService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.ContentManage))
             {
                 return Results.Forbid();
             }
@@ -176,7 +176,7 @@ public static class NewsEndpoints
 
         group.MapDelete("/{id:guid}/attachments/{attachmentId:guid}", async (Guid id, Guid attachmentId, HttpContext context, INewsService newsService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.ContentManage))
             {
                 return Results.Forbid();
             }

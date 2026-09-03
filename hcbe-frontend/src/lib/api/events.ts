@@ -7,6 +7,7 @@ import type {
   ApiResponse,
   EventMedia,
   EventAttachment,
+  EventRegistration,
   MediaUpload,
 } from './types';
 
@@ -102,4 +103,32 @@ export const eventsApi = {
 
   deleteAttachment: (id: string, attachmentId: string): Promise<ApiResponse<void>> =>
     apiClient.delete<void>(`/api/events/${id}/attachments/${attachmentId}`),
+
+  getMyRegistration: (id: string): Promise<ApiResponse<EventRegistration>> =>
+    apiClient.get<EventRegistration>(`/api/events/${id}/registration/me`),
+
+  getMyRegistrations: (): Promise<ApiResponse<EventRegistration[]>> =>
+    apiClient.get<EventRegistration[]>('/api/events/registrations/me'),
+
+  register: (id: string, accessibilityNeeds?: string): Promise<ApiResponse<EventRegistration>> =>
+    apiClient.post<EventRegistration>(`/api/events/${id}/registrations`, { accessibilityNeeds }),
+
+  cancelRegistration: (id: string): Promise<ApiResponse<EventRegistration>> =>
+    apiClient.post<EventRegistration>(`/api/events/${id}/registration/cancel`),
+
+  getRegistrationsForAdmin: (id: string, status?: string, search?: string): Promise<ApiResponse<EventRegistration[]>> => {
+    const query = new URLSearchParams();
+    if (status) query.set('status', status);
+    if (search) query.set('search', search);
+    const suffix = query.size ? `?${query.toString()}` : '';
+    return apiClient.get<EventRegistration[]>(`/api/events/admin/${id}/registrations${suffix}`);
+  },
+
+  updateRegistrationForAdmin: (
+    eventId: string,
+    registrationId: string,
+    status: EventRegistration['status'],
+    adminNotes?: string,
+  ): Promise<ApiResponse<EventRegistration>> =>
+    apiClient.patch<EventRegistration>(`/api/events/admin/${eventId}/registrations/${registrationId}`, { status, adminNotes }),
 };

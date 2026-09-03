@@ -1,6 +1,7 @@
 using HcbeApi.Helpers;
 using HcbeApi.Models;
 using HcbeApi.Services;
+using System.Text;
 
 namespace HcbeApi.Endpoints;
 
@@ -11,6 +12,51 @@ public static class EventEndpoints
         var group = app.MapGroup("/api/events")
             .WithTags("Events")
             .WithOpenApi();
+
+        group.MapGet("/{id:guid}/calendar.ics", async (Guid id, IEventRegistrationService registrationService) =>
+        {
+            var calendar = await registrationService.BuildCalendarAsync(id);
+            return calendar.Content is null
+                ? Results.NotFound()
+                : Results.File(calendar.Content, "text/calendar; charset=utf-8", calendar.FileName);
+        })
+        .WithName("DownloadEventCalendar")
+        .Produces(404);
+
+        group.MapGet("/registrations/me", async (HttpContext context, IEventRegistrationService registrationService) =>
+            context.GetUserId() is Guid userId
+                ? (await registrationService.GetMineAsync(userId)).HandleServiceResponse()
+                : Results.Unauthorized())
+        .WithName("GetMyEventRegistrations")
+        .RequireAuthorization("Authenticated");
+
+        group.MapGet("/{id:guid}/registration/me", async (Guid id, HttpContext context, IEventRegistrationService registrationService) =>
+            context.GetUserId() is Guid userId
+                ? (await registrationService.GetMineForEventAsync(userId, id)).HandleServiceResponse()
+                : Results.Unauthorized())
+        .WithName("GetMyEventRegistration")
+        .RequireAuthorization("Authenticated");
+
+        group.MapPost("/{id:guid}/registrations", async (
+            Guid id,
+            CreateEventRegistrationRequest request,
+            HttpContext context,
+            IEventRegistrationService registrationService) =>
+            context.GetUserId() is Guid userId
+                ? (await registrationService.RegisterAsync(userId, id, request)).ToCreatedResult($"/api/events/{id}/registration/me")
+                : Results.Unauthorized())
+        .WithName("RegisterForEvent")
+        .RequireAuthorization("Authenticated")
+        .Produces<ApiResponse<EventRegistrationDto>>(201)
+        .Produces(400)
+        .Produces(401);
+
+        group.MapPost("/{id:guid}/registration/cancel", async (Guid id, HttpContext context, IEventRegistrationService registrationService) =>
+            context.GetUserId() is Guid userId
+                ? (await registrationService.CancelAsync(userId, id)).HandleServiceResponse()
+                : Results.Unauthorized())
+        .WithName("CancelEventRegistration")
+        .RequireAuthorization("Authenticated");
 
         group.MapGet("/", async (IEventService eventService) =>
         {
@@ -23,7 +69,7 @@ public static class EventEndpoints
 
         group.MapGet("/admin", async (HttpContext context, IEventService eventService) =>
         {
-            if (!context.IsAdmin()) return Results.Forbid();
+            if (!context.HasPermission(AdminPermissions.EventsManage)) return Results.Forbid();
             return (await eventService.GetAllForAdminAsync()).HandleServiceResponse();
         })
         .WithName("GetEventsForAdmin")
@@ -31,10 +77,63 @@ public static class EventEndpoints
 
         group.MapGet("/admin/{id:guid}", async (Guid id, HttpContext context, IEventService eventService) =>
         {
-            if (!context.IsAdmin()) return Results.Forbid();
+            if (!context.HasPermission(AdminPermissions.EventsManage)) return Results.Forbid();
             return (await eventService.GetByIdForAdminAsync(id)).HandleServiceResponse();
         })
         .WithName("GetEventForAdmin")
+        .RequireAuthorization();
+
+        group.MapGet("/admin/{id:guid}/registrations", async (
+            Guid id,
+            string? status,
+            string? search,
+            HttpContext context,
+            IEventRegistrationService registrationService) =>
+        {
+            if (!context.HasPermission(AdminPermissions.EventsManage)) return Results.Forbid();
+            return (await registrationService.GetForAdminAsync(id, status, search)).HandleServiceResponse();
+        })
+        .WithName("GetEventRegistrationsForAdmin")
+        .RequireAuthorization();
+
+        group.MapPatch("/admin/{id:guid}/registrations/{registrationId:guid}", async (
+            Guid id,
+            Guid registrationId,
+            UpdateEventRegistrationRequest request,
+            HttpContext context,
+            IEventRegistrationService registrationService) =>
+        {
+            if (!context.HasPermission(AdminPermissions.EventsManage)) return Results.Forbid();
+            return (await registrationService.UpdateForAdminAsync(id, registrationId, request)).HandleServiceResponse();
+        })
+        .WithName("UpdateEventRegistrationForAdmin")
+        .RequireAuthorization();
+
+        group.MapGet("/admin/{id:guid}/registrations/export", async (
+            Guid id,
+            HttpContext context,
+            IEventRegistrationService registrationService) =>
+        {
+            if (!context.HasPermission(AdminPermissions.EventsManage)) return Results.Forbid();
+            var response = await registrationService.GetForAdminAsync(id, null, null);
+            if (!response.Success || response.Data is null) return response.HandleServiceResponse();
+
+            static string Csv(string? value) => $"\"{(value ?? string.Empty).Replace("\"", "\"\"")}\"";
+            var csv = new StringBuilder("Name,Email,Status,Confirmation,RegisteredAt,CheckedInAt,AccessibilityNeeds,AdminNotes\r\n");
+            foreach (var item in response.Data)
+            {
+                csv.Append(Csv(item.MemberName)).Append(',')
+                    .Append(Csv(item.MemberEmail)).Append(',')
+                    .Append(Csv(item.Status)).Append(',')
+                    .Append(Csv(item.ConfirmationCode)).Append(',')
+                    .Append(Csv(item.RegisteredAt.ToString("O"))).Append(',')
+                    .Append(Csv(item.CheckedInAt?.ToString("O"))).Append(',')
+                    .Append(Csv(item.AccessibilityNeeds)).Append(',')
+                    .Append(Csv(item.AdminNotes)).Append("\r\n");
+            }
+            return Results.File(Encoding.UTF8.GetBytes(csv.ToString()), "text/csv; charset=utf-8", $"event-{id}-registrations.csv");
+        })
+        .WithName("ExportEventRegistrations")
         .RequireAuthorization();
 
         group.MapGet("/{id:guid}", async (Guid id, IEventService eventService) =>
@@ -49,7 +148,7 @@ public static class EventEndpoints
 
         group.MapPost("/", async (CreateEventRequest request, HttpContext context, IEventService eventService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.EventsManage))
             {
                 return Results.Forbid();
             }
@@ -65,7 +164,7 @@ public static class EventEndpoints
 
         group.MapPut("/{id:guid}", async (Guid id, UpdateEventRequest request, HttpContext context, IEventService eventService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.EventsManage))
             {
                 return Results.Forbid();
             }
@@ -82,7 +181,7 @@ public static class EventEndpoints
 
         group.MapDelete("/{id:guid}", async (Guid id, HttpContext context, IEventService eventService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.EventsManage))
             {
                 return Results.Forbid();
             }
@@ -99,7 +198,7 @@ public static class EventEndpoints
 
         group.MapPost("/{id:guid}/media/photos", async (Guid id, HttpRequest request, HttpContext context, IEventService eventService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.EventsManage))
             {
                 return Results.Forbid();
             }
@@ -129,7 +228,7 @@ public static class EventEndpoints
 
         group.MapPost("/{id:guid}/media/videos", async (Guid id, AddEventVideoRequest request, HttpContext context, IEventService eventService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.EventsManage))
             {
                 return Results.Forbid();
             }
@@ -146,7 +245,7 @@ public static class EventEndpoints
 
         group.MapDelete("/{id:guid}/media/{mediaId:guid}", async (Guid id, Guid mediaId, HttpContext context, IEventService eventService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.EventsManage))
             {
                 return Results.Forbid();
             }
@@ -163,7 +262,7 @@ public static class EventEndpoints
 
         group.MapPost("/{id:guid}/attachments", async (Guid id, HttpRequest request, HttpContext context, IEventService eventService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.EventsManage))
             {
                 return Results.Forbid();
             }
@@ -193,7 +292,7 @@ public static class EventEndpoints
 
         group.MapDelete("/{id:guid}/attachments/{attachmentId:guid}", async (Guid id, Guid attachmentId, HttpContext context, IEventService eventService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.EventsManage))
             {
                 return Results.Forbid();
             }

@@ -34,6 +34,26 @@ public static class HttpContextExtensions
         return db.Users.AsNoTracking().Any(u => u.Id == userId && u.IsAdmin && !u.MustChangePassword);
     }
 
+    public static bool HasPermission(this HttpContext context, string permission)
+    {
+        var userId = context.GetUserId();
+        if (userId == null) return false;
+
+        var db = context.RequestServices.GetService<ApplicationDbContext>();
+        if (db == null)
+        {
+            var isAdmin = string.Equals(context.User.FindFirst("isAdmin")?.Value, "true", StringComparison.OrdinalIgnoreCase);
+            var isSuperAdmin = string.Equals(context.User.FindFirst("adminRole")?.Value, AdminAccess.SuperAdmin, StringComparison.OrdinalIgnoreCase);
+            return isAdmin && (isSuperAdmin || context.User.FindAll("permission").Any(claim => claim.Value == permission));
+        }
+
+        var admin = db.Users.AsNoTracking()
+            .Where(user => user.Id == userId && user.IsAdmin && user.IsActive && !user.MustChangePassword)
+            .Select(user => new { user.AdminRole, user.AdminPermissions })
+            .SingleOrDefault();
+        return admin is not null && AdminAccess.EffectivePermissions(admin.AdminRole, admin.AdminPermissions).Contains(permission);
+    }
+
     public static IResult ForbidIfNotAdmin(this HttpContext context)
     {
         return context.IsAdmin() ? Results.Ok() : Results.Forbid();

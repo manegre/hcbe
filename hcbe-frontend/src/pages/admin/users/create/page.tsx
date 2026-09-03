@@ -5,6 +5,7 @@ import { AdminFormLayout } from '../../../../components/admin/AdminFormLayout';
 import { Button, Field, inputClasses } from '../../../../components/ui';
 import { usersApi } from '../../../../lib/api/users';
 import type { CreateAdminUserRequest } from '../../../../lib/api/types';
+import { AdminRoleFields } from '../../../../components/admin/AdminRoleFields';
 
 const AdminUserCreatePage: React.FC = () => {
   const navigate = useNavigate();
@@ -20,6 +21,8 @@ const AdminUserCreatePage: React.FC = () => {
     password: '',
     firstName: '',
     lastName: '',
+    adminRole: 'community-manager',
+    permissions: [],
   });
 
   const backPath = '/admin/users';
@@ -144,6 +147,12 @@ const AdminUserCreatePage: React.FC = () => {
                 <button type="button" disabled={!formData.password} onClick={() => void copyPassword()} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-green/20 bg-surface px-4 text-[10px] font-bold uppercase tracking-[.1em] text-green transition-colors hover:border-green hover:bg-green hover:text-white disabled:opacity-50"><i className={copied ? 'ri-check-line' : 'ri-file-copy-line'} />{t(copied ? 'admin.users.copied' : 'admin.users.copyPassword')}</button>
               </div>
             </section>
+
+            <AdminRoleFields
+              role={formData.adminRole ?? 'community-manager'}
+              permissions={formData.permissions ?? []}
+              onChange={(adminRole, permissions) => setFormData((previous) => ({ ...previous, adminRole, permissions }))}
+            />
 
             <div className="grid gap-3 sm:grid-cols-3">
               {[

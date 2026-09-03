@@ -42,8 +42,8 @@ public static class MessagingEndpoints
 
         var admin = app.MapGroup("/api/admin/message-reports").WithTags("Message moderation").RequireAuthorization().WithOpenApi();
         admin.MapGet("/", async (string? status, HttpContext context, IMessagingService service) =>
-            !context.IsAdmin() ? Results.Forbid() : (await service.GetReportsForAdminAsync(status)).HandleServiceResponse());
+            !context.HasPermission(AdminPermissions.ModerationManage) ? Results.Forbid() : (await service.GetReportsForAdminAsync(status)).HandleServiceResponse());
         admin.MapPatch("/{id:guid}", async (Guid id, ResolveConversationReportRequest request, HttpContext context, IMessagingService service) =>
-            !context.IsAdmin() ? Results.Forbid() : (await service.ResolveReportAsync(id, request)).HandleServiceResponse());
+            !context.HasPermission(AdminPermissions.ModerationManage) ? Results.Forbid() : (await service.ResolveReportAsync(id, request)).HandleServiceResponse());
     }
 }

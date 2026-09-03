@@ -23,13 +23,13 @@ public static class FooterEndpoints
 
         group.MapGet("/admin", async (HttpContext context, IFooterService footerService) =>
         {
-            if (!context.IsAdmin()) return Results.Forbid();
+            if (!context.HasPermission(AdminPermissions.ContentManage)) return Results.Forbid();
             return (await footerService.GetAllAsync(true)).HandleServiceResponse();
         }).RequireAuthorization();
 
         group.MapPost("/", async (CreateFooterLinkRequest request, HttpContext context, IFooterService footerService, ICmsContentNotifier notifier) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.ContentManage))
             {
                 return Results.Forbid();
             }
@@ -46,7 +46,7 @@ public static class FooterEndpoints
 
         group.MapPut("/{id:guid}", async (Guid id, UpdateFooterLinkRequest request, HttpContext context, IFooterService footerService, ICmsContentNotifier notifier) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.ContentManage))
             {
                 return Results.Forbid();
             }
@@ -64,7 +64,7 @@ public static class FooterEndpoints
 
         group.MapDelete("/{id:guid}", async (Guid id, HttpContext context, IFooterService footerService, ICmsContentNotifier notifier) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.ContentManage))
             {
                 return Results.Forbid();
             }

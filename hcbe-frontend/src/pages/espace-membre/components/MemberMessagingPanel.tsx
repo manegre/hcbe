@@ -5,6 +5,7 @@ import { messagingApi } from '../../../lib/api/messaging';
 import type { ConversationDto, MessagingContactDto, PrivateMessageDto } from '../../../lib/api/types';
 import { createMessagingHubConnection } from '../../../lib/realtime/messaging-hub';
 import type { HubConnection } from '@microsoft/signalr';
+import { notifyFromApp } from '../../../lib/pwa/notifications';
 
 interface MemberMessagingPanelProps { onUnreadChange?: (count: number) => void; }
 
@@ -85,6 +86,13 @@ const MemberMessagingPanel = ({ onUnreadChange }: MemberMessagingPanelProps) => 
       if (message.conversationId === activeIdRef.current) {
         setMessages((current) => current.some((item) => item.id === message.id) ? current : [...current, message]);
         window.setTimeout(() => endRef.current?.scrollIntoView({ behavior: 'smooth' }), 20);
+      }
+      if (document.hidden || message.conversationId !== activeIdRef.current) {
+        void notifyFromApp(
+          fr ? 'Nouveau message HCBE' : 'New HCBE message',
+          message.body,
+          '/espace-membre?section=messages',
+        );
       }
       void loadShell();
     });

@@ -5,7 +5,7 @@ import Navbar from '../../../../components/feature/Navbar';
 import Footer from '../../../../components/feature/Footer';
 import { EventMediaGallery } from '../../../../components/events/EventMediaGallery';
 import ImageCarousel from '../../../../components/media/ImageCarousel';
-import { ArrowLink, Button, EmptyState, StatusChip } from '../../../../components/ui';
+import { ArrowLink, EmptyState, StatusChip } from '../../../../components/ui';
 import { buildApiUrl } from '../../../../lib/api/base-url';
 import { formatFileSize, resolveMediaUrl } from '../../../../lib/api/media-url';
 import type { Event } from '../../../../lib/api/types';
@@ -14,6 +14,7 @@ import { getEventLifecycle } from '../../../../lib/events/lifecycle';
 import { formatEventDateTime } from '../../../../lib/events/timezone';
 import { localized, localizedOptional } from '../../../../lib/i18n/localized';
 import { isImageFile } from '../../../../lib/media/is-image-file';
+import { EventRegistrationPanel } from '../../../../components/events/EventRegistrationPanel';
 
 interface PracticalDetail {
   icon: string;
@@ -196,7 +197,6 @@ export const EventDetailPage: React.FC = () => {
     timeZone,
   }).format(eventDate);
 
-  const registerHref = event.registrationUrl || event.meetingLink;
   const actionLabel =
     localizedOptional(event.ctaLabel, event.ctaLabelEn, i18n.language) ||
     (event.registrationUrl
@@ -204,8 +204,6 @@ export const EventDetailPage: React.FC = () => {
       : event.meetingLink
         ? t('public.news.evenements.joinMeeting')
         : t('public.news.evenements.cta.register'));
-  const internalRegisterHref = `/contact?type=event-registration&referenceId=${encodeURIComponent(event.id)}&label=${encodeURIComponent(title)}`;
-
   const practicalDetails: PracticalDetail[] = [
     { icon: 'ri-calendar-line', label: t('public.news.evenements.startsAt'), value: formatDate(event.date, event.timeZone) },
     ...(event.endDate
@@ -227,22 +225,6 @@ export const EventDetailPage: React.FC = () => {
         }]
       : []),
   ];
-
-  const registrationAction = registerHref ? (
-    <a
-      href={registerHref}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="group mt-6 inline-flex min-h-12 w-full items-center justify-between rounded-control bg-gold px-5 py-3 text-[12px] font-bold uppercase tracking-[0.1em] text-green-deep transition-colors hover:bg-gold-dim focus-visible:outline-white"
-    >
-      {actionLabel}
-      <i className="ri-arrow-right-up-line text-lg transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" />
-    </a>
-  ) : (
-    <Button to={internalRegisterHref} variant="primary" className="mt-6 w-full">
-      {actionLabel}
-    </Button>
-  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -406,7 +388,7 @@ export const EventDetailPage: React.FC = () => {
                     <p className="mt-1 text-sm leading-6 text-white/80">{formatDate(event.registrationDeadline, event.timeZone)}</p>
                   </div>
                 )}
-                {!isPast ? registrationAction : <p className="mt-6 border-t border-white/15 pt-5 text-sm text-white/65">{t('public.news.evenements.pastNotice')}</p>}
+                <EventRegistrationPanel event={event} isPast={isPast} externalLabel={actionLabel} />
               </section>
 
               <section className="border-x border-b border-line bg-background px-6 py-7 sm:px-8" aria-labelledby="practical-title">

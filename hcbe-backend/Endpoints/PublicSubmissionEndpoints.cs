@@ -25,7 +25,7 @@ public static class PublicSubmissionEndpoints
             HttpContext context,
             IPublicSubmissionService service) =>
         {
-            if (!context.IsAdmin()) return Results.Forbid();
+            if (!context.HasPermission(AdminPermissions.CommunityManage)) return Results.Forbid();
             return (await service.GetAllAsync(type, status)).HandleServiceResponse();
         }).RequireAuthorization();
 
@@ -39,7 +39,7 @@ public static class PublicSubmissionEndpoints
             HttpContext context,
             IPublicSubmissionService service) =>
         {
-            if (!context.IsAdmin()) return Results.Forbid();
+            if (!context.HasPermission(AdminPermissions.CommunityManage)) return Results.Forbid();
             return (await service.SearchAsync(page, pageSize, search, sort, type, status)).HandleServiceResponse();
         }).RequireAuthorization();
 
@@ -48,7 +48,7 @@ public static class PublicSubmissionEndpoints
             HttpContext context,
             IPublicSubmissionService service) =>
         {
-            if (!context.IsAdmin()) return Results.Forbid();
+            if (!context.HasPermission(AdminPermissions.CommunityManage)) return Results.Forbid();
             return (await service.GetByIdAsync(id)).HandleServiceResponse();
         }).RequireAuthorization();
 
@@ -58,7 +58,7 @@ public static class PublicSubmissionEndpoints
             HttpContext context,
             IPublicSubmissionService service) =>
         {
-            if (!context.IsAdmin()) return Results.Forbid();
+            if (!context.HasPermission(AdminPermissions.CommunityManage)) return Results.Forbid();
             return (await service.UpdateStatusAsync(id, request)).HandleServiceResponse();
         }).RequireAuthorization();
 
@@ -67,7 +67,7 @@ public static class PublicSubmissionEndpoints
             HttpContext context,
             IPublicSubmissionService service) =>
         {
-            if (!context.IsAdmin()) return Results.Forbid();
+            if (!context.HasPermission(AdminPermissions.CommunityManage)) return Results.Forbid();
             return (await service.DeleteAsync(id)).HandleServiceResponse();
         }).RequireAuthorization();
     }

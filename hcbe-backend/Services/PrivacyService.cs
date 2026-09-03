@@ -28,13 +28,38 @@ public sealed class PrivacyService(
         {
             generatedAtUtc = DateTime.UtcNow,
             account = new { user.Id, user.Email, user.FirstName, user.LastName, user.IsAdmin, user.MemberId, user.CreatedAt, user.LastLoginAtUtc },
+            communicationPreferences = await context.MemberPreferences.AsNoTracking().SingleOrDefaultAsync(item => item.UserId == userId, cancellationToken),
             member = memberId == null ? null : await context.Members.AsNoTracking().SingleOrDefaultAsync(item => item.Id == memberId, cancellationToken),
             networkingProfile = memberId == null ? null : await context.NetworkingProfiles.AsNoTracking().SingleOrDefaultAsync(item => item.MemberId == memberId, cancellationToken),
             mentorshipApplications = memberId == null ? [] : await context.MentorshipApplications.AsNoTracking().Where(item => item.MemberId == memberId).ToListAsync(cancellationToken),
+            mentorshipMatches = memberId == null ? [] : await context.MentorshipMatches.AsNoTracking()
+                .Where(item => item.MentorApplication!.MemberId == memberId || item.MenteeApplication!.MemberId == memberId)
+                .ToListAsync(cancellationToken),
+            mentorshipGoals = memberId == null ? [] : await context.MentorshipGoals.AsNoTracking().Where(item => item.CreatedByMemberId == memberId).ToListAsync(cancellationToken),
+            mentorshipCheckIns = memberId == null ? [] : await context.MentorshipCheckIns.AsNoTracking().Where(item => item.MemberId == memberId).ToListAsync(cancellationToken),
+            associationClaims = memberId == null ? [] : await context.AssociationClaimRequests.AsNoTracking().Where(item => item.MemberId == memberId).ToListAsync(cancellationToken),
+            opportunityApplications = memberId == null ? [] : await context.OpportunityApplications.AsNoTracking().Where(item => item.MemberId == memberId).ToListAsync(cancellationToken),
             connectionRequests = memberId == null ? [] : await context.ConnectionRequests.AsNoTracking().Where(item => item.RequesterMemberId == memberId || item.RecipientMemberId == memberId).ToListAsync(cancellationToken),
             conversations = await context.PrivateConversations.AsNoTracking().Where(item => conversationIds.Contains(item.Id)).ToListAsync(cancellationToken),
             messages = await context.PrivateMessages.AsNoTracking().Where(item => conversationIds.Contains(item.ConversationId)).ToListAsync(cancellationToken),
             reports = memberId == null ? [] : await context.ConversationReports.AsNoTracking().Where(item => item.ReporterMemberId == memberId).ToListAsync(cancellationToken),
+            eventRegistrations = memberId == null ? [] : await context.EventRegistrations.AsNoTracking().Where(item => item.MemberId == memberId).ToListAsync(cancellationToken),
+            serviceCases = memberId == null ? [] : await context.ServiceCases.AsNoTracking()
+                .Where(item => item.MemberId == memberId)
+                .Select(item => new
+                {
+                    item.Id, item.TicketNumber, item.Category, item.Subject, item.Description, item.Status,
+                    item.Priority, item.CreatedAt, item.UpdatedAt, item.LastResponseAt, item.ResolvedAt,
+                    messages = item.Messages.Where(message => !message.IsInternal).Select(message => new
+                    {
+                        message.Id, message.AuthorUserId, message.Body, message.CreatedAt
+                    }),
+                    attachments = item.Attachments.Where(attachment => !attachment.IsInternal).Select(attachment => new
+                    {
+                        attachment.Id, attachment.FileName, attachment.Url, attachment.ContentType,
+                        attachment.SizeBytes, attachment.CreatedAt
+                    })
+                }).ToListAsync(cancellationToken),
             membershipApplications = await context.MembershipApplications.AsNoTracking().Where(item => item.Email == user.Email).Select(item => new
             {
                 item.Id, item.FirstName, item.LastName, item.Email, item.Phone, item.City, item.Province,
@@ -197,6 +222,38 @@ public sealed class PrivacyService(
                 item.Body = "[message removed]";
             foreach (var item in await context.ConversationReports.Where(item => item.ReporterMemberId == memberId).ToListAsync(cancellationToken))
                 item.Reason = "[redacted]";
+            foreach (var item in await context.EventRegistrations.Where(item => item.MemberId == memberId).ToListAsync(cancellationToken))
+            {
+                item.AccessibilityNeeds = null;
+                item.AdminNotes = null;
+            }
+            foreach (var item in await context.ServiceCases.Where(item => item.MemberId == memberId).ToListAsync(cancellationToken))
+            {
+                item.Subject = "[redacted]";
+                item.Description = "[redacted]";
+                item.InternalNotes = null;
+            }
+            foreach (var item in await context.ServiceCaseMessages.Where(item => item.AuthorUserId == user.Id).ToListAsync(cancellationToken))
+                item.Body = "[message removed]";
+            foreach (var item in await context.Associations.Where(item => item.OwnerMemberId == memberId).ToListAsync(cancellationToken))
+                item.OwnerMemberId = null;
+            foreach (var item in await context.AssociationClaimRequests.Where(item => item.MemberId == memberId).ToListAsync(cancellationToken))
+            {
+                item.Message = "[redacted]";
+                item.AdminNotes = null;
+            }
+            foreach (var item in await context.OpportunityApplications.Where(item => item.MemberId == memberId).ToListAsync(cancellationToken))
+            {
+                item.Message = "[redacted]";
+                item.AdminNotes = null;
+            }
+            foreach (var item in await context.MentorshipGoals.Where(item => item.CreatedByMemberId == memberId).ToListAsync(cancellationToken))
+                item.Title = "[redacted]";
+            foreach (var item in await context.MentorshipCheckIns.Where(item => item.MemberId == memberId).ToListAsync(cancellationToken))
+            {
+                item.Summary = "[redacted]";
+                item.NeedsCommitteeSupport = false;
+            }
         }
 
         foreach (var item in await context.MembershipApplications.Where(item => item.Email == originalEmail || item.MemberId == memberId).ToListAsync(cancellationToken))

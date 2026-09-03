@@ -1,5 +1,6 @@
 import { apiClient } from './client';
 import type {
+  AdminRole,
   AdminUser,
   ApiResponse,
   CreateAdminUserRequest,
@@ -7,6 +8,9 @@ import type {
 } from './types';
 
 export const usersApi = {
+  getAdminRoles: (): Promise<ApiResponse<AdminRole[]>> =>
+    apiClient.get<AdminRole[]>('/api/users/admin/roles'),
+
   getAdminUsers: (): Promise<ApiResponse<AdminUser[]>> =>
     apiClient.get<AdminUser[]>('/api/users/admin'),
 

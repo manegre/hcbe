@@ -23,7 +23,7 @@ public static class StatisticEndpoints
 
         group.MapPut("/{key}", async (string key, string value, HttpContext context, IStatisticService statisticService, ICmsContentNotifier notifier) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.SettingsManage))
             {
                 return Results.Forbid();
             }

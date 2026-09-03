@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#0d4524"/>
+  <circle cx="412" cy="96" r="94" fill="none" stroke="#ffcd00" stroke-width="30" opacity=".22"/>
+  <path d="M112 126h288v260H112z" fill="#fff" opacity=".06"/>
+  <text x="256" y="292" text-anchor="middle" font-family="Arial,sans-serif" font-size="102" font-weight="800" fill="#fff">HCBE</text>
+  <rect x="112" y="344" width="288" height="18" rx="9" fill="#ffcd00"/>
+</svg>

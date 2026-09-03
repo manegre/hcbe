@@ -270,5 +270,7 @@ public static class AuthEndpoints
 
     private static UserDto MapUser(User user) =>
         new(user.Id, user.Email, user.FirstName, user.LastName, user.IsAdmin,
-            user.MemberId, user.MustChangePassword);
+            user.MemberId, user.MustChangePassword,
+            user.IsAdmin ? user.AdminRole : null,
+            user.IsAdmin ? AdminAccess.EffectivePermissions(user.AdminRole, user.AdminPermissions) : []);
 }

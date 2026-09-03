@@ -5,6 +5,7 @@ import { AdminFormLayout } from '../../../../../components/admin/AdminFormLayout
 import { Button, Field, inputClasses } from '../../../../../components/ui';
 import { usersApi } from '../../../../../lib/api/users';
 import type { UpdateAdminUserRequest } from '../../../../../lib/api/types';
+import { AdminRoleFields } from '../../../../../components/admin/AdminRoleFields';
 
 const AdminUserEditPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -19,6 +20,8 @@ const AdminUserEditPage: React.FC = () => {
     firstName: '',
     lastName: '',
     password: '',
+    adminRole: 'community-manager',
+    permissions: [],
   });
 
   const backPath = '/admin/users';
@@ -36,6 +39,8 @@ const AdminUserEditPage: React.FC = () => {
             firstName: response.data.firstName || '',
             lastName: response.data.lastName || '',
             password: '',
+            adminRole: response.data.adminRole,
+            permissions: response.data.permissions,
           });
         } else {
           setError(response.message || t('admin.users.errorLoad'));
@@ -66,6 +71,8 @@ const AdminUserEditPage: React.FC = () => {
     const payload: UpdateAdminUserRequest = {
       firstName: formData.firstName,
       lastName: formData.lastName,
+      adminRole: formData.adminRole,
+      permissions: formData.permissions,
     };
     if (formData.password?.trim()) {
       payload.password = formData.password;
@@ -149,6 +156,11 @@ const AdminUserEditPage: React.FC = () => {
                   className={inputClasses}
                 />
               </Field>
+              <AdminRoleFields
+                role={formData.adminRole ?? 'community-manager'}
+                permissions={formData.permissions ?? []}
+                onChange={(adminRole, permissions) => setFormData((previous) => ({ ...previous, adminRole, permissions }))}
+              />
             </div>
           </div>
         }

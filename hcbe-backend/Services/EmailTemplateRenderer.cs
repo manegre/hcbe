@@ -139,6 +139,55 @@ public sealed class EmailTemplateRenderer(IConfiguration configuration) : IEmail
             $"<a href=\"{SafeUrl(unsubscribeUrl)}\" style=\"color:{Muted};text-decoration:underline;\">{unsubscribe}</a>"));
     }
 
+    public RenderedEmail EventRegistrationUpdate(
+        string? firstName,
+        string eventTitle,
+        DateTime eventDate,
+        string status,
+        string confirmationCode,
+        string eventUrl)
+    {
+        var name = GreetingName(firstName);
+        var isWaitlisted = status == "Waitlisted";
+        var isCancelled = status == "Cancelled";
+        var eyebrow = isCancelled ? "Inscription annulée" : isWaitlisted ? "Liste d’attente" : "Inscription confirmée";
+        var title = isCancelled
+            ? "Votre inscription a été annulée."
+            : isWaitlisted
+                ? "Vous êtes sur la liste d’attente."
+                : "Votre place est confirmée.";
+        var explanation = isCancelled
+            ? "Votre place a été libérée. Vous pouvez vous inscrire de nouveau tant que les inscriptions sont ouvertes."
+            : isWaitlisted
+                ? "L’événement est complet. Nous vous préviendrons automatiquement dès qu’une place se libère."
+                : "Votre inscription est enregistrée. Retrouvez les informations pratiques et ajoutez le rendez-vous à votre calendrier depuis la page de l’événement.";
+        var body = $"""
+            <p style="margin:0 0 18px;font-size:16px;line-height:1.75;color:{Ink};">Bonjour {name}, voici la mise à jour de votre participation à <strong>{Encode(eventTitle)}</strong>.</p>
+            {Callout(eyebrow, explanation)}
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:22px 0;background:#f5f7f3;border:1px solid {Line};">
+              <tr><td style="padding:16px 20px;border-bottom:1px solid {Line};font-size:12px;color:{Muted};">Date</td><td style="padding:16px 20px;border-bottom:1px solid {Line};font-weight:700;color:{GreenDark};">{eventDate.ToUniversalTime():yyyy-MM-dd HH:mm} UTC</td></tr>
+              <tr><td style="padding:16px 20px;font-size:12px;color:{Muted};">Confirmation</td><td style="padding:16px 20px;font-family:Consolas,'Courier New',monospace;font-weight:700;color:{GreenDark};">{Encode(confirmationCode)}</td></tr>
+            </table>
+            <p style="margin:18px 0 0;font-size:13px;line-height:1.65;color:{Muted};">Registration update for your HCBE Canada community event.</p>
+            """;
+        return new RenderedEmail(
+            $"[HCBE Canada] {eyebrow} — {eventTitle}",
+            Layout(explanation, eyebrow, title, body, "Voir l’événement", eventUrl));
+    }
+
+    public RenderedEmail ServiceCaseUpdate(string? firstName, string ticketNumber, string subject, string status, string? message, string caseUrl)
+    {
+        var name = GreetingName(firstName);
+        var safeMessage = string.IsNullOrWhiteSpace(message) ? string.Empty : $"<p style=\"margin:18px 0 0;padding:16px;background:#f5f7f3;border-left:3px solid {Gold};font-size:14px;line-height:1.65;color:{Muted};\">{Encode(message)}</p>";
+        var body = $"""
+            <p style="margin:0 0 18px;font-size:16px;line-height:1.75;color:{Ink};">Bonjour {name}, votre demande <strong>{Encode(ticketNumber)}</strong> a été mise à jour.</p>
+            {Callout(subject, $"Statut actuel : {status}")}
+            {safeMessage}
+            <p style="margin:20px 0 0;font-size:13px;line-height:1.65;color:{Muted};">You can review the request and reply securely from your HCBE Canada member space.</p>
+            """;
+        return new RenderedEmail($"[HCBE Canada] {ticketNumber} — mise à jour", Layout("Mise à jour de votre demande de service.", "Services aux membres", "Votre demande évolue.", body, "Consulter ma demande", caseUrl));
+    }
+
     private string Layout(
         string preheader,
         string eyebrow,

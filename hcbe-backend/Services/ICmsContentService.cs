@@ -13,6 +13,7 @@ public interface ICmsContentService
     Task<ApiResponse<List<CmsContentRevisionDto>>> GetRevisionsAsync(Guid id);
     Task<ApiResponse<CmsContentItemDto>> RollbackAsync(Guid id, int version, Guid? userId);
     Task<ApiResponse> DeleteAsync(Guid id);
+    Task<int> PublishDueAsync(CancellationToken cancellationToken);
 }
 
 public interface ICmsContentNotifier

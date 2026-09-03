@@ -71,6 +71,9 @@ namespace HcbeApi.Migrations
                     b.Property<string>("NameEn")
                         .HasColumnType("text");
 
+                    b.Property<Guid?>("OwnerMemberId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Phone")
                         .HasColumnType("text");
 
@@ -89,7 +92,50 @@ namespace HcbeApi.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("OwnerMemberId");
+
                     b.ToTable("Associations");
+                });
+
+            modelBuilder.Entity("HcbeApi.Models.AssociationClaimRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AdminNotes")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("AssociationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MemberId");
+
+                    b.HasIndex("AssociationId", "MemberId", "Status");
+
+                    b.ToTable("AssociationClaimRequests");
                 });
 
             modelBuilder.Entity("HcbeApi.Models.AuditLog", b =>
@@ -183,6 +229,9 @@ namespace HcbeApi.Migrations
                     b.Property<string>("PublishedValueFr")
                         .HasColumnType("text");
 
+                    b.Property<DateTime?>("ScheduledPublishAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Section")
                         .IsRequired()
                         .HasColumnType("text");
@@ -200,6 +249,8 @@ namespace HcbeApi.Migrations
 
                     b.HasIndex("Key")
                         .IsUnique();
+
+                    b.HasIndex("ScheduledPublishAtUtc");
 
                     b.HasIndex("Page", "Section");
 
@@ -505,6 +556,9 @@ namespace HcbeApi.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("AllowWaitlist")
+                        .HasColumnType("boolean");
+
                     b.Property<int?>("Capacity")
                         .HasColumnType("integer");
 
@@ -548,8 +602,15 @@ namespace HcbeApi.Migrations
                     b.Property<DateTime?>("RegistrationDeadline")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("RegistrationMode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("RegistrationUrl")
                         .HasColumnType("text");
+
+                    b.Property<bool>("RestrictMeetingLinkToRegistrants")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -727,6 +788,62 @@ namespace HcbeApi.Migrations
                     b.HasIndex("EventId", "DisplayOrder");
 
                     b.ToTable("EventOrganizers");
+                });
+
+            modelBuilder.Entity("HcbeApi.Models.EventRegistration", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AccessibilityNeeds")
+                        .HasColumnType("text");
+
+                    b.Property<string>("AdminNotes")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("CheckedInAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ConfirmationCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("RegisteredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ReminderSentAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConfirmationCode")
+                        .IsUnique();
+
+                    b.HasIndex("MemberId");
+
+                    b.HasIndex("EventId", "MemberId")
+                        .IsUnique();
+
+                    b.HasIndex("EventId", "Status", "RegisteredAt");
+
+                    b.ToTable("EventRegistrations");
                 });
 
             modelBuilder.Entity("HcbeApi.Models.EventSpeaker", b =>
@@ -922,6 +1039,50 @@ namespace HcbeApi.Migrations
                     b.ToTable("Members");
                 });
 
+            modelBuilder.Entity("HcbeApi.Models.MemberPreference", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("EmailEvents")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("EmailMentorship")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("EmailNewsletter")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("EmailOpportunities")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("EmailServiceUpdates")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("HasCompletedPreferences")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("PreferredLanguage")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("character varying(5)");
+
+                    b.Property<bool>("PushNotifications")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("TimeZone")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("MemberPreferences");
+                });
+
             modelBuilder.Entity("HcbeApi.Models.MemberProfile", b =>
                 {
                     b.Property<string>("Id")
@@ -1077,6 +1238,76 @@ namespace HcbeApi.Migrations
                     b.HasIndex("MemberId", "Role", "Status");
 
                     b.ToTable("MentorshipApplications");
+                });
+
+            modelBuilder.Entity("HcbeApi.Models.MentorshipCheckIn", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("MatchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("NeedsCommitteeSupport")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Summary")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MemberId");
+
+                    b.HasIndex("MatchId", "CreatedAt");
+
+                    b.ToTable("MentorshipCheckIns");
+                });
+
+            modelBuilder.Entity("HcbeApi.Models.MentorshipGoal", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedByMemberId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DueAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("MatchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MatchId", "Status");
+
+                    b.ToTable("MentorshipGoals");
                 });
 
             modelBuilder.Entity("HcbeApi.Models.MentorshipMatch", b =>
@@ -1317,6 +1548,10 @@ namespace HcbeApi.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Audience")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("Body")
                         .IsRequired()
                         .HasColumnType("text");
@@ -1336,8 +1571,15 @@ namespace HcbeApi.Migrations
                     b.Property<string>("LastError")
                         .HasColumnType("text");
 
+                    b.Property<string>("PreferenceCategory")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<int>("RecipientCount")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ScheduledAtUtc")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("SentAt")
                         .HasColumnType("timestamp with time zone");
@@ -1356,9 +1598,23 @@ namespace HcbeApi.Migrations
                     b.Property<string>("SubjectEn")
                         .HasColumnType("text");
 
+                    b.Property<string>("TargetInterest")
+                        .HasColumnType("text");
+
+                    b.Property<string>("TargetLanguage")
+                        .HasColumnType("text");
+
+                    b.Property<string>("TargetProvince")
+                        .HasColumnType("text");
+
+                    b.Property<string>("TargetZone")
+                        .HasColumnType("text");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedAt");
+
+                    b.HasIndex("Status", "ScheduledAtUtc");
 
                     b.ToTable("NewsletterCampaigns");
                 });
@@ -1461,6 +1717,108 @@ namespace HcbeApi.Migrations
                     b.HasIndex("UserId", "IsRead");
 
                     b.ToTable("Notifications");
+                });
+
+            modelBuilder.Entity("HcbeApi.Models.Opportunity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ApplyUrl")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeadlineUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("DescriptionEn")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsRemote")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Location")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Organization")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Skills")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("TitleEn")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Status", "DeadlineUtc");
+
+                    b.ToTable("Opportunities");
+                });
+
+            modelBuilder.Entity("HcbeApi.Models.OpportunityApplication", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AdminNotes")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("OpportunityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MemberId");
+
+                    b.HasIndex("OpportunityId", "MemberId")
+                        .IsUnique();
+
+                    b.ToTable("OpportunityApplications");
                 });
 
             modelBuilder.Entity("HcbeApi.Models.PageSection", b =>
@@ -1890,6 +2248,142 @@ namespace HcbeApi.Migrations
                     b.ToTable("RefreshTokens");
                 });
 
+            modelBuilder.Entity("HcbeApi.Models.ServiceCase", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AssignedToUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("InternalNotes")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("LastResponseAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Priority")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("TicketNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignedToUserId");
+
+                    b.HasIndex("TicketNumber")
+                        .IsUnique();
+
+                    b.HasIndex("MemberId", "UpdatedAt");
+
+                    b.HasIndex("Status", "Priority", "UpdatedAt");
+
+                    b.ToTable("ServiceCases");
+                });
+
+            modelBuilder.Entity("HcbeApi.Models.ServiceCaseAttachment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsInternal")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ServiceCaseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("UploadedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ServiceCaseId");
+
+                    b.ToTable("ServiceCaseAttachments");
+                });
+
+            modelBuilder.Entity("HcbeApi.Models.ServiceCaseMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AuthorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsInternal")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ServiceCaseId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorUserId");
+
+                    b.HasIndex("ServiceCaseId", "CreatedAt");
+
+                    b.ToTable("ServiceCaseMessages");
+                });
+
             modelBuilder.Entity("HcbeApi.Models.ServiceContent", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2083,6 +2577,17 @@ namespace HcbeApi.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("AdminPermissions")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("AdminRole")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("super-admin");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -2130,6 +2635,35 @@ namespace HcbeApi.Migrations
                         .IsUnique();
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("HcbeApi.Models.Association", b =>
+                {
+                    b.HasOne("HcbeApi.Models.Member", "OwnerMember")
+                        .WithMany()
+                        .HasForeignKey("OwnerMemberId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("OwnerMember");
+                });
+
+            modelBuilder.Entity("HcbeApi.Models.AssociationClaimRequest", b =>
+                {
+                    b.HasOne("HcbeApi.Models.Association", "Association")
+                        .WithMany()
+                        .HasForeignKey("AssociationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HcbeApi.Models.Member", "Member")
+                        .WithMany()
+                        .HasForeignKey("MemberId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Association");
+
+                    b.Navigation("Member");
                 });
 
             modelBuilder.Entity("HcbeApi.Models.CmsContentRevision", b =>
@@ -2214,6 +2748,25 @@ namespace HcbeApi.Migrations
                     b.Navigation("Event");
                 });
 
+            modelBuilder.Entity("HcbeApi.Models.EventRegistration", b =>
+                {
+                    b.HasOne("HcbeApi.Models.Event", "Event")
+                        .WithMany("Registrations")
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HcbeApi.Models.Member", "Member")
+                        .WithMany()
+                        .HasForeignKey("MemberId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Event");
+
+                    b.Navigation("Member");
+                });
+
             modelBuilder.Entity("HcbeApi.Models.EventSpeaker", b =>
                 {
                     b.HasOne("HcbeApi.Models.Event", "Event")
@@ -2223,6 +2776,17 @@ namespace HcbeApi.Migrations
                         .IsRequired();
 
                     b.Navigation("Event");
+                });
+
+            modelBuilder.Entity("HcbeApi.Models.MemberPreference", b =>
+                {
+                    b.HasOne("HcbeApi.Models.User", "User")
+                        .WithOne()
+                        .HasForeignKey("HcbeApi.Models.MemberPreference", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("HcbeApi.Models.MembershipApplication", b =>
@@ -2244,6 +2808,36 @@ namespace HcbeApi.Migrations
                         .IsRequired();
 
                     b.Navigation("Member");
+                });
+
+            modelBuilder.Entity("HcbeApi.Models.MentorshipCheckIn", b =>
+                {
+                    b.HasOne("HcbeApi.Models.MentorshipMatch", "Match")
+                        .WithMany()
+                        .HasForeignKey("MatchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HcbeApi.Models.Member", "Member")
+                        .WithMany()
+                        .HasForeignKey("MemberId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Match");
+
+                    b.Navigation("Member");
+                });
+
+            modelBuilder.Entity("HcbeApi.Models.MentorshipGoal", b =>
+                {
+                    b.HasOne("HcbeApi.Models.MentorshipMatch", "Match")
+                        .WithMany()
+                        .HasForeignKey("MatchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Match");
                 });
 
             modelBuilder.Entity("HcbeApi.Models.MentorshipMatch", b =>
@@ -2285,6 +2879,25 @@ namespace HcbeApi.Migrations
                         .IsRequired();
 
                     b.Navigation("News");
+                });
+
+            modelBuilder.Entity("HcbeApi.Models.OpportunityApplication", b =>
+                {
+                    b.HasOne("HcbeApi.Models.Member", "Member")
+                        .WithMany()
+                        .HasForeignKey("MemberId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HcbeApi.Models.Opportunity", "Opportunity")
+                        .WithMany("Applications")
+                        .HasForeignKey("OpportunityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Member");
+
+                    b.Navigation("Opportunity");
                 });
 
             modelBuilder.Entity("HcbeApi.Models.PasswordResetToken", b =>
@@ -2347,6 +2960,54 @@ namespace HcbeApi.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("HcbeApi.Models.ServiceCase", b =>
+                {
+                    b.HasOne("HcbeApi.Models.User", "AssignedToUser")
+                        .WithMany()
+                        .HasForeignKey("AssignedToUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("HcbeApi.Models.Member", "Member")
+                        .WithMany()
+                        .HasForeignKey("MemberId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("AssignedToUser");
+
+                    b.Navigation("Member");
+                });
+
+            modelBuilder.Entity("HcbeApi.Models.ServiceCaseAttachment", b =>
+                {
+                    b.HasOne("HcbeApi.Models.ServiceCase", "ServiceCase")
+                        .WithMany("Attachments")
+                        .HasForeignKey("ServiceCaseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ServiceCase");
+                });
+
+            modelBuilder.Entity("HcbeApi.Models.ServiceCaseMessage", b =>
+                {
+                    b.HasOne("HcbeApi.Models.User", "AuthorUser")
+                        .WithMany()
+                        .HasForeignKey("AuthorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("HcbeApi.Models.ServiceCase", "ServiceCase")
+                        .WithMany("Messages")
+                        .HasForeignKey("ServiceCaseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AuthorUser");
+
+                    b.Navigation("ServiceCase");
+                });
+
             modelBuilder.Entity("HcbeApi.Models.User", b =>
                 {
                     b.HasOne("HcbeApi.Models.Member", "Member")
@@ -2370,12 +3031,26 @@ namespace HcbeApi.Migrations
 
                     b.Navigation("Organizers");
 
+                    b.Navigation("Registrations");
+
                     b.Navigation("Speakers");
                 });
 
             modelBuilder.Entity("HcbeApi.Models.News", b =>
                 {
                     b.Navigation("Attachments");
+                });
+
+            modelBuilder.Entity("HcbeApi.Models.Opportunity", b =>
+                {
+                    b.Navigation("Applications");
+                });
+
+            modelBuilder.Entity("HcbeApi.Models.ServiceCase", b =>
+                {
+                    b.Navigation("Attachments");
+
+                    b.Navigation("Messages");
                 });
 #pragma warning restore 612, 618
         }

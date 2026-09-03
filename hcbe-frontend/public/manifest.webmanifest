@@ -1,0 +1,13 @@
+{
+  "name": "HCBE Canada — Espace communautaire",
+  "short_name": "HCBE Canada",
+  "description": "Services, événements et communauté des Burkinabè du Canada.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6f7f3",
+  "theme_color": "#0d4524",
+  "lang": "fr-CA",
+  "icons": [
+    { "src": "/hcbe-app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

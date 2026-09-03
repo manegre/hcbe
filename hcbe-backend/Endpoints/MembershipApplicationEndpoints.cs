@@ -27,7 +27,7 @@ public static class MembershipApplicationEndpoints
             IMembershipApplicationService service,
             string? status) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.MembersManage))
             {
                 return Results.Forbid();
             }
@@ -57,7 +57,7 @@ public static class MembershipApplicationEndpoints
             HttpContext context,
             IMembershipApplicationService service) =>
         {
-            if (!context.IsAdmin()) return Results.Forbid();
+            if (!context.HasPermission(AdminPermissions.MembersManage)) return Results.Forbid();
             MembershipApplicationStatus? statusFilter = null;
             if (!string.IsNullOrWhiteSpace(status) &&
                 Enum.TryParse<MembershipApplicationStatus>(status, true, out var parsed)) statusFilter = parsed;
@@ -73,7 +73,7 @@ public static class MembershipApplicationEndpoints
             HttpContext context,
             IMembershipApplicationService service) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.MembersManage))
             {
                 return Results.Forbid();
             }
@@ -93,7 +93,7 @@ public static class MembershipApplicationEndpoints
             HttpContext context,
             IMembershipApplicationService service) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.MembersManage))
             {
                 return Results.Forbid();
             }
@@ -113,7 +113,7 @@ public static class MembershipApplicationEndpoints
             HttpContext context,
             IMembershipApplicationService service) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.MembersManage))
             {
                 return Results.Forbid();
             }
@@ -133,7 +133,7 @@ public static class MembershipApplicationEndpoints
             HttpContext context,
             IMembershipApplicationService service) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.MembersManage))
             {
                 return Results.Forbid();
             }

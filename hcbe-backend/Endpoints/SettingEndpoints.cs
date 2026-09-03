@@ -23,7 +23,7 @@ public static class SettingEndpoints
 
         group.MapPut("/{key}", async (string key, string value, HttpContext context, ISettingService settingService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.SettingsManage))
             {
                 return Results.Forbid();
             }

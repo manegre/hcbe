@@ -23,7 +23,7 @@ public static class GrantEndpoints
 
         group.MapGet("/admin", async (HttpContext context, IGrantService grantService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.CommunityManage))
             {
                 return Results.Forbid();
             }
@@ -39,7 +39,7 @@ public static class GrantEndpoints
 
         group.MapGet("/admin/{id:guid}", async (Guid id, HttpContext context, IGrantService grantService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.CommunityManage))
             {
                 return Results.Forbid();
             }
@@ -66,7 +66,7 @@ public static class GrantEndpoints
 
         group.MapPost("/", async (CreateGrantProgramRequest request, HttpContext context, IGrantService grantService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.CommunityManage))
             {
                 return Results.Forbid();
             }
@@ -82,7 +82,7 @@ public static class GrantEndpoints
 
         group.MapPut("/{id:guid}", async (Guid id, UpdateGrantProgramRequest request, HttpContext context, IGrantService grantService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.CommunityManage))
             {
                 return Results.Forbid();
             }
@@ -99,7 +99,7 @@ public static class GrantEndpoints
 
         group.MapDelete("/{id:guid}", async (Guid id, HttpContext context, IGrantService grantService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.CommunityManage))
             {
                 return Results.Forbid();
             }
@@ -116,7 +116,7 @@ public static class GrantEndpoints
 
         group.MapPost("/{id:guid}/toggle-status", async (Guid id, HttpContext context, IGrantService grantService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.CommunityManage))
             {
                 return Results.Forbid();
             }

@@ -39,6 +39,10 @@ const MemberLoginForm = ({ mode = 'login', embedded = false }: MemberLoginFormPr
     expertise: '', interests: '', availability: '',
   });
   const resetToken = new URLSearchParams(window.location.search).get('resetToken');
+  const requestedReturnTo = new URLSearchParams(window.location.search).get('returnTo');
+  const safeReturnTo = requestedReturnTo?.startsWith('/') && !requestedReturnTo.startsWith('//')
+    ? requestedReturnTo
+    : null;
 
   useEffect(() => {
     if (!user?.memberId) {
@@ -85,6 +89,8 @@ const MemberLoginForm = ({ mode = 'login', embedded = false }: MemberLoginFormPr
     } else if (!storedUser?.memberId) {
       logout();
       setStatus(t('public.member.login.notMember'));
+    } else if (safeReturnTo) {
+      navigate(safeReturnTo);
     }
     setSubmitting(false);
   };
@@ -105,9 +111,10 @@ const MemberLoginForm = ({ mode = 'login', embedded = false }: MemberLoginFormPr
     } else {
       const authenticatedUser = JSON.parse(localStorage.getItem('hcbe_user') || 'null');
       if (authenticatedUser?.mustChangePassword) navigate('/admin/change-password');
+      else if (safeReturnTo) navigate(safeReturnTo);
     }
     setSubmitting(false);
-  }, [googleMemberLogin, navigate, t]);
+  }, [googleMemberLogin, navigate, safeReturnTo, t]);
 
   const handleGoogleUnavailable = useCallback(() => {
     setStatus(t('public.member.login.googleUnavailable'));

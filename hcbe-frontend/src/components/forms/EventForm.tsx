@@ -74,6 +74,9 @@ export const EventForm: React.FC<EventFormProps> = ({
     status: initialValues?.status || 'Draft',
     speakers: initialValues?.speakers?.length ? initialValues.speakers : [''],
     organizers: initialValues?.organizers?.length ? initialValues.organizers : [''],
+    registrationMode: initialValues?.registrationMode || 'Native',
+    allowWaitlist: initialValues?.allowWaitlist ?? true,
+    restrictMeetingLinkToRegistrants: initialValues?.restrictMeetingLinkToRegistrants ?? true,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -113,7 +116,10 @@ export const EventForm: React.FC<EventFormProps> = ({
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const nextValue = e.target instanceof HTMLInputElement && e.target.type === 'checkbox'
+      ? e.target.checked
+      : value;
+    setFormData((prev) => ({ ...prev, [name]: nextValue }));
 
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
@@ -261,6 +267,9 @@ export const EventForm: React.FC<EventFormProps> = ({
       status: formData.status,
       speakers: formData.speakers.map((speaker) => speaker.trim()).filter(Boolean),
       organizers: formData.organizers.map((organizer) => organizer.trim()).filter(Boolean),
+      registrationMode: formData.registrationMode as 'Disabled' | 'External' | 'Native',
+      allowWaitlist: formData.allowWaitlist,
+      restrictMeetingLinkToRegistrants: formData.restrictMeetingLinkToRegistrants,
     };
 
     await onSubmit(submitData);
@@ -643,7 +652,21 @@ export const EventForm: React.FC<EventFormProps> = ({
                 />
               </Field>
 
-              <Field label={t('admin.events.form.registrationUrl')} htmlFor="registrationUrl">
+              <Field label={i18n.language.startsWith('fr') ? "Mode d'inscription" : 'Registration mode'} htmlFor="registrationMode">
+                <select
+                  id="registrationMode"
+                  name="registrationMode"
+                  value={formData.registrationMode}
+                  onChange={handleChange}
+                  className={`${inputClasses} cursor-pointer`}
+                >
+                  <option value="Native">{i18n.language.startsWith('fr') ? 'Inscription HCBE intégrée' : 'Built-in HCBE registration'}</option>
+                  <option value="External">{i18n.language.startsWith('fr') ? 'Lien externe' : 'External link'}</option>
+                  <option value="Disabled">{i18n.language.startsWith('fr') ? 'Aucune inscription' : 'No registration'}</option>
+                </select>
+              </Field>
+
+              {formData.registrationMode === 'External' && <Field label={t('admin.events.form.registrationUrl')} htmlFor="registrationUrl">
                 <input
                   type="url"
                   id="registrationUrl"
@@ -653,7 +676,7 @@ export const EventForm: React.FC<EventFormProps> = ({
                   className={inputClasses}
                   placeholder="https://..."
                 />
-              </Field>
+              </Field>}
 
               <Field
                 label={t('admin.common.status')}
@@ -677,6 +700,19 @@ export const EventForm: React.FC<EventFormProps> = ({
                 </select>
               </Field>
               </div>
+
+              {formData.registrationMode === 'Native' && (
+                <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                  <label className="flex min-h-16 cursor-pointer items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3 text-sm text-ink">
+                    <input type="checkbox" name="allowWaitlist" checked={formData.allowWaitlist} onChange={handleChange} className="h-4 w-4 accent-green" />
+                    <span>{i18n.language.startsWith('fr') ? "Activer la liste d'attente" : 'Enable waiting list'}</span>
+                  </label>
+                  <label className="flex min-h-16 cursor-pointer items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3 text-sm text-ink">
+                    <input type="checkbox" name="restrictMeetingLinkToRegistrants" checked={formData.restrictMeetingLinkToRegistrants} onChange={handleChange} className="h-4 w-4 accent-green" />
+                    <span>{i18n.language.startsWith('fr') ? 'Réserver le lien aux inscrits' : 'Restrict meeting link to registrants'}</span>
+                  </label>
+                </div>
+              )}
             </section>
 
             <section className="mt-8 border-t border-line pt-6" aria-labelledby="event-speakers-title">

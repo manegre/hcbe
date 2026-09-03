@@ -29,7 +29,7 @@ public static class NewsletterEndpoints
 
         group.MapGet("/campaigns", async (HttpContext context, INewsletterCampaignService service) =>
         {
-            if (!context.IsAdmin()) return Results.Forbid();
+            if (!context.HasPermission(AdminPermissions.CommunicationsManage)) return Results.Forbid();
             return (await service.GetAllAsync()).HandleServiceResponse();
         }).RequireAuthorization();
 
@@ -38,7 +38,7 @@ public static class NewsletterEndpoints
             HttpContext context,
             INewsletterCampaignService service) =>
         {
-            if (!context.IsAdmin()) return Results.Forbid();
+            if (!context.HasPermission(AdminPermissions.CommunicationsManage)) return Results.Forbid();
             var userId = context.GetUserId();
             return userId is null
                 ? Results.Unauthorized()
@@ -51,7 +51,7 @@ public static class NewsletterEndpoints
             INewsletterCampaignService service,
             CancellationToken cancellationToken) =>
         {
-            if (!context.IsAdmin()) return Results.Forbid();
+            if (!context.HasPermission(AdminPermissions.CommunicationsManage)) return Results.Forbid();
             return (await service.SendAsync(id, cancellationToken)).HandleServiceResponse();
         }).RequireAuthorization();
 
@@ -61,7 +61,7 @@ public static class NewsletterEndpoints
             string? language,
             bool? isActive) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.CommunicationsManage))
             {
                 return Results.Forbid();
             }
@@ -85,7 +85,7 @@ public static class NewsletterEndpoints
             HttpContext context,
             INewsletterService service) =>
         {
-            if (!context.IsAdmin()) return Results.Forbid();
+            if (!context.HasPermission(AdminPermissions.CommunicationsManage)) return Results.Forbid();
             return (await service.SearchAsync(page, pageSize, search, sort, language, isActive)).HandleServiceResponse();
         })
         .WithName("SearchNewsletterSubscriptions")
@@ -99,7 +99,7 @@ public static class NewsletterEndpoints
             HttpContext context,
             INewsletterService service) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.CommunicationsManage))
             {
                 return Results.Forbid();
             }
@@ -118,7 +118,7 @@ public static class NewsletterEndpoints
             HttpContext context,
             INewsletterService service) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.CommunicationsManage))
             {
                 return Results.Forbid();
             }

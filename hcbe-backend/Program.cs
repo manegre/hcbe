@@ -300,8 +300,12 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddSingleton<IGoogleIdentityTokenValidator, GoogleIdentityTokenValidator>();
 builder.Services.AddScoped<IMemberService, MemberService>();
 builder.Services.AddScoped<IEventService, EventService>();
+builder.Services.AddScoped<IEventRegistrationService, EventRegistrationService>();
+builder.Services.AddScoped<IServiceCaseService, ServiceCaseService>();
 builder.Services.AddScoped<IEventCategoryService, EventCategoryService>();
 builder.Services.AddScoped<IAssociationService, AssociationService>();
+builder.Services.AddScoped<IAssociationPortalService, AssociationPortalService>();
+builder.Services.AddScoped<IOpportunityService, OpportunityService>();
 builder.Services.AddScoped<INewsService, NewsService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
@@ -321,13 +325,18 @@ builder.Services.AddScoped<IConsultationService, ConsultationService>();
 builder.Services.AddScoped<IUserAdminService, UserAdminService>();
 builder.Services.AddScoped<IPublicSubmissionService, PublicSubmissionService>();
 builder.Services.AddScoped<IMemberAccountService, MemberAccountService>();
+builder.Services.AddScoped<IMemberExperienceService, MemberExperienceService>();
 builder.Services.AddScoped<IEmailSender, ConfiguredEmailSender>();
 builder.Services.AddScoped<IEmailOutbox, EmailOutbox>();
 builder.Services.AddSingleton<IEmailTemplateRenderer, EmailTemplateRenderer>();
 builder.Services.AddHostedService<EmailOutboxWorker>();
+builder.Services.AddHostedService<ScheduledCampaignWorker>();
+builder.Services.AddHostedService<ScheduledCmsPublishingWorker>();
 builder.Services.AddScoped<INewsletterCampaignService, NewsletterCampaignService>();
 builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
 builder.Services.AddScoped<ICommunityService, CommunityService>();
+builder.Services.AddScoped<IMentorshipJourneyService, MentorshipJourneyService>();
+builder.Services.AddScoped<IImpactAnalyticsService, ImpactAnalyticsService>();
 builder.Services.AddScoped<IMessagingService, MessagingService>();
 builder.Services.AddScoped<IPartnerService, PartnerService>();
 builder.Services.AddScoped<IPrivacyService, PrivacyService>();
@@ -716,6 +725,58 @@ using (var scope = app.Services.CreateScope())
             FOREIGN KEY (EventId) REFERENCES Events(Id) ON DELETE CASCADE
         )");
         context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_EventAttachments_EventId ON EventAttachments(EventId)");
+
+        try { context.Database.ExecuteSqlRaw("ALTER TABLE Events ADD COLUMN RegistrationMode TEXT NOT NULL DEFAULT 'External'"); } catch { }
+        try { context.Database.ExecuteSqlRaw("ALTER TABLE Events ADD COLUMN AllowWaitlist INTEGER NOT NULL DEFAULT 1"); } catch { }
+        try { context.Database.ExecuteSqlRaw("ALTER TABLE Events ADD COLUMN RestrictMeetingLinkToRegistrants INTEGER NOT NULL DEFAULT 0"); } catch { }
+        context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS EventRegistrations (
+            Id TEXT PRIMARY KEY,
+            EventId TEXT NOT NULL,
+            MemberId TEXT NOT NULL,
+            Status TEXT NOT NULL DEFAULT 'Confirmed',
+            ConfirmationCode TEXT NOT NULL,
+            AccessibilityNeeds TEXT,
+            AdminNotes TEXT,
+            RegisteredAt TEXT NOT NULL,
+            UpdatedAt TEXT NOT NULL,
+            CancelledAt TEXT,
+            CheckedInAt TEXT,
+            ReminderSentAt TEXT,
+            FOREIGN KEY (EventId) REFERENCES Events(Id) ON DELETE CASCADE,
+            FOREIGN KEY (MemberId) REFERENCES Members(Id) ON DELETE RESTRICT
+        )");
+        context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_EventRegistrations_ConfirmationCode ON EventRegistrations(ConfirmationCode)");
+        context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_EventRegistrations_EventId_MemberId ON EventRegistrations(EventId, MemberId)");
+        context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_EventRegistrations_EventId_Status_RegisteredAt ON EventRegistrations(EventId, Status, RegisteredAt)");
+        context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_EventRegistrations_MemberId ON EventRegistrations(MemberId)");
+
+        context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS ServiceCases (
+            Id TEXT PRIMARY KEY, TicketNumber TEXT NOT NULL, MemberId TEXT NOT NULL,
+            Category TEXT NOT NULL, Subject TEXT NOT NULL, Description TEXT NOT NULL,
+            Status TEXT NOT NULL DEFAULT 'Submitted', Priority TEXT NOT NULL DEFAULT 'Normal',
+            AssignedToUserId TEXT, InternalNotes TEXT, CreatedAt TEXT NOT NULL, UpdatedAt TEXT NOT NULL,
+            LastResponseAt TEXT, ResolvedAt TEXT,
+            FOREIGN KEY (MemberId) REFERENCES Members(Id) ON DELETE RESTRICT,
+            FOREIGN KEY (AssignedToUserId) REFERENCES Users(Id) ON DELETE SET NULL
+        )");
+        context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_ServiceCases_TicketNumber ON ServiceCases(TicketNumber)");
+        context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_ServiceCases_Status_Priority_UpdatedAt ON ServiceCases(Status, Priority, UpdatedAt)");
+        context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_ServiceCases_MemberId_UpdatedAt ON ServiceCases(MemberId, UpdatedAt)");
+        context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS ServiceCaseMessages (
+            Id TEXT PRIMARY KEY, ServiceCaseId TEXT NOT NULL, AuthorUserId TEXT NOT NULL,
+            Body TEXT NOT NULL, IsInternal INTEGER NOT NULL DEFAULT 0, CreatedAt TEXT NOT NULL,
+            FOREIGN KEY (ServiceCaseId) REFERENCES ServiceCases(Id) ON DELETE CASCADE,
+            FOREIGN KEY (AuthorUserId) REFERENCES Users(Id) ON DELETE RESTRICT
+        )");
+        context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_ServiceCaseMessages_ServiceCaseId_CreatedAt ON ServiceCaseMessages(ServiceCaseId, CreatedAt)");
+        context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_ServiceCaseMessages_AuthorUserId ON ServiceCaseMessages(AuthorUserId)");
+        context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS ServiceCaseAttachments (
+            Id TEXT PRIMARY KEY, ServiceCaseId TEXT NOT NULL, UploadedByUserId TEXT NOT NULL,
+            FileName TEXT NOT NULL, Url TEXT NOT NULL, ContentType TEXT NOT NULL, SizeBytes INTEGER NOT NULL,
+            IsInternal INTEGER NOT NULL DEFAULT 0, CreatedAt TEXT NOT NULL,
+            FOREIGN KEY (ServiceCaseId) REFERENCES ServiceCases(Id) ON DELETE CASCADE
+        )");
+        context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_ServiceCaseAttachments_ServiceCaseId ON ServiceCaseAttachments(ServiceCaseId)");
 
         try { context.Database.ExecuteSqlRaw("ALTER TABLE Events ADD COLUMN ImageUrl TEXT"); } catch { }
         try { context.Database.ExecuteSqlRaw("ALTER TABLE Events ADD COLUMN TitleEn TEXT"); } catch { }
@@ -1116,7 +1177,11 @@ app.MapMembershipApplicationEndpoints();
 app.MapNewsletterEndpoints();
 app.MapEventEndpoints();
 app.MapEventCategoryEndpoints();
+app.MapServiceCaseEndpoints();
 app.MapAssociationEndpoints();
+app.MapAssociationPortalEndpoints();
+app.MapOpportunityEndpoints();
+app.MapImpactEndpoints();
 app.MapNewsEndpoints();
 app.MapMediaEndpoints();
 app.MapProjectEndpoints();
@@ -1277,6 +1342,66 @@ static void EnsureSqliteSecuritySchema(ApplicationDbContext context)
     try { context.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN LastLoginAtUtc TEXT"); } catch { }
     try { context.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN IsActive INTEGER NOT NULL DEFAULT 1"); } catch { }
     try { context.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN MustChangePassword INTEGER NOT NULL DEFAULT 0"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN AdminRole TEXT NOT NULL DEFAULT 'super-admin'"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN AdminPermissions TEXT"); } catch { }
+    context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS MemberPreferences (
+        UserId TEXT NOT NULL PRIMARY KEY, PreferredLanguage TEXT NOT NULL DEFAULT 'fr', TimeZone TEXT NOT NULL DEFAULT 'America/Toronto',
+        EmailEvents INTEGER NOT NULL DEFAULT 1, EmailOpportunities INTEGER NOT NULL DEFAULT 1,
+        EmailMentorship INTEGER NOT NULL DEFAULT 1, EmailServiceUpdates INTEGER NOT NULL DEFAULT 1,
+        EmailNewsletter INTEGER NOT NULL DEFAULT 1, PushNotifications INTEGER NOT NULL DEFAULT 0,
+        HasCompletedPreferences INTEGER NOT NULL DEFAULT 0, UpdatedAt TEXT NOT NULL,
+        FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE CASCADE
+    )");
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE CmsContentItems ADD COLUMN ScheduledPublishAtUtc TEXT"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE NewsletterCampaigns ADD COLUMN Audience TEXT NOT NULL DEFAULT 'Newsletter'"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE NewsletterCampaigns ADD COLUMN PreferenceCategory TEXT NOT NULL DEFAULT 'newsletter'"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE NewsletterCampaigns ADD COLUMN TargetProvince TEXT"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE NewsletterCampaigns ADD COLUMN TargetZone TEXT"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE NewsletterCampaigns ADD COLUMN TargetLanguage TEXT"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE NewsletterCampaigns ADD COLUMN TargetInterest TEXT"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE NewsletterCampaigns ADD COLUMN ScheduledAtUtc TEXT"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE Associations ADD COLUMN OwnerMemberId TEXT"); } catch { }
+    context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_Associations_OwnerMemberId ON Associations(OwnerMemberId)");
+    context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS AssociationClaimRequests (
+        Id TEXT NOT NULL PRIMARY KEY, AssociationId TEXT NOT NULL, MemberId TEXT NOT NULL,
+        Message TEXT NOT NULL, Status TEXT NOT NULL DEFAULT 'Pending', AdminNotes TEXT,
+        CreatedAt TEXT NOT NULL, UpdatedAt TEXT NOT NULL, ReviewedAt TEXT,
+        FOREIGN KEY (AssociationId) REFERENCES Associations(Id) ON DELETE CASCADE,
+        FOREIGN KEY (MemberId) REFERENCES Members(Id) ON DELETE CASCADE
+    )");
+    context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_AssociationClaimRequests_AssociationId_MemberId_Status ON AssociationClaimRequests(AssociationId, MemberId, Status)");
+    context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_AssociationClaimRequests_MemberId ON AssociationClaimRequests(MemberId)");
+
+    context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS Opportunities (
+        Id TEXT NOT NULL PRIMARY KEY, Title TEXT NOT NULL, TitleEn TEXT, Description TEXT NOT NULL, DescriptionEn TEXT,
+        Type TEXT NOT NULL DEFAULT 'Volunteer', Organization TEXT NOT NULL DEFAULT 'HCBE Canada', Location TEXT,
+        IsRemote INTEGER NOT NULL DEFAULT 0, Skills TEXT, ApplyUrl TEXT, DeadlineUtc TEXT, Status TEXT NOT NULL DEFAULT 'Draft',
+        CreatedByUserId TEXT NOT NULL, CreatedAt TEXT NOT NULL, UpdatedAt TEXT NOT NULL
+    )");
+    context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_Opportunities_Status_DeadlineUtc ON Opportunities(Status, DeadlineUtc)");
+    context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS OpportunityApplications (
+        Id TEXT NOT NULL PRIMARY KEY, OpportunityId TEXT NOT NULL, MemberId TEXT NOT NULL, Message TEXT NOT NULL,
+        Status TEXT NOT NULL DEFAULT 'Submitted', AdminNotes TEXT, CreatedAt TEXT NOT NULL, UpdatedAt TEXT NOT NULL,
+        FOREIGN KEY (OpportunityId) REFERENCES Opportunities(Id) ON DELETE CASCADE,
+        FOREIGN KEY (MemberId) REFERENCES Members(Id) ON DELETE CASCADE
+    )");
+    context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_OpportunityApplications_OpportunityId_MemberId ON OpportunityApplications(OpportunityId, MemberId)");
+    context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_OpportunityApplications_MemberId ON OpportunityApplications(MemberId)");
+
+    context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS MentorshipGoals (
+        Id TEXT NOT NULL PRIMARY KEY, MatchId TEXT NOT NULL, CreatedByMemberId TEXT NOT NULL, Title TEXT NOT NULL,
+        Status TEXT NOT NULL DEFAULT 'Open', DueAtUtc TEXT, CreatedAt TEXT NOT NULL, UpdatedAt TEXT NOT NULL,
+        FOREIGN KEY (MatchId) REFERENCES MentorshipMatches(Id) ON DELETE CASCADE
+    )");
+    context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_MentorshipGoals_MatchId_Status ON MentorshipGoals(MatchId, Status)");
+    context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS MentorshipCheckIns (
+        Id TEXT NOT NULL PRIMARY KEY, MatchId TEXT NOT NULL, MemberId TEXT NOT NULL, Summary TEXT NOT NULL,
+        Rating INTEGER NOT NULL, NeedsCommitteeSupport INTEGER NOT NULL DEFAULT 0, CreatedAt TEXT NOT NULL,
+        FOREIGN KEY (MatchId) REFERENCES MentorshipMatches(Id) ON DELETE CASCADE,
+        FOREIGN KEY (MemberId) REFERENCES Members(Id) ON DELETE CASCADE
+    )");
+    context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_MentorshipCheckIns_MatchId_CreatedAt ON MentorshipCheckIns(MatchId, CreatedAt)");
+    context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_MentorshipCheckIns_MemberId ON MentorshipCheckIns(MemberId)");
     try { context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_Users_Email ON Users(Email)"); } catch { }
 
     context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS RefreshTokens (

@@ -23,7 +23,7 @@ public static class ProjectEndpoints
 
         group.MapGet("/admin", async (HttpContext context, IProjectService projectService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.CommunityManage))
             {
                 return Results.Forbid();
             }
@@ -39,7 +39,7 @@ public static class ProjectEndpoints
 
         group.MapGet("/admin/{id:guid}", async (Guid id, HttpContext context, IProjectService projectService) =>
         {
-            if (!context.IsAdmin()) return Results.Forbid();
+            if (!context.HasPermission(AdminPermissions.CommunityManage)) return Results.Forbid();
             return (await projectService.GetByIdForAdminAsync(id)).HandleServiceResponse();
         })
         .WithName("GetProjectForAdmin")
@@ -57,7 +57,7 @@ public static class ProjectEndpoints
 
         group.MapPost("/", async (CreateProjectRequest request, HttpContext context, IProjectService projectService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.CommunityManage))
             {
                 return Results.Forbid();
             }
@@ -73,7 +73,7 @@ public static class ProjectEndpoints
 
         group.MapPut("/{id:guid}", async (Guid id, UpdateProjectRequest request, HttpContext context, IProjectService projectService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.CommunityManage))
             {
                 return Results.Forbid();
             }
@@ -90,7 +90,7 @@ public static class ProjectEndpoints
 
         group.MapPut("/{id:guid}/progress", async (Guid id, UpdateProjectProgressRequest request, HttpContext context, IProjectService projectService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.CommunityManage))
             {
                 return Results.Forbid();
             }
@@ -107,7 +107,7 @@ public static class ProjectEndpoints
 
         group.MapDelete("/{id:guid}", async (Guid id, HttpContext context, IProjectService projectService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.CommunityManage))
             {
                 return Results.Forbid();
             }

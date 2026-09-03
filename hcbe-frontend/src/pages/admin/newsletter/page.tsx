@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { newsletterApi } from '../../../lib/api/newsletter';
-import type { NewsletterCampaignDto, NewsletterSubscriptionDto } from '../../../lib/api/types';
+import type { CreateNewsletterCampaignRequest, NewsletterCampaignDto, NewsletterSubscriptionDto } from '../../../lib/api/types';
 import { Button, DataTable, EmptyState, Field, StatusChip, Td, inputClasses } from '../../../components/ui';
 import { AdminPageHeader } from '../../../components/admin/AdminPageHeader';
 import { AdminStatCard } from '../../../components/admin/AdminStatCard';
@@ -20,7 +20,8 @@ const NewsletterAdminPage: React.FC = () => {
   const [exporting, setExporting] = useState(false);
   const [campaigns, setCampaigns] = useState<NewsletterCampaignDto[]>([]);
   const [campaignBusy, setCampaignBusy] = useState(false);
-  const [campaignForm, setCampaignForm] = useState({ subject: '', subjectEn: '', body: '', bodyEn: '' });
+  const emptyCampaign: CreateNewsletterCampaignRequest = { subject: '', subjectEn: '', body: '', bodyEn: '', audience: 'Newsletter', preferenceCategory: 'newsletter' };
+  const [campaignForm, setCampaignForm] = useState<CreateNewsletterCampaignRequest>(emptyCampaign);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
@@ -72,7 +73,7 @@ const NewsletterAdminPage: React.FC = () => {
     try {
       const response = await newsletterApi.createCampaign(campaignForm);
       if (response.success) {
-        setCampaignForm({ subject: '', subjectEn: '', body: '', bodyEn: '' });
+        setCampaignForm(emptyCampaign);
         await loadCampaigns();
       } else {
         setError(response.message || t('admin.newsletter.campaignError'));
@@ -305,6 +306,19 @@ const NewsletterAdminPage: React.FC = () => {
             </span>
             <h2 className="font-display text-headline-sm text-green-deep">{t('admin.newsletter.composeTitle')}</h2>
             <div className="mt-4 space-y-3">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label={i18n.language.startsWith('fr') ? 'Audience' : 'Audience'} htmlFor="campaign-audience">
+                  <select id="campaign-audience" className={inputClasses} value={campaignForm.audience} onChange={(e) => setCampaignForm({ ...campaignForm, audience: e.target.value as CreateNewsletterCampaignRequest['audience'] })}>
+                    <option value="Newsletter">Infolettre</option><option value="Members">Membres</option><option value="All">Tous (dédupliqué)</option>
+                  </select>
+                </Field>
+                <Field label={i18n.language.startsWith('fr') ? 'Type de communication' : 'Communication type'} htmlFor="campaign-category">
+                  <select id="campaign-category" className={inputClasses} value={campaignForm.preferenceCategory} onChange={(e) => setCampaignForm({ ...campaignForm, preferenceCategory: e.target.value as CreateNewsletterCampaignRequest['preferenceCategory'] })}>
+                    <option value="newsletter">Infolettre</option><option value="events">Événements</option><option value="opportunities">Occasions</option><option value="mentorship">Mentorat</option><option value="service">Services</option>
+                  </select>
+                </Field>
+              </div>
+              {campaignForm.audience !== 'Newsletter' && <div className="rounded-xl border border-line bg-canvas/45 p-3"><p className="mb-3 text-[9px] font-bold uppercase tracking-[.14em] text-green">Segmentation facultative</p><div className="grid gap-3 sm:grid-cols-2"><input aria-label="Province" placeholder="Province" className={inputClasses} value={campaignForm.targetProvince ?? ''} onChange={(e) => setCampaignForm({ ...campaignForm, targetProvince: e.target.value })} /><input aria-label="Zone" placeholder="Zone HCBE" className={inputClasses} value={campaignForm.targetZone ?? ''} onChange={(e) => setCampaignForm({ ...campaignForm, targetZone: e.target.value })} /><select aria-label="Langue" className={inputClasses} value={campaignForm.targetLanguage ?? ''} onChange={(e) => setCampaignForm({ ...campaignForm, targetLanguage: e.target.value })}><option value="">FR + EN</option><option value="fr">Français</option><option value="en">English</option></select><input aria-label="Intérêt" placeholder="Intérêt contient…" className={inputClasses} value={campaignForm.targetInterest ?? ''} onChange={(e) => setCampaignForm({ ...campaignForm, targetInterest: e.target.value })} /></div></div>}
               <Field label={t('admin.newsletter.subjectFr')} htmlFor="campaign-subject" required>
                 <input id="campaign-subject" className={inputClasses} required value={campaignForm.subject} onChange={(e) => setCampaignForm({ ...campaignForm, subject: e.target.value })} />
               </Field>
@@ -316,6 +330,9 @@ const NewsletterAdminPage: React.FC = () => {
               </Field>
               <Field label={t('admin.newsletter.bodyEn')} htmlFor="campaign-body-en">
                 <textarea id="campaign-body-en" className={`${inputClasses} min-h-24 resize-y`} value={campaignForm.bodyEn} onChange={(e) => setCampaignForm({ ...campaignForm, bodyEn: e.target.value })} />
+              </Field>
+              <Field label={i18n.language.startsWith('fr') ? 'Programmer l’envoi (facultatif)' : 'Schedule send (optional)'} htmlFor="campaign-schedule">
+                <input id="campaign-schedule" type="datetime-local" className={inputClasses} value={campaignForm.scheduledAtUtc ? new Date(campaignForm.scheduledAtUtc).toISOString().slice(0, 16) : ''} onChange={(e) => setCampaignForm({ ...campaignForm, scheduledAtUtc: e.target.value ? new Date(e.target.value).toISOString() : undefined })} />
               </Field>
               <Button type="submit" variant="primary" className="w-full" disabled={campaignBusy}>
                 {t('admin.newsletter.saveDraft')}
@@ -333,7 +350,7 @@ const NewsletterAdminPage: React.FC = () => {
                     <p className="font-medium text-ink">{campaign.subject}</p>
                     <span className="text-[10px] font-bold uppercase tracking-wide text-ink-variant">{campaign.status}</span>
                   </div>
-                  <p className="mt-1 text-xs text-ink-variant">{campaign.sentCount}/{campaign.recipientCount} · {campaign.failedCount} {t('admin.newsletter.failed')}</p>
+                  <p className="mt-1 text-xs text-ink-variant">{campaign.audience} · {campaign.preferenceCategory} · {campaign.sentCount}/{campaign.recipientCount} · {campaign.failedCount} {t('admin.newsletter.failed')}</p>
                   {campaign.status === 'Draft' && (
                     <button type="button" className="mt-3 text-label-md uppercase text-green" disabled={campaignBusy} onClick={() => handleSendCampaign(campaign.id)}>
                       {t('admin.newsletter.sendNow')}

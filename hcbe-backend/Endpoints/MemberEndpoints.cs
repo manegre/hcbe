@@ -14,7 +14,7 @@ public static class MemberEndpoints
 
         group.MapGet("/", async (HttpContext context, IMemberService memberService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.MembersManage))
             {
                 return Results.Forbid();
             }
@@ -30,7 +30,7 @@ public static class MemberEndpoints
 
         group.MapGet("/admin", async (HttpContext context, IMemberService memberService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.MembersManage))
             {
                 return Results.Forbid();
             }
@@ -48,7 +48,7 @@ public static class MemberEndpoints
             int page, int pageSize, string? search, string? sort,
             HttpContext context, IMemberService memberService) =>
         {
-            if (!context.IsAdmin()) return Results.Forbid();
+            if (!context.HasPermission(AdminPermissions.MembersManage)) return Results.Forbid();
             return (await memberService.SearchAsync(page, pageSize, search, sort)).HandleServiceResponse();
         })
         .WithName("SearchMembersAdmin")
@@ -58,7 +58,7 @@ public static class MemberEndpoints
 
         group.MapGet("/{id:guid}", async (Guid id, HttpContext context, IMemberService memberService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.MembersManage))
             {
                 return Results.Forbid();
             }
@@ -75,7 +75,7 @@ public static class MemberEndpoints
 
         group.MapPost("/", async (CreateMemberRequest request, HttpContext context, IMemberService memberService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.MembersManage))
             {
                 return Results.Forbid();
             }
@@ -91,7 +91,7 @@ public static class MemberEndpoints
 
         group.MapPut("/{id:guid}", async (Guid id, UpdateMemberRequest request, HttpContext context, IMemberService memberService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.MembersManage))
             {
                 return Results.Forbid();
             }
@@ -108,7 +108,7 @@ public static class MemberEndpoints
 
         group.MapDelete("/{id:guid}", async (Guid id, HttpContext context, IMemberService memberService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.MembersManage))
             {
                 return Results.Forbid();
             }
@@ -125,7 +125,7 @@ public static class MemberEndpoints
 
         group.MapPut("/{id:guid}/admin", async (Guid id, bool isAdmin, HttpContext context, IMemberService memberService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.MembersManage))
             {
                 return Results.Forbid();
             }

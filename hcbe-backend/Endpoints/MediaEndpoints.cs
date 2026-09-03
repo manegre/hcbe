@@ -40,7 +40,7 @@ public static class MediaEndpoints
 
         group.MapPost("/upload", async (HttpRequest request, HttpContext context, IFileStorageService fileStorage) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.ContentManage))
             {
                 return Results.Forbid();
             }

@@ -19,6 +19,8 @@ public class Association
     public List<string> Domains { get; set; } = new();
     public List<string> DomainsEn { get; set; } = new();
     public bool IsActive { get; set; } = true;
+    public Guid? OwnerMemberId { get; set; }
+    public Member? OwnerMember { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }

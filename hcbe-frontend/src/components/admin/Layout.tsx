@@ -12,6 +12,7 @@ interface SubItem {
   href: string;
   icon: string;
   disabled?: boolean;
+  permission?: string;
 }
 
 interface NavItem {
@@ -20,6 +21,7 @@ interface NavItem {
   icon: string;
   disabled?: boolean;
   subItems?: SubItem[];
+  permission?: string;
 }
 
 interface NavGroup {
@@ -79,29 +81,32 @@ export const AdminLayout = () => {
     window.location.href = '/';
   };
 
-  const navigationGroups: NavGroup[] = [
+  const allNavigationGroups: NavGroup[] = [
     {
       headingKey: 'admin.nav.groups.content',
       items: [
-        { nameKey: 'admin.nav.dashboard', href: '/admin/dashboard', icon: 'ri-dashboard-line' },
+        { nameKey: 'admin.nav.dashboard', href: '/admin/dashboard', icon: 'ri-dashboard-line', permission: 'dashboard.view' },
+        { nameKey: 'admin.nav.impact', href: '/admin/impact', icon: 'ri-line-chart-line', permission: 'analytics.view' },
         {
           nameKey: 'admin.nav.news',
           icon: 'ri-newspaper-line',
           subItems: [
-            { nameKey: 'admin.nav.events', href: '/admin/events', icon: 'ri-calendar-event-line' },
-            { nameKey: 'admin.nav.announcements', href: '/admin/news', icon: 'ri-article-line' },
+            { nameKey: 'admin.nav.events', href: '/admin/events', icon: 'ri-calendar-event-line', permission: 'events.manage' },
+            { nameKey: 'admin.nav.announcements', href: '/admin/news', icon: 'ri-article-line', permission: 'content.manage' },
           ],
         },
-        { nameKey: 'admin.nav.documents', href: '/admin/documents', icon: 'ri-file-text-line' },
+        { nameKey: 'admin.nav.documents', href: '/admin/documents', icon: 'ri-file-text-line', permission: 'content.manage' },
       ],
     },
     {
       headingKey: 'admin.nav.groups.community',
       items: [
-        { nameKey: 'admin.nav.associations', href: '/admin/associations', icon: 'ri-building-line' },
-        { nameKey: 'admin.nav.projects', href: '/admin/projects', icon: 'ri-hammer-line' },
-        { nameKey: 'admin.nav.grants', href: '/admin/grants', icon: 'ri-hand-coin-line' },
-        { nameKey: 'admin.nav.consultations', href: '/admin/consultations', icon: 'ri-chat-poll-line' },
+        { nameKey: 'admin.nav.associations', href: '/admin/associations', icon: 'ri-building-line', permission: 'community.manage' },
+        { nameKey: 'admin.nav.associationRequests', href: '/admin/association-requests', icon: 'ri-building-2-line', permission: 'community.manage' },
+        { nameKey: 'admin.nav.projects', href: '/admin/projects', icon: 'ri-hammer-line', permission: 'community.manage' },
+        { nameKey: 'admin.nav.opportunities', href: '/admin/opportunities', icon: 'ri-briefcase-4-line', permission: 'community.manage' },
+        { nameKey: 'admin.nav.grants', href: '/admin/grants', icon: 'ri-hand-coin-line', permission: 'community.manage' },
+        { nameKey: 'admin.nav.consultations', href: '/admin/consultations', icon: 'ri-chat-poll-line', permission: 'community.manage' },
       ],
     },
     {
@@ -111,31 +116,42 @@ export const AdminLayout = () => {
           nameKey: 'admin.nav.members',
           icon: 'ri-group-line',
           subItems: [
-            { nameKey: 'admin.nav.membersList', href: '/admin/members', icon: 'ri-user-line' },
+            { nameKey: 'admin.nav.membersList', href: '/admin/members', icon: 'ri-user-line', permission: 'members.manage' },
             {
               nameKey: 'admin.nav.membershipApplications',
               href: '/admin/membership-applications',
               icon: 'ri-user-add-line',
+              permission: 'members.manage',
             },
             {
               nameKey: 'admin.nav.newsletter',
               href: '/admin/newsletter',
               icon: 'ri-mail-send-line',
+              permission: 'communications.manage',
             },
             {
               nameKey: 'admin.nav.mentorship',
               href: '/admin/mentorship',
               icon: 'ri-user-heart-line',
+              permission: 'community.manage',
             },
             {
               nameKey: 'admin.nav.messageReports',
               href: '/admin/message-reports',
               icon: 'ri-shield-user-line',
+              permission: 'moderation.manage',
             },
             {
               nameKey: 'admin.nav.submissions',
               href: '/admin/submissions',
               icon: 'ri-inbox-archive-line',
+              permission: 'community.manage',
+            },
+            {
+              nameKey: 'admin.nav.serviceCases',
+              href: '/admin/service-cases',
+              icon: 'ri-customer-service-2-line',
+              permission: 'service-cases.manage',
             },
           ],
         },
@@ -145,14 +161,24 @@ export const AdminLayout = () => {
       headingKey: 'admin.nav.groups.administration',
       items: [
         ...(features.adminTeamMembersEnabled
-          ? [{ nameKey: 'admin.nav.teamMembers', href: '/admin/team-members', icon: 'ri-team-line' }]
+          ? [{ nameKey: 'admin.nav.teamMembers', href: '/admin/team-members', icon: 'ri-team-line', permission: 'content.manage' }]
           : []),
-        { nameKey: 'admin.nav.users', href: '/admin/users', icon: 'ri-shield-user-line' },
-        { nameKey: 'admin.nav.partners', href: '/admin/partners', icon: 'ri-shake-hands-line' },
-        { nameKey: 'admin.nav.siteContent', href: '/admin/site-content', icon: 'ri-layout-4-line' },
+        { nameKey: 'admin.nav.users', href: '/admin/users', icon: 'ri-shield-user-line', permission: 'users.manage' },
+        { nameKey: 'admin.nav.partners', href: '/admin/partners', icon: 'ri-shake-hands-line', permission: 'content.manage' },
+        { nameKey: 'admin.nav.siteContent', href: '/admin/site-content', icon: 'ri-layout-4-line', permission: 'content.manage' },
       ],
     },
   ];
+
+  const can = (permission?: string) => !permission || user?.permissions?.includes(permission) || user?.adminRole === 'super-admin';
+  const navigationGroups: NavGroup[] = allNavigationGroups
+    .map((group) => ({
+      ...group,
+      items: group.items
+        .map((item) => item.subItems ? { ...item, subItems: item.subItems.filter((subItem) => can(subItem.permission)) } : item)
+        .filter((item) => can(item.permission) && (!item.subItems || item.subItems.length > 0)),
+    }))
+    .filter((group) => group.items.length > 0);
 
   const navigation: NavItem[] = navigationGroups.flatMap((group) => group.items);
 

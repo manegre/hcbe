@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { usersApi } from '../../../lib/api/users';
 import type { AdminUser } from '../../../lib/api/types';
@@ -70,6 +71,7 @@ const AdminUsersPage: React.FC = () => {
       columns={[
         { key: 'user', label: t('admin.users.colUser') },
         { key: 'email', label: t('admin.common.email') },
+        { key: 'role', label: t('admin.users.role', { defaultValue: 'Rôle' }) },
         { key: 'status', label: t('admin.users.status') },
         { key: 'date', label: t('admin.common.date') },
         { key: 'actions', label: t('admin.common.actions'), align: 'right' },
@@ -91,6 +93,7 @@ const AdminUsersPage: React.FC = () => {
             </div>
           </Td>
           <Td>{user.email}</Td>
+          <Td><Tag className="border-green/20 bg-green/[.045] text-green">{user.adminRole.replaceAll('-', ' ')}</Tag></Td>
           <Td>
             <Tag className={user.mustChangePassword ? 'border-gold/60 bg-gold/10 text-gold-ink' : 'border-green/25 bg-green/5 text-green'}>
               <span className={`mr-2 h-1.5 w-1.5 rounded-full ${user.mustChangePassword ? 'bg-gold' : 'bg-green'}`} />

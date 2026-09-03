@@ -19,6 +19,7 @@ public class ApplicationDbContext : DbContext
     }
 
     public DbSet<User> Users { get; set; }
+    public DbSet<MemberPreference> MemberPreferences { get; set; }
     public DbSet<Member> Members { get; set; }
     public DbSet<MemberProfile> MemberProfiles { get; set; }
     public DbSet<Event> Events { get; set; }
@@ -27,6 +28,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<EventCategory> EventCategories { get; set; }
     public DbSet<EventMedia> EventMedia { get; set; }
     public DbSet<EventAttachment> EventAttachments { get; set; }
+    public DbSet<EventRegistration> EventRegistrations { get; set; }
     public DbSet<News> News { get; set; }
     public DbSet<NewsAttachment> NewsAttachments { get; set; }
     public DbSet<Project> Projects { get; set; }
@@ -39,6 +41,9 @@ public class ApplicationDbContext : DbContext
     public DbSet<SiteSetting> SiteSettings { get; set; }
     public DbSet<Notification> Notifications { get; set; }
     public DbSet<Association> Associations { get; set; }
+    public DbSet<AssociationClaimRequest> AssociationClaimRequests { get; set; }
+    public DbSet<Opportunity> Opportunities { get; set; }
+    public DbSet<OpportunityApplication> OpportunityApplications { get; set; }
     public DbSet<TeamMember> TeamMembers { get; set; }
     public DbSet<MembershipApplication> MembershipApplications { get; set; }
     public DbSet<NewsletterSubscription> NewsletterSubscriptions { get; set; }
@@ -49,6 +54,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
     public DbSet<MentorshipApplication> MentorshipApplications { get; set; }
     public DbSet<MentorshipMatch> MentorshipMatches { get; set; }
+    public DbSet<MentorshipGoal> MentorshipGoals { get; set; }
+    public DbSet<MentorshipCheckIn> MentorshipCheckIns { get; set; }
     public DbSet<NetworkingProfile> NetworkingProfiles { get; set; }
     public DbSet<ConnectionRequest> ConnectionRequests { get; set; }
     public DbSet<PrivateConversation> PrivateConversations { get; set; }
@@ -61,6 +68,9 @@ public class ApplicationDbContext : DbContext
     public DbSet<PrivacyRequest> PrivacyRequests { get; set; }
     public DbSet<CmsContentItem> CmsContentItems { get; set; }
     public DbSet<CmsContentRevision> CmsContentRevisions { get; set; }
+    public DbSet<ServiceCase> ServiceCases { get; set; }
+    public DbSet<ServiceCaseMessage> ServiceCaseMessages { get; set; }
+    public DbSet<ServiceCaseAttachment> ServiceCaseAttachments { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -87,6 +97,15 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<User>()
             .HasIndex(u => u.Email)
             .IsUnique();
+
+        modelBuilder.Entity<User>().Property(u => u.AdminRole).HasMaxLength(50).HasDefaultValue("super-admin");
+        modelBuilder.Entity<User>().Property(u => u.AdminPermissions).HasMaxLength(1000);
+
+        modelBuilder.Entity<MemberPreference>().HasKey(item => item.UserId);
+        modelBuilder.Entity<MemberPreference>()
+            .HasOne(item => item.User).WithOne().HasForeignKey<MemberPreference>(item => item.UserId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<MemberPreference>().Property(item => item.PreferredLanguage).HasMaxLength(5);
+        modelBuilder.Entity<MemberPreference>().Property(item => item.TimeZone).HasMaxLength(100);
 
         modelBuilder.Entity<RefreshToken>()
             .HasOne(token => token.User)
@@ -201,6 +220,50 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<EventAttachment>()
             .HasIndex(a => a.EventId);
 
+        modelBuilder.Entity<EventRegistration>()
+            .HasOne(registration => registration.Event)
+            .WithMany(eventEntity => eventEntity.Registrations)
+            .HasForeignKey(registration => registration.EventId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<EventRegistration>()
+            .HasOne(registration => registration.Member)
+            .WithMany()
+            .HasForeignKey(registration => registration.MemberId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<EventRegistration>()
+            .HasIndex(registration => new { registration.EventId, registration.MemberId })
+            .IsUnique();
+
+        modelBuilder.Entity<EventRegistration>()
+            .HasIndex(registration => new { registration.EventId, registration.Status, registration.RegisteredAt });
+
+        modelBuilder.Entity<EventRegistration>()
+            .HasIndex(registration => registration.ConfirmationCode)
+            .IsUnique();
+
+        modelBuilder.Entity<ServiceCase>()
+            .HasOne(item => item.Member).WithMany().HasForeignKey(item => item.MemberId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<ServiceCase>()
+            .HasOne(item => item.AssignedToUser).WithMany().HasForeignKey(item => item.AssignedToUserId).OnDelete(DeleteBehavior.SetNull);
+        modelBuilder.Entity<ServiceCase>()
+            .HasIndex(item => item.TicketNumber).IsUnique();
+        modelBuilder.Entity<ServiceCase>()
+            .HasIndex(item => new { item.Status, item.Priority, item.UpdatedAt });
+        modelBuilder.Entity<ServiceCase>()
+            .HasIndex(item => new { item.MemberId, item.UpdatedAt });
+        modelBuilder.Entity<ServiceCaseMessage>()
+            .HasOne(item => item.ServiceCase).WithMany(item => item.Messages).HasForeignKey(item => item.ServiceCaseId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<ServiceCaseMessage>()
+            .HasOne(item => item.AuthorUser).WithMany().HasForeignKey(item => item.AuthorUserId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<ServiceCaseMessage>()
+            .HasIndex(item => new { item.ServiceCaseId, item.CreatedAt });
+        modelBuilder.Entity<ServiceCaseAttachment>()
+            .HasOne(item => item.ServiceCase).WithMany(item => item.Attachments).HasForeignKey(item => item.ServiceCaseId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<ServiceCaseAttachment>()
+            .HasIndex(item => item.ServiceCaseId);
+
         modelBuilder.Entity<News>()
             .HasIndex(n => n.PublishedDate);
 
@@ -230,6 +293,8 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<CmsContentItem>()
             .HasIndex(item => item.Key)
             .IsUnique();
+        modelBuilder.Entity<CmsContentItem>()
+            .HasIndex(item => item.ScheduledPublishAtUtc);
 
         modelBuilder.Entity<CmsContentItem>()
             .HasIndex(item => new { item.Page, item.Section });
@@ -274,6 +339,21 @@ public class ApplicationDbContext : DbContext
                     : (JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions?)null) ?? new List<string>())
             );
         projectPartnersProperty.Metadata.SetValueComparer(stringListComparer);
+
+        modelBuilder.Entity<Association>()
+            .HasOne(item => item.OwnerMember).WithMany().HasForeignKey(item => item.OwnerMemberId).OnDelete(DeleteBehavior.SetNull);
+        modelBuilder.Entity<AssociationClaimRequest>()
+            .HasOne(item => item.Association).WithMany().HasForeignKey(item => item.AssociationId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<AssociationClaimRequest>()
+            .HasOne(item => item.Member).WithMany().HasForeignKey(item => item.MemberId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<AssociationClaimRequest>()
+            .HasIndex(item => new { item.AssociationId, item.MemberId, item.Status });
+        modelBuilder.Entity<Opportunity>().HasIndex(item => new { item.Status, item.DeadlineUtc });
+        modelBuilder.Entity<OpportunityApplication>()
+            .HasOne(item => item.Opportunity).WithMany(item => item.Applications).HasForeignKey(item => item.OpportunityId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<OpportunityApplication>()
+            .HasOne(item => item.Member).WithMany().HasForeignKey(item => item.MemberId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<OpportunityApplication>().HasIndex(item => new { item.OpportunityId, item.MemberId }).IsUnique();
 
         var associationDomainsProperty = modelBuilder.Entity<Association>()
             .Property(a => a.Domains)
@@ -333,6 +413,8 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<NewsletterCampaign>()
             .HasIndex(c => c.CreatedAt);
+        modelBuilder.Entity<NewsletterCampaign>()
+            .HasIndex(c => new { c.Status, c.ScheduledAtUtc });
 
         // Store type is string? so SQLite NULL (legacy rows after ALTER) maps cleanly
         // before conversion, instead of throwing on GetString.
@@ -381,6 +463,11 @@ public class ApplicationDbContext : DbContext
             .HasOne(item => item.MenteeApplication).WithMany().HasForeignKey(item => item.MenteeApplicationId).OnDelete(DeleteBehavior.Restrict);
         modelBuilder.Entity<MentorshipMatch>()
             .HasIndex(item => item.Status);
+        modelBuilder.Entity<MentorshipGoal>().HasOne(item => item.Match).WithMany().HasForeignKey(item => item.MatchId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<MentorshipGoal>().HasIndex(item => new { item.MatchId, item.Status });
+        modelBuilder.Entity<MentorshipCheckIn>().HasOne(item => item.Match).WithMany().HasForeignKey(item => item.MatchId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<MentorshipCheckIn>().HasOne(item => item.Member).WithMany().HasForeignKey(item => item.MemberId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<MentorshipCheckIn>().HasIndex(item => new { item.MatchId, item.CreatedAt });
 
         modelBuilder.Entity<NetworkingProfile>()
             .HasOne(item => item.Member).WithOne().HasForeignKey<NetworkingProfile>(item => item.MemberId).OnDelete(DeleteBehavior.Cascade);

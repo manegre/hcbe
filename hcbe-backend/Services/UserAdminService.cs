@@ -85,6 +85,8 @@ public class UserAdminService : IUserAdminService
                 FirstName = request.FirstName?.Trim(),
                 LastName = request.LastName?.Trim(),
                 IsAdmin = true,
+                AdminRole = NormalizeRole(request.AdminRole),
+                AdminPermissions = NormalizePermissions(request.AdminRole, request.Permissions),
                 MustChangePassword = true,
                 CreatedAt = DateTime.UtcNow,
             };
@@ -163,6 +165,7 @@ public class UserAdminService : IUserAdminService
                     FirstName = member.FirstName,
                     LastName = member.LastName,
                     IsAdmin = true,
+                    AdminRole = AdminAccess.SuperAdmin,
                     MustChangePassword = true,
                     MemberId = member.Id,
                     CreatedAt = DateTime.UtcNow
@@ -179,6 +182,7 @@ public class UserAdminService : IUserAdminService
             else
             {
                 user.IsAdmin = true;
+                user.AdminRole = string.IsNullOrWhiteSpace(user.AdminRole) ? AdminAccess.SuperAdmin : user.AdminRole;
                 user.MemberId = member.Id;
 
                 var promotion = _emailTemplates.AdminPromotion(user.FirstName ?? member.FirstName, $"{publicUrl}/admin/login");
@@ -222,10 +226,18 @@ public class UserAdminService : IUserAdminService
                 }
 
                 user.IsAdmin = false;
+                user.AdminPermissions = null;
                 var member = user.MemberId.HasValue
                     ? await _context.Members.FindAsync(user.MemberId.Value)
                     : await _context.Members.FirstOrDefaultAsync(item => item.Email.ToLower() == user.Email.ToLower());
                 if (member is not null) member.IsAdmin = false;
+            }
+
+            if (request.AdminRole is not null || request.Permissions is not null)
+            {
+                var role = request.AdminRole is null ? user.AdminRole : NormalizeRole(request.AdminRole);
+                user.AdminRole = role;
+                user.AdminPermissions = NormalizePermissions(role, request.Permissions);
             }
 
             if (request.FirstName != null) user.FirstName = string.IsNullOrWhiteSpace(request.FirstName) ? null : request.FirstName.Trim();
@@ -288,5 +300,21 @@ public class UserAdminService : IUserAdminService
 
     private static AdminUserDto MapToDto(User user) =>
         new(user.Id, user.Email, user.FirstName, user.LastName, user.IsAdmin,
-            user.MustChangePassword, user.MemberId, user.CreatedAt);
+            user.MustChangePassword, user.MemberId, user.CreatedAt, user.AdminRole,
+            AdminAccess.EffectivePermissions(user.AdminRole, user.AdminPermissions));
+
+    private static string NormalizeRole(string? role)
+    {
+        var normalized = string.IsNullOrWhiteSpace(role) ? AdminAccess.SuperAdmin : role.Trim().ToLowerInvariant();
+        if (!AdminAccess.IsValidRole(normalized)) throw new ArgumentException("Unsupported administrator role");
+        return normalized;
+    }
+
+    private static string? NormalizePermissions(string? role, IEnumerable<string>? permissions)
+    {
+        var normalizedRole = NormalizeRole(role);
+        return normalizedRole == AdminAccess.SuperAdmin || permissions is null || !permissions.Any()
+            ? null
+            : AdminAccess.SerializePermissions(permissions);
+    }
 }

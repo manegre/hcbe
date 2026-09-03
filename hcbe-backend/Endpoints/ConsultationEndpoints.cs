@@ -23,7 +23,7 @@ public static class ConsultationEndpoints
 
         group.MapGet("/admin", async (HttpContext context, IConsultationService consultationService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.CommunityManage))
             {
                 return Results.Forbid();
             }
@@ -39,7 +39,7 @@ public static class ConsultationEndpoints
 
         group.MapGet("/admin/{id:guid}", async (Guid id, HttpContext context, IConsultationService consultationService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.CommunityManage))
             {
                 return Results.Forbid();
             }
@@ -66,7 +66,7 @@ public static class ConsultationEndpoints
 
         group.MapPost("/", async (CreateConsultationRequest request, HttpContext context, IConsultationService consultationService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.CommunityManage))
             {
                 return Results.Forbid();
             }
@@ -82,7 +82,7 @@ public static class ConsultationEndpoints
 
         group.MapPut("/{id:guid}", async (Guid id, UpdateConsultationRequest request, HttpContext context, IConsultationService consultationService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.CommunityManage))
             {
                 return Results.Forbid();
             }
@@ -99,7 +99,7 @@ public static class ConsultationEndpoints
 
         group.MapDelete("/{id:guid}", async (Guid id, HttpContext context, IConsultationService consultationService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.CommunityManage))
             {
                 return Results.Forbid();
             }
@@ -116,7 +116,7 @@ public static class ConsultationEndpoints
 
         group.MapPost("/{id:guid}/toggle-status", async (Guid id, HttpContext context, IConsultationService consultationService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.CommunityManage))
             {
                 return Results.Forbid();
             }

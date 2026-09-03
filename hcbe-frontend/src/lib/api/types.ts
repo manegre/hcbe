@@ -7,6 +7,8 @@ export interface User {
   isAdmin: boolean;
   memberId?: string;
   mustChangePassword: boolean;
+  adminRole?: string;
+  permissions?: string[];
 }
 
 export interface AuthResponse {
@@ -42,6 +44,43 @@ export interface AdminUser {
   mustChangePassword: boolean;
   memberId?: string;
   createdAt: string;
+  adminRole: string;
+  permissions: string[];
+}
+
+export interface MemberPreference {
+  preferredLanguage: 'fr' | 'en';
+  timeZone: string;
+  emailEvents: boolean;
+  emailOpportunities: boolean;
+  emailMentorship: boolean;
+  emailServiceUpdates: boolean;
+  emailNewsletter: boolean;
+  pushNotifications: boolean;
+  hasCompletedPreferences: boolean;
+  updatedAt: string;
+}
+
+export interface OnboardingStep {
+  key: string;
+  title: string;
+  completed: boolean;
+  actionUrl: string;
+}
+
+export interface MemberOnboarding {
+  completionPercent: number;
+  isComplete: boolean;
+  steps: OnboardingStep[];
+  preferences: MemberPreference;
+}
+
+export type UpdateMemberPreferenceRequest = Omit<MemberPreference, 'hasCompletedPreferences' | 'updatedAt'>;
+
+export interface AdminRole {
+  key: string;
+  name: string;
+  permissions: string[];
 }
 
 export interface CreateAdminUserRequest {
@@ -49,6 +88,8 @@ export interface CreateAdminUserRequest {
   password: string;
   firstName?: string;
   lastName?: string;
+  adminRole?: string;
+  permissions?: string[];
 }
 
 export interface UpdateAdminUserRequest {
@@ -56,6 +97,8 @@ export interface UpdateAdminUserRequest {
   lastName?: string;
   password?: string;
   isAdmin?: boolean;
+  adminRole?: string;
+  permissions?: string[];
 }
 
 export interface EventMedia {
@@ -108,6 +151,57 @@ export interface Event {
   organizers: string[];
   media?: EventMedia[];
   attachments?: EventAttachment[];
+  registrationMode: 'Disabled' | 'External' | 'Native';
+  allowWaitlist: boolean;
+  restrictMeetingLinkToRegistrants: boolean;
+  confirmedRegistrationCount: number;
+  waitlistCount: number;
+  remainingCapacity?: number;
+}
+
+export type EventRegistrationStatus = 'Confirmed' | 'Waitlisted' | 'Cancelled' | 'Attended' | 'NoShow';
+
+export interface EventRegistration {
+  id: string;
+  eventId: string;
+  eventTitle: string;
+  memberId: string;
+  memberName: string;
+  memberEmail: string;
+  status: EventRegistrationStatus;
+  confirmationCode: string;
+  accessibilityNeeds?: string;
+  adminNotes?: string;
+  waitlistPosition?: number;
+  registeredAt: string;
+  updatedAt: string;
+  cancelledAt?: string;
+  checkedInAt?: string;
+  meetingLink?: string;
+}
+
+export interface ServiceCaseMessage { id: string; authorUserId: string; authorName: string; body: string; isInternal: boolean; createdAt: string; }
+export interface ServiceCaseAttachment { id: string; fileName: string; url: string; contentType: string; sizeBytes: number; isInternal: boolean; createdAt: string; }
+export interface ServiceCase {
+  id: string;
+  ticketNumber: string;
+  memberId: string;
+  memberName: string;
+  memberEmail: string;
+  category: string;
+  subject: string;
+  description: string;
+  status: 'Submitted' | 'InReview' | 'AwaitingMember' | 'Resolved' | 'Closed';
+  priority: 'Low' | 'Normal' | 'High' | 'Urgent';
+  assignedToUserId?: string;
+  assignedToName?: string;
+  internalNotes?: string;
+  createdAt: string;
+  updatedAt: string;
+  lastResponseAt?: string;
+  resolvedAt?: string;
+  messages: ServiceCaseMessage[];
+  attachments: ServiceCaseAttachment[];
 }
 
 export interface CreateEventRequest {
@@ -133,6 +227,9 @@ export interface CreateEventRequest {
   status: string;
   speakers?: string[];
   organizers?: string[];
+  registrationMode?: 'Disabled' | 'External' | 'Native';
+  allowWaitlist?: boolean;
+  restrictMeetingLinkToRegistrants?: boolean;
 }
 
 export interface UpdateEventRequest {
@@ -158,6 +255,9 @@ export interface UpdateEventRequest {
   status?: string;
   speakers?: string[];
   organizers?: string[];
+  registrationMode?: 'Disabled' | 'External' | 'Native';
+  allowWaitlist?: boolean;
+  restrictMeetingLinkToRegistrants?: boolean;
 }
 
 export interface EventCategory {
@@ -347,6 +447,36 @@ export interface CreateTeamMemberRequest {
   isActive?: boolean;
 }
 
+export interface AssociationClaim {
+  id: string;
+  associationId: string;
+  associationName: string;
+  memberId: string;
+  memberName: string;
+  memberEmail: string;
+  message: string;
+  status: 'Pending' | 'Approved' | 'Rejected';
+  adminNotes?: string;
+  createdAt: string;
+  updatedAt: string;
+  reviewedAt?: string;
+}
+
+export interface Opportunity {
+  id: string; title: string; titleEn?: string; description: string; descriptionEn?: string;
+  type: 'Volunteer' | 'Job' | 'Business' | 'Training' | 'Community'; organization: string;
+  location?: string; isRemote: boolean; skills?: string; applyUrl?: string; deadlineUtc?: string;
+  status: 'Draft' | 'Published' | 'Closed'; applicationCount: number; createdAt: string; updatedAt: string;
+}
+export type UpsertOpportunityRequest = Omit<Opportunity, 'id' | 'applicationCount' | 'createdAt' | 'updatedAt'>;
+export interface OpportunityApplication { id: string; opportunityId: string; opportunityTitle: string; memberId: string; memberName: string; memberEmail: string; message: string; status: 'Submitted' | 'Reviewed' | 'Accepted' | 'Declined'; adminNotes?: string; createdAt: string; updatedAt: string; }
+export interface MentorshipGoal { id: string; matchId: string; createdByMemberId: string; title: string; status: 'Open' | 'Completed' | 'Cancelled'; dueAtUtc?: string; createdAt: string; updatedAt: string; }
+export interface MentorshipCheckIn { id: string; matchId: string; memberId: string; memberName: string; summary: string; rating: number; needsCommitteeSupport: boolean; createdAt: string; }
+export interface MentorshipJourney { matchId: string; goals: MentorshipGoal[]; checkIns: MentorshipCheckIn[]; }
+export interface ImpactMetric { key: string; label: string; value: number; changePercent?: number; unit: string; }
+export interface ImpactPeriod { period: string; newMembers: number; eventRegistrations: number; serviceRequests: number; opportunityApplications: number; }
+export interface ImpactDashboard { generatedAtUtc: string; metrics: ImpactMetric[]; periods: ImpactPeriod[]; }
+
 export interface UpdateTeamMemberRequest {
   name?: string;
   position?: string;
@@ -527,6 +657,13 @@ export interface NewsletterCampaignDto {
   lastError?: string;
   createdAt: string;
   sentAt?: string;
+  audience: 'Newsletter' | 'Members' | 'All';
+  preferenceCategory: 'newsletter' | 'events' | 'opportunities' | 'mentorship' | 'service';
+  targetProvince?: string;
+  targetZone?: string;
+  targetLanguage?: string;
+  targetInterest?: string;
+  scheduledAtUtc?: string;
 }
 
 export interface CreateNewsletterCampaignRequest {
@@ -534,6 +671,13 @@ export interface CreateNewsletterCampaignRequest {
   subjectEn?: string;
   body: string;
   bodyEn?: string;
+  audience?: 'Newsletter' | 'Members' | 'All';
+  preferenceCategory?: 'newsletter' | 'events' | 'opportunities' | 'mentorship' | 'service';
+  targetProvince?: string;
+  targetZone?: string;
+  targetLanguage?: string;
+  targetInterest?: string;
+  scheduledAtUtc?: string;
 }
 
 export interface StatisticDto {
@@ -610,6 +754,7 @@ export interface CmsContentItemDto {
   version: number;
   updatedAt: string;
   publishedAt?: string;
+  scheduledPublishAtUtc?: string;
 }
 
 export interface UpsertCmsContentRequest {
@@ -621,6 +766,7 @@ export interface UpsertCmsContentRequest {
   valueFr?: string;
   valueEn?: string;
   publish?: boolean;
+  scheduledPublishAtUtc?: string;
 }
 
 export interface CmsContentRevisionDto {

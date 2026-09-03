@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { ApiResponse, ConnectionRequestDto, CreateMentorshipApplicationRequest, MentorshipApplicationDto, MentorshipMatchDto, NetworkingProfileDto, UpsertNetworkingProfileRequest } from './types';
+import type { ApiResponse, ConnectionRequestDto, CreateMentorshipApplicationRequest, MentorshipApplicationDto, MentorshipCheckIn, MentorshipGoal, MentorshipJourney, MentorshipMatchDto, NetworkingProfileDto, UpsertNetworkingProfileRequest } from './types';
 
 export const communityApi = {
   getMyApplications: (): Promise<ApiResponse<MentorshipApplicationDto[]>> => apiClient.get('/api/community/mentorship/applications/me'),
@@ -7,6 +7,10 @@ export const communityApi = {
   withdraw: (id: string): Promise<ApiResponse<MentorshipApplicationDto>> => apiClient.post(`/api/community/mentorship/applications/${id}/withdraw`, {}),
   getMyMatches: (): Promise<ApiResponse<MentorshipMatchDto[]>> => apiClient.get('/api/community/mentorship/matches/me'),
   respondToMatch: (id: string, response: 'Accept' | 'Decline'): Promise<ApiResponse<MentorshipMatchDto>> => apiClient.post(`/api/community/mentorship/matches/${id}/respond?response=${response}`, {}),
+  getJourney: (id: string): Promise<ApiResponse<MentorshipJourney>> => apiClient.get(`/api/community/mentorship/matches/${id}/journey`),
+  addGoal: (id: string, title: string, dueAtUtc?: string): Promise<ApiResponse<MentorshipGoal>> => apiClient.post(`/api/community/mentorship/matches/${id}/goals`, { title, dueAtUtc }),
+  updateGoal: (id: string, status: MentorshipGoal['status']): Promise<ApiResponse<MentorshipGoal>> => apiClient.put(`/api/community/mentorship/goals/${id}`, { status }),
+  addCheckIn: (id: string, summary: string, rating: number, needsCommitteeSupport: boolean): Promise<ApiResponse<MentorshipCheckIn>> => apiClient.post(`/api/community/mentorship/matches/${id}/check-ins`, { summary, rating, needsCommitteeSupport }),
   getMyProfile: (): Promise<ApiResponse<NetworkingProfileDto>> => apiClient.get('/api/community/networking/profile/me'),
   saveProfile: (data: UpsertNetworkingProfileRequest): Promise<ApiResponse<NetworkingProfileDto>> => apiClient.put('/api/community/networking/profile/me', data),
   searchDirectory: (filters?: { search?: string; province?: string }): Promise<ApiResponse<NetworkingProfileDto[]>> => {

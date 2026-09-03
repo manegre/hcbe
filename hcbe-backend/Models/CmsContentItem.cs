@@ -19,6 +19,7 @@ public class CmsContentItem
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? PublishedAt { get; set; }
+    public DateTime? ScheduledPublishAtUtc { get; set; }
     public List<CmsContentRevision> Revisions { get; set; } = [];
 }
 

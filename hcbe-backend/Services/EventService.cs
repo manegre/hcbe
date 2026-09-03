@@ -18,6 +18,11 @@ public class EventService : IEventService
         "InPerson", "Online", "Hybrid"
     };
 
+    private static readonly HashSet<string> AllowedRegistrationModes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Disabled", "External", "Native"
+    };
+
     private static readonly HashSet<string> AllowedVideoHosts = new(StringComparer.OrdinalIgnoreCase)
     {
         "youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be",
@@ -50,13 +55,14 @@ public class EventService : IEventService
                 .Include(e => e.Organizers)
                 .Include(e => e.Media)
                 .Include(e => e.Attachments)
+                .Include(e => e.Registrations)
                 .AsSplitQuery()
                 .Where(e => e.Status != "Draft" && e.Status != "Cancelled"
                     && e.Status != "Brouillon" && e.Status != "Annulé")
                 .OrderByDescending(e => e.CreatedAt)
                 .ToListAsync();
 
-            var eventDtos = events.Select(MapToDto).ToList();
+            var eventDtos = events.Select(eventEntity => MapToDto(eventEntity)).ToList();
             return ApiResponse<List<EventDto>>.SuccessResponse(eventDtos);
         }
         catch (Exception ex)
@@ -76,10 +82,11 @@ public class EventService : IEventService
                 .Include(e => e.Organizers)
                 .Include(e => e.Media)
                 .Include(e => e.Attachments)
+                .Include(e => e.Registrations)
                 .AsSplitQuery()
                 .OrderByDescending(e => e.CreatedAt)
                 .ToListAsync();
-            return ApiResponse<List<EventDto>>.SuccessResponse(events.Select(MapToDto).ToList());
+            return ApiResponse<List<EventDto>>.SuccessResponse(events.Select(eventEntity => MapToDto(eventEntity, true)).ToList());
         }
         catch (Exception ex)
         {
@@ -96,6 +103,7 @@ public class EventService : IEventService
                 .Include(e => e.Organizers)
                 .Include(e => e.Media)
                 .Include(e => e.Attachments)
+                .Include(e => e.Registrations)
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(e => e.Id == id
                     && e.Status != "Draft" && e.Status != "Cancelled"
@@ -125,11 +133,12 @@ public class EventService : IEventService
                 .Include(e => e.Organizers)
                 .Include(e => e.Media)
                 .Include(e => e.Attachments)
+                .Include(e => e.Registrations)
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(e => e.Id == id);
             return eventEntity is null
                 ? ApiResponse<EventDto>.ErrorResponse("Event not found")
-                : ApiResponse<EventDto>.SuccessResponse(MapToDto(eventEntity));
+                : ApiResponse<EventDto>.SuccessResponse(MapToDto(eventEntity, true));
         }
         catch (Exception ex)
         {
@@ -174,6 +183,17 @@ public class EventService : IEventService
                 return ApiResponse<EventDto>.ErrorResponse("Event format must be InPerson, Online, or Hybrid");
             }
 
+            var registrationMode = NormalizeRegistrationMode(request.RegistrationMode);
+            if (registrationMode is null)
+            {
+                return ApiResponse<EventDto>.ErrorResponse("Registration mode must be Disabled, External, or Native");
+            }
+
+            if (registrationMode == "External" && string.IsNullOrWhiteSpace(request.RegistrationUrl))
+            {
+                registrationMode = "Disabled";
+            }
+
             if (!IsValidWebUrl(request.MeetingLink) || !IsValidWebUrl(request.RegistrationUrl))
             {
                 return ApiResponse<EventDto>.ErrorResponse("Meeting and registration links must use http or https");
@@ -209,6 +229,9 @@ public class EventService : IEventService
                 RegistrationUrl = NormalizeOptional(request.RegistrationUrl),
                 CtaLabel = NormalizeOptional(request.CtaLabel),
                 CtaLabelEn = NormalizeOptional(request.CtaLabelEn),
+                RegistrationMode = registrationMode,
+                AllowWaitlist = request.AllowWaitlist,
+                RestrictMeetingLinkToRegistrants = request.RestrictMeetingLinkToRegistrants,
                 ImageUrl = request.ImageUrl,
                 Status = request.Status,
                 Speakers = speakerValidation.Names
@@ -230,7 +253,7 @@ public class EventService : IEventService
                 "#events"
             );
 
-            return ApiResponse<EventDto>.SuccessResponse(MapToDto(eventEntity));
+            return ApiResponse<EventDto>.SuccessResponse(MapToDto(eventEntity, true));
         }
         catch (Exception ex)
         {
@@ -250,6 +273,7 @@ public class EventService : IEventService
                 .Include(e => e.Organizers)
                 .Include(e => e.Media)
                 .Include(e => e.Attachments)
+                .Include(e => e.Registrations)
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(e => e.Id == id);
 
@@ -277,6 +301,12 @@ public class EventService : IEventService
             if (request.Format is not null && NormalizeFormat(request.Format) is null)
             {
                 return ApiResponse<EventDto>.ErrorResponse("Event format must be InPerson, Online, or Hybrid");
+            }
+
+
+            if (request.RegistrationMode is not null && NormalizeRegistrationMode(request.RegistrationMode) is null)
+            {
+                return ApiResponse<EventDto>.ErrorResponse("Registration mode must be Disabled, External, or Native");
             }
 
             if (!IsValidWebUrl(request.MeetingLink) || !IsValidWebUrl(request.RegistrationUrl))
@@ -323,6 +353,9 @@ public class EventService : IEventService
             if (request.RegistrationUrl != null) eventEntity.RegistrationUrl = NormalizeOptional(request.RegistrationUrl);
             if (request.CtaLabel != null) eventEntity.CtaLabel = NormalizeOptional(request.CtaLabel);
             if (request.CtaLabelEn != null) eventEntity.CtaLabelEn = NormalizeOptional(request.CtaLabelEn);
+            if (request.RegistrationMode != null) eventEntity.RegistrationMode = NormalizeRegistrationMode(request.RegistrationMode)!;
+            if (request.AllowWaitlist.HasValue) eventEntity.AllowWaitlist = request.AllowWaitlist.Value;
+            if (request.RestrictMeetingLinkToRegistrants.HasValue) eventEntity.RestrictMeetingLinkToRegistrants = request.RestrictMeetingLinkToRegistrants.Value;
             if (request.ImageUrl != null) eventEntity.ImageUrl = request.ImageUrl;
             if (request.Status != null) eventEntity.Status = request.Status;
 
@@ -404,7 +437,7 @@ public class EventService : IEventService
 
             await _context.SaveChangesAsync();
 
-            return ApiResponse<EventDto>.SuccessResponse(MapToDto(eventEntity));
+            return ApiResponse<EventDto>.SuccessResponse(MapToDto(eventEntity, true));
         }
         catch (Exception ex)
         {
@@ -491,6 +524,12 @@ public class EventService : IEventService
     {
         var format = NormalizeOptional(value) ?? "InPerson";
         return AllowedFormats.FirstOrDefault(item => item.Equals(format, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string? NormalizeRegistrationMode(string? value)
+    {
+        var mode = NormalizeOptional(value) ?? "External";
+        return AllowedRegistrationModes.FirstOrDefault(item => item.Equals(mode, StringComparison.OrdinalIgnoreCase));
     }
 
     private static bool IsValidWebUrl(string? value)
@@ -786,7 +825,7 @@ public class EventService : IEventService
         return AllowedVideoHosts.Contains(uri.Host);
     }
 
-    private static EventDto MapToDto(Event eventEntity)
+    private static EventDto MapToDto(Event eventEntity, bool includeRestrictedAccess = false)
     {
         var media = (eventEntity.Media ?? Enumerable.Empty<EventMedia>())
             .OrderBy(m => m.DisplayOrder)
@@ -809,6 +848,17 @@ public class EventService : IEventService
             .Select(organizer => organizer.Name)
             .ToList();
 
+        var confirmedCount = (eventEntity.Registrations ?? Enumerable.Empty<EventRegistration>())
+            .Count(registration => registration.Status is "Confirmed" or "Attended");
+        var waitlistCount = (eventEntity.Registrations ?? Enumerable.Empty<EventRegistration>())
+            .Count(registration => registration.Status == "Waitlisted");
+        int? remainingCapacity = eventEntity.Capacity.HasValue
+            ? Math.Max(0, eventEntity.Capacity.Value - confirmedCount)
+            : null;
+        var meetingLink = eventEntity.RestrictMeetingLinkToRegistrants && !includeRestrictedAccess
+            ? null
+            : eventEntity.MeetingLink;
+
         return new EventDto(
             eventEntity.Id,
             eventEntity.Title,
@@ -819,7 +869,7 @@ public class EventService : IEventService
             eventEntity.Zone,
             eventEntity.Capacity,
             eventEntity.RegistrationDeadline,
-            eventEntity.MeetingLink,
+            meetingLink,
             eventEntity.ImageUrl,
             eventEntity.Status,
             eventEntity.CreatedAt,
@@ -836,7 +886,13 @@ public class EventService : IEventService
             eventEntity.RegistrationUrl,
             eventEntity.CtaLabel,
             eventEntity.CtaLabelEn,
-            organizers
+            organizers,
+            eventEntity.RegistrationMode,
+            eventEntity.AllowWaitlist,
+            eventEntity.RestrictMeetingLinkToRegistrants,
+            confirmedCount,
+            waitlistCount,
+            remainingCapacity
         );
     }
 

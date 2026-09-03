@@ -35,7 +35,7 @@ public static class TeamMemberEndpoints
         // Admin endpoints
         group.MapGet("/admin", async (HttpContext context, ITeamMemberService teamMemberService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.ContentManage))
             {
                 return Results.Forbid();
             }
@@ -51,7 +51,7 @@ public static class TeamMemberEndpoints
 
         group.MapPost("/", async (CreateTeamMemberRequest request, HttpContext context, ITeamMemberService teamMemberService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.ContentManage))
             {
                 return Results.Forbid();
             }
@@ -67,7 +67,7 @@ public static class TeamMemberEndpoints
 
         group.MapPut("/{id:guid}", async (Guid id, UpdateTeamMemberRequest request, HttpContext context, ITeamMemberService teamMemberService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.ContentManage))
             {
                 return Results.Forbid();
             }
@@ -84,7 +84,7 @@ public static class TeamMemberEndpoints
 
         group.MapDelete("/{id:guid}", async (Guid id, HttpContext context, ITeamMemberService teamMemberService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.ContentManage))
             {
                 return Results.Forbid();
             }
@@ -101,7 +101,7 @@ public static class TeamMemberEndpoints
 
         group.MapPost("/{id:guid}/toggle-status", async (Guid id, HttpContext context, ITeamMemberService teamMemberService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.ContentManage))
             {
                 return Results.Forbid();
             }

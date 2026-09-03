@@ -145,6 +145,7 @@ const copy = {
     upload: 'Importer une image', uploading: 'Importation…', inherited: 'Valeur intégrée au site', overridden: 'Géré par le CMS',
     empty: 'Aucun champ ne correspond à cette recherche.', editorHint: 'Sélectionnez un élément dans la liste pour le modifier.',
     seo: 'Référencement', media: 'Médias', content: 'Contenu', status: 'Diffusion en direct', error: 'Une erreur est survenue.',
+    schedule: 'Programmer la publication', scheduleAction: 'Programmer', scheduled: 'Publication programmée.',
   },
   en: {
     eyebrow: 'Publishing studio', title: 'Control the entire public website',
@@ -158,6 +159,7 @@ const copy = {
     inherited: 'Built-in website value', overridden: 'Managed by CMS', empty: 'No field matches this search.',
     editorHint: 'Select an item from the list to edit it.', seo: 'SEO', media: 'Media', content: 'Content',
     status: 'Live publishing', error: 'Something went wrong.',
+    schedule: 'Schedule publication', scheduleAction: 'Schedule', scheduled: 'Publication scheduled.',
   },
 };
 
@@ -176,6 +178,7 @@ export const CmsContentStudio = () => {
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [notice, setNotice] = useState('');
+  const [scheduledAt, setScheduledAt] = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -196,6 +199,7 @@ export const CmsContentStudio = () => {
     if (!selected) return;
     setValueFr(stored?.draftValueFr ?? selected.fallbackFr);
     setValueEn(stored?.draftValueEn ?? selected.fallbackEn);
+    setScheduledAt(stored?.scheduledPublishAtUtc ? new Date(stored.scheduledPublishAtUtc).toISOString().slice(0, 16) : '');
     setRevisions([]);
     if (stored?.id) {
       void siteContentApi.getCmsRevisions(stored.id).then((response) => {
@@ -214,7 +218,7 @@ export const CmsContentStudio = () => {
   const pendingCount = items.filter((item) => item.hasUnpublishedChanges).length;
   const publishedCount = items.filter((item) => item.isPublished).length;
 
-  const save = async (publish: boolean) => {
+  const save = async (publish: boolean, schedule = false) => {
     if (!selected) return;
     setBusy(true); setNotice('');
     const request: UpsertCmsContentRequest = {
@@ -226,12 +230,13 @@ export const CmsContentStudio = () => {
       valueFr,
       valueEn,
       publish,
+      scheduledPublishAtUtc: schedule && scheduledAt ? new Date(scheduledAt).toISOString() : undefined,
     };
     try {
       const response = await siteContentApi.upsertCmsItem(request);
       if (response.success && response.data) {
         setItems((current) => [...current.filter((item) => item.key !== response.data!.key), response.data!]);
-        setNotice(publish ? c.live : c.saved);
+        setNotice(publish ? c.live : schedule ? c.scheduled : c.saved);
         if (publish) {
           const history = await siteContentApi.getCmsRevisions(response.data.id);
           if (history.success && history.data) setRevisions(history.data);
@@ -367,9 +372,12 @@ export const CmsContentStudio = () => {
 
             {stored?.isPublished && <div className="mt-5 rounded-xl border border-green/10 bg-green/5 p-4"><p className="text-[9px] font-bold uppercase tracking-[.15em] text-green">{c.current} · v{stored.version}</p><div className="mt-2 grid gap-3 text-xs text-ink-variant sm:grid-cols-2"><p className="line-clamp-3">FR · {stored.publishedValueFr || '—'}</p><p className="line-clamp-3">EN · {stored.publishedValueEn || '—'}</p></div></div>}
 
+            <label className="mt-5 block rounded-xl border border-line bg-canvas/45 p-4"><span className="mb-2 block text-[10px] font-bold uppercase tracking-[.13em] text-ink-variant">{c.schedule}</span><input type="datetime-local" min={new Date().toISOString().slice(0, 16)} className={inputClasses} value={scheduledAt} onChange={(event) => setScheduledAt(event.target.value)} /></label>
+
             <div className="mt-6 flex flex-wrap justify-end gap-3 border-t border-line pt-5">
               {stored && <button type="button" disabled={busy} onClick={() => void resetOverride()} className="mr-auto inline-flex min-h-11 items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-[.1em] text-error disabled:opacity-40"><i className="ri-reset-left-line" />{c.reset}</button>}
               <Button type="button" variant="secondary" disabled={busy} onClick={() => void save(false)}><i className="ri-draft-line" /> {c.saveDraft}</Button>
+              <Button type="button" variant="secondary" disabled={busy || !scheduledAt} onClick={() => void save(false, true)}><i className="ri-time-line" /> {c.scheduleAction}</Button>
               <Button type="button" variant="primary" disabled={busy} onClick={() => void save(true)}><i className="ri-broadcast-line" /> {c.savePublish}</Button>
             </div>
 

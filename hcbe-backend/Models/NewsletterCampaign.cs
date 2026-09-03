@@ -8,6 +8,13 @@ public class NewsletterCampaign
     public string Body { get; set; } = string.Empty;
     public string? BodyEn { get; set; }
     public string Status { get; set; } = "Draft";
+    public string Audience { get; set; } = "Newsletter";
+    public string PreferenceCategory { get; set; } = "newsletter";
+    public string? TargetProvince { get; set; }
+    public string? TargetZone { get; set; }
+    public string? TargetLanguage { get; set; }
+    public string? TargetInterest { get; set; }
+    public DateTime? ScheduledAtUtc { get; set; }
     public int RecipientCount { get; set; }
     public int SentCount { get; set; }
     public int FailedCount { get; set; }

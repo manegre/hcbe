@@ -13,9 +13,21 @@ public static class UserEndpoints
             .WithOpenApi()
             .RequireAuthorization();
 
+        group.MapGet("/admin/roles", (HttpContext context) =>
+        {
+            if (!context.HasPermission(AdminPermissions.UsersManage)) return Results.Forbid();
+            var roles = AdminAccess.Roles
+                .Select(role => new AdminRoleDto(role.Key, role.Name, role.Permissions))
+                .ToList();
+            return Results.Ok(ApiResponse<List<AdminRoleDto>>.SuccessResponse(roles));
+        })
+        .WithName("GetAdminRoles")
+        .Produces<ApiResponse<List<AdminRoleDto>>>()
+        .Produces(403);
+
         group.MapGet("/admin", async (HttpContext context, IUserAdminService userAdminService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.UsersManage))
             {
                 return Results.Forbid();
             }
@@ -30,7 +42,7 @@ public static class UserEndpoints
 
         group.MapGet("/admin/{id:guid}", async (Guid id, HttpContext context, IUserAdminService userAdminService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.UsersManage))
             {
                 return Results.Forbid();
             }
@@ -46,7 +58,7 @@ public static class UserEndpoints
 
         group.MapGet("/admin/temporary-password", (HttpContext context) =>
         {
-            if (!context.IsAdmin()) return Results.Forbid();
+            if (!context.HasPermission(AdminPermissions.UsersManage)) return Results.Forbid();
             return Results.Ok(ApiResponse<string>.SuccessResponse(PasswordPolicy.GenerateTemporaryPassword()));
         })
         .WithName("GenerateAdminTemporaryPassword")
@@ -55,7 +67,7 @@ public static class UserEndpoints
 
         group.MapPost("/admin", async (CreateAdminUserRequest request, HttpContext context, IUserAdminService userAdminService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.UsersManage))
             {
                 return Results.Forbid();
             }
@@ -73,7 +85,7 @@ public static class UserEndpoints
             HttpContext context,
             IUserAdminService userAdminService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.UsersManage))
             {
                 return Results.Forbid();
             }
@@ -89,7 +101,7 @@ public static class UserEndpoints
 
         group.MapPut("/admin/{id:guid}", async (Guid id, UpdateAdminUserRequest request, HttpContext context, IUserAdminService userAdminService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.UsersManage))
             {
                 return Results.Forbid();
             }
@@ -111,7 +123,7 @@ public static class UserEndpoints
 
         group.MapDelete("/admin/{id:guid}", async (Guid id, HttpContext context, IUserAdminService userAdminService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.UsersManage))
             {
                 return Results.Forbid();
             }

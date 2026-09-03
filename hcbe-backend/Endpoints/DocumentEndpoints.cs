@@ -23,19 +23,19 @@ public static class DocumentEndpoints
 
         group.MapGet("/admin", async (HttpContext context, IDocumentService documentService) =>
         {
-            if (!context.IsAdmin()) return Results.Forbid();
+            if (!context.HasPermission(AdminPermissions.ContentManage)) return Results.Forbid();
             return (await documentService.GetAllForAdminAsync()).HandleServiceResponse();
         }).WithName("GetDocumentsForAdmin").RequireAuthorization();
 
         group.MapGet("/admin/{id:guid}", async (Guid id, HttpContext context, IDocumentService documentService) =>
         {
-            if (!context.IsAdmin()) return Results.Forbid();
+            if (!context.HasPermission(AdminPermissions.ContentManage)) return Results.Forbid();
             return (await documentService.GetByIdForAdminAsync(id)).HandleServiceResponse();
         }).WithName("GetDocumentForAdmin").RequireAuthorization();
 
         group.MapGet("/admin/{id:guid}/download", async (Guid id, HttpContext context, IDocumentService documentService) =>
         {
-            if (!context.IsAdmin()) return Results.Forbid();
+            if (!context.HasPermission(AdminPermissions.ContentManage)) return Results.Forbid();
             var fileData = await documentService.GetFileForDownloadAsync(id, includeInactive: true);
             return fileData is null
                 ? Results.NotFound()
@@ -68,7 +68,7 @@ public static class DocumentEndpoints
 
         group.MapPost("/", async (HttpRequest request, HttpContext context, IDocumentService documentService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.ContentManage))
             {
                 return Results.Forbid();
             }
@@ -115,7 +115,7 @@ public static class DocumentEndpoints
 
         group.MapPut("/{id:guid}", async (Guid id, HttpRequest request, HttpContext context, IDocumentService documentService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.ContentManage))
             {
                 return Results.Forbid();
             }
@@ -151,7 +151,7 @@ public static class DocumentEndpoints
 
         group.MapDelete("/{id:guid}", async (Guid id, HttpContext context, IDocumentService documentService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.ContentManage))
             {
                 return Results.Forbid();
             }

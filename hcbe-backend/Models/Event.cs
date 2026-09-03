@@ -21,6 +21,9 @@ public class Event
     public string? RegistrationUrl { get; set; }
     public string? CtaLabel { get; set; }
     public string? CtaLabelEn { get; set; }
+    public string RegistrationMode { get; set; } = "External";
+    public bool AllowWaitlist { get; set; } = true;
+    public bool RestrictMeetingLinkToRegistrants { get; set; }
     public string? ImageUrl { get; set; }
     public string Status { get; set; } = "À venir";
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -29,5 +32,6 @@ public class Event
     public ICollection<EventOrganizer> Organizers { get; set; } = new List<EventOrganizer>();
     public ICollection<EventMedia> Media { get; set; } = new List<EventMedia>();
     public ICollection<EventAttachment> Attachments { get; set; } = new List<EventAttachment>();
+    public ICollection<EventRegistration> Registrations { get; set; } = new List<EventRegistration>();
 }
 

@@ -29,7 +29,8 @@ public record CmsContentItemDto(
     bool HasUnpublishedChanges,
     int Version,
     DateTime UpdatedAt,
-    DateTime? PublishedAt);
+    DateTime? PublishedAt,
+    DateTime? ScheduledPublishAtUtc);
 
 public record UpsertCmsContentRequest(
     [Required] string Key,
@@ -39,7 +40,8 @@ public record UpsertCmsContentRequest(
     string? Label,
     string? ValueFr,
     string? ValueEn,
-    bool Publish = false);
+    bool Publish = false,
+    DateTime? ScheduledPublishAtUtc = null);
 
 public record CmsContentRevisionDto(
     Guid Id,

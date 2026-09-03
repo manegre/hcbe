@@ -19,25 +19,25 @@ public static class EventCategoryEndpoints
 
         group.MapGet("/admin", async (HttpContext context, IEventCategoryService service) =>
         {
-            if (!context.IsAdmin()) return Results.Forbid();
+            if (!context.HasPermission(AdminPermissions.EventsManage)) return Results.Forbid();
             return (await service.GetAllAsync(true)).HandleServiceResponse();
         }).RequireAuthorization();
 
         group.MapPost("/", async (CreateEventCategoryRequest request, HttpContext context, IEventCategoryService service) =>
         {
-            if (!context.IsAdmin()) return Results.Forbid();
+            if (!context.HasPermission(AdminPermissions.EventsManage)) return Results.Forbid();
             return (await service.CreateAsync(request)).ToCreatedResult("/api/event-categories");
         }).RequireAuthorization();
 
         group.MapPut("/{id:guid}", async (Guid id, UpdateEventCategoryRequest request, HttpContext context, IEventCategoryService service) =>
         {
-            if (!context.IsAdmin()) return Results.Forbid();
+            if (!context.HasPermission(AdminPermissions.EventsManage)) return Results.Forbid();
             return (await service.UpdateAsync(id, request)).HandleServiceResponse();
         }).RequireAuthorization();
 
         group.MapDelete("/{id:guid}", async (Guid id, HttpContext context, IEventCategoryService service) =>
         {
-            if (!context.IsAdmin()) return Results.Forbid();
+            if (!context.HasPermission(AdminPermissions.EventsManage)) return Results.Forbid();
             return (await service.DeleteAsync(id)).HandleServiceResponse();
         }).RequireAuthorization();
     }

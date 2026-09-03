@@ -23,7 +23,7 @@ public static class ContentEndpoints
 
         group.MapGet("/sections/admin", async (string? page, HttpContext context, IContentService contentService) =>
         {
-            if (!context.IsAdmin()) return Results.Forbid();
+            if (!context.HasPermission(AdminPermissions.ContentManage)) return Results.Forbid();
             return (await contentService.GetPageSectionsAsync(page, true)).HandleServiceResponse();
         }).RequireAuthorization();
 
@@ -38,19 +38,19 @@ public static class ContentEndpoints
 
         group.MapGet("/services/admin", async (HttpContext context, IContentService contentService) =>
         {
-            if (!context.IsAdmin()) return Results.Forbid();
+            if (!context.HasPermission(AdminPermissions.ContentManage)) return Results.Forbid();
             return (await contentService.GetServicesAsync(true)).HandleServiceResponse();
         }).RequireAuthorization();
 
         group.MapPost("/sections", async (CreatePageSectionRequest request, HttpContext context, IContentService contentService) =>
         {
-            if (!context.IsAdmin()) return Results.Forbid();
+            if (!context.HasPermission(AdminPermissions.ContentManage)) return Results.Forbid();
             return (await contentService.CreatePageSectionAsync(request)).ToCreatedResult("/api/content/sections");
         }).RequireAuthorization();
 
         group.MapPut("/sections/{id:guid}", async (Guid id, UpdatePageSectionRequest request, HttpContext context, IContentService contentService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.ContentManage))
             {
                 return Results.Forbid();
             }
@@ -67,19 +67,19 @@ public static class ContentEndpoints
 
         group.MapDelete("/sections/{id:guid}", async (Guid id, HttpContext context, IContentService contentService) =>
         {
-            if (!context.IsAdmin()) return Results.Forbid();
+            if (!context.HasPermission(AdminPermissions.ContentManage)) return Results.Forbid();
             return (await contentService.DeletePageSectionAsync(id)).HandleServiceResponse();
         }).RequireAuthorization();
 
         group.MapPost("/services", async (CreateServiceContentRequest request, HttpContext context, IContentService contentService) =>
         {
-            if (!context.IsAdmin()) return Results.Forbid();
+            if (!context.HasPermission(AdminPermissions.ContentManage)) return Results.Forbid();
             return (await contentService.CreateServiceAsync(request)).ToCreatedResult("/api/content/services");
         }).RequireAuthorization();
 
         group.MapPut("/services/{id:guid}", async (Guid id, UpdateServiceContentRequest request, HttpContext context, IContentService contentService) =>
         {
-            if (!context.IsAdmin())
+            if (!context.HasPermission(AdminPermissions.ContentManage))
             {
                 return Results.Forbid();
             }
@@ -96,7 +96,7 @@ public static class ContentEndpoints
 
         group.MapDelete("/services/{id:guid}", async (Guid id, HttpContext context, IContentService contentService) =>
         {
-            if (!context.IsAdmin()) return Results.Forbid();
+            if (!context.HasPermission(AdminPermissions.ContentManage)) return Results.Forbid();
             return (await contentService.DeleteServiceAsync(id)).HandleServiceResponse();
         }).RequireAuthorization();
     }

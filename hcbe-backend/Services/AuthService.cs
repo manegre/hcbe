@@ -4,6 +4,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using HcbeApi.Data;
+using HcbeApi.Helpers;
 using HcbeApi.Models;
 using BCrypt.Net;
 using System.Security.Cryptography;
@@ -368,7 +369,7 @@ public class AuthService : IAuthService
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-        var claims = new[]
+        var claims = new List<Claim>
         {
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
@@ -377,6 +378,12 @@ public class AuthService : IAuthService
             new Claim(ClaimTypes.Role, user.IsAdmin ? "Admin" : "Member"),
             new Claim("isAdmin", user.IsAdmin.ToString().ToLower())
         };
+        if (user.IsAdmin)
+        {
+            claims.Add(new Claim("adminRole", user.AdminRole));
+            claims.AddRange(AdminAccess.EffectivePermissions(user.AdminRole, user.AdminPermissions)
+                .Select(permission => new Claim("permission", permission)));
+        }
 
         var token = new JwtSecurityToken(
             issuer: issuer,

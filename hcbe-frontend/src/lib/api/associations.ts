@@ -3,6 +3,7 @@ import { getApiBaseUrl } from './base-url';
 import type {
   ApiResponse,
   Association,
+  AssociationClaim,
   CreateAssociationRequest,
   MediaUpload,
   UpdateAssociationRequest,
@@ -50,6 +51,12 @@ const uploadMultipart = async <T>(
 };
 
 export const associationsApi = {
+  getMyClaims: (): Promise<ApiResponse<AssociationClaim[]>> => apiClient.get<AssociationClaim[]>('/api/association-portal/claims/me'),
+  claimAssociation: (id: string, message: string): Promise<ApiResponse<AssociationClaim>> => apiClient.post<AssociationClaim>(`/api/association-portal/${id}/claim`, { message }),
+  getManagedAssociations: (): Promise<ApiResponse<Association[]>> => apiClient.get<Association[]>('/api/association-portal/managed'),
+  updateManagedAssociation: (id: string, data: UpdateAssociationRequest): Promise<ApiResponse<Association>> => apiClient.put<Association>(`/api/association-portal/managed/${id}`, data),
+  getClaimsForAdmin: (status?: string): Promise<ApiResponse<AssociationClaim[]>> => apiClient.get<AssociationClaim[]>(`/api/admin/association-claims${status ? `?status=${encodeURIComponent(status)}` : ''}`),
+  reviewClaim: (id: string, status: 'Approved' | 'Rejected', adminNotes?: string): Promise<ApiResponse<AssociationClaim>> => apiClient.put<AssociationClaim>(`/api/admin/association-claims/${id}`, { status, adminNotes }),
   getAssociations: async (): Promise<ApiResponse<Association[]>> => {
     return await apiClient.get<Association[]>('/api/associations');
   },
