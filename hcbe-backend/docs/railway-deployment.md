@@ -7,7 +7,7 @@ This project is prepared for a Railway Pro deployment using one GitHub monorepo 
 - `Postgres` from Railway's PostgreSQL template
 - `Redis` from Railway's Redis template
 - `Bucket` from Railway Storage Buckets
-- `postgres-backup`, a private daily Railway cron service rooted at `/`, configured to build `/ops/postgres-backup/Dockerfile`
+- `postgres-backup`, a private daily Railway cron service rooted at `/`, configured in `/.railway/railway.ts` to build `/ops/postgres-backup/Dockerfile`
 
 Use the `production` Railway environment. Create a separate Railway environment with its own database, Redis instance, bucket, and domains for staging.
 

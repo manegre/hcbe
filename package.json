@@ -14,6 +14,8 @@
     "verify": "npm run typecheck:frontend && npm run build:frontend && npm run test:backend",
     "compose:up": "docker compose up --build",
     "compose:down": "docker compose down"
+  },
+  "devDependencies": {
+    "railway": "^3.11.0"
   }
 }
-
