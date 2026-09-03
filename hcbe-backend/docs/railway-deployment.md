@@ -7,7 +7,7 @@ This project is prepared for a Railway Pro deployment using one GitHub monorepo 
 - `Postgres` from Railway's PostgreSQL template
 - `Redis` from Railway's Redis template
 - `Bucket` from Railway Storage Buckets
-- `postgres-backup`, a private daily cron service rooted at `/` that uses `/railway.json`
+- `postgres-backup`, a private daily Railway cron service rooted at `/`, configured to build `/ops/postgres-backup/Dockerfile`
 
 Use the `production` Railway environment. Create a separate Railway environment with its own database, Redis instance, bucket, and domains for staging.
 
@@ -101,7 +101,7 @@ Remove both bootstrap variables immediately afterward.
 
 After custom domains are attached, replace `Cors__AllowedOrigins__0`, `PublicAppUrl`, `PublicApiUrl`, and `VITE_API_URL` with the custom HTTPS domains and redeploy both services.
 
-Enable daily PostgreSQL volume backups and PITR. The `/ops/postgres-backup` Railway cron service also creates a daily custom-format dump over Railway's private network, restores it into an isolated PostgreSQL 16 process, validates the migration history and core tables, encrypts it with AES-256, and retains only encrypted objects for 30 days. It must reference `Postgres.DATABASE_URL`, use a long random `BACKUP_ENCRYPTION_KEY`, and receive private bucket credentials through `S3_ENDPOINT`, `S3_BUCKET`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_DEFAULT_REGION`. It must not have a public domain.
+Enable daily PostgreSQL volume backups and PITR. The `/ops/postgres-backup` Railway cron service also creates a daily custom-format dump over Railway's private network, restores it into an isolated PostgreSQL 18 process matching production, validates the migration history and core tables, encrypts it with AES-256, and retains only encrypted objects for 30 days. It must reference `Postgres.DATABASE_URL`, use a long random `BACKUP_ENCRYPTION_KEY`, and receive private bucket credentials through `S3_ENDPOINT`, `S3_BUCKET`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_DEFAULT_REGION`. It must not have a public domain.
 
 `production-monitor.yml` checks the frontend plus API liveness and readiness every ten minutes. A failure opens or updates one GitHub issue and a recovery closes it. Subscribe the operations team to repository issue notifications. Application exceptions are also persisted in `ErrorIncidents`, shown under **Administration → Surveillance**, written as structured container logs, and emailed to `Operations__AlertEmail` through the reliable outbox.
 

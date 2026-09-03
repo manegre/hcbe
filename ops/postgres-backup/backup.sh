@@ -32,7 +32,7 @@ trap cleanup EXIT INT TERM
 echo "Creating PostgreSQL logical backup"
 pg_dump "$DATABASE_URL" --format=custom --compress=9 --no-owner --no-acl --file="$dump_file"
 
-echo "Restoring backup into an isolated PostgreSQL 16 instance"
+echo "Restoring backup into an isolated PostgreSQL 18 instance"
 install -d -o postgres -g postgres "$postgres_directory" "$socket_directory"
 su-exec postgres initdb -D "$postgres_directory" --auth=trust --no-locale >/dev/null
 su-exec postgres pg_ctl -D "$postgres_directory" -o "-k $socket_directory -p 55432 -c listen_addresses=''" -w start >/dev/null
@@ -47,7 +47,7 @@ test "$migration_count" -gt 0
 schema_status="$(psql --host="$socket_directory" --port=55432 --username=postgres --dbname=hcbe_restore_verify \
   --tuples-only --no-align --command="SELECT CASE WHEN to_regclass('public.\"Users\"') IS NOT NULL AND to_regclass('public.\"Members\"') IS NOT NULL AND to_regclass('public.\"Events\"') IS NOT NULL THEN 'verified' ELSE 'invalid' END;")"
 test "$schema_status" = "verified"
-printf 'verified_at_utc=%s\nmigrations=%s\npostgres_major=16\n' \
+printf 'verified_at_utc=%s\nmigrations=%s\npostgres_major=18\n' \
   "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" "$migration_count" > "$verification_file"
 
 echo "Encrypting verified backup"
