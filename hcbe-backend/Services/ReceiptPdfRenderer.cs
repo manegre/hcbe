@@ -128,23 +128,30 @@ public static class ReceiptPdfRenderer
 
     private static void DrawLogo(StringBuilder content, double x, double y)
     {
-        // Burkina Faso flag.
-        RoundedFill(content, "0.937 0.169 0.176", x, y - 4, 25, 8, 2);
-        RoundedFill(content, "0 0.620 0.286", x, y - 11, 25, 8, 2);
-        Star(content, "0.988 0.820 0.086", x + 12.5, y - 3.5, 4.4, 2);
+        const double flagWidth = 25;
+        const double flagHeight = 16;
+        var flagBottom = y - 7;
+        var flagCenterY = flagBottom + flagHeight / 2;
+
+        // Both flags share the same official 3:2 proportions and vertical centre.
+        Fill(content, "0.937 0.169 0.176", x, flagCenterY, flagWidth, flagHeight / 2);
+        Fill(content, "0 0.620 0.286", x, flagBottom, flagWidth, flagHeight / 2);
+        Star(content, "0.988 0.820 0.086", x + flagWidth / 2, flagCenterY, 4.4, 2);
 
         Text(content, "HCBE", x + 36, y - 3, 13.5, true, "1 1 1");
         Polygon(content, "0.961 0.773 0.094",
         [
-            (x + 79, y + 1), (x + 83, y - 3), (x + 79, y - 7), (x + 75, y - 3)
+            (x + 79, flagCenterY + 4), (x + 83, flagCenterY),
+            (x + 79, flagCenterY - 4), (x + 75, flagCenterY)
         ]);
         Text(content, "Canada", x + 87, y - 3, 13.5, true, "1 1 1");
 
-        // Canada flag with a simplified maple leaf, rendered as vector geometry.
-        RoundedFill(content, "1 1 1", x + 141, y - 11, 28, 15, 2);
-        Fill(content, "0.812 0.125 0.157", x + 141, y - 11, 6, 15);
-        Fill(content, "0.812 0.125 0.157", x + 163, y - 11, 6, 15);
-        MapleLeaf(content, "0.812 0.125 0.157", x + 155, y - 3.5);
+        // Canada flag uses 1:2:1 vertical fields and a vector maple leaf.
+        const double canadaX = 141;
+        Fill(content, "1 1 1", x + canadaX, flagBottom, flagWidth, flagHeight);
+        Fill(content, "0.812 0.125 0.157", x + canadaX, flagBottom, flagWidth / 4, flagHeight);
+        Fill(content, "0.812 0.125 0.157", x + canadaX + flagWidth * 0.75, flagBottom, flagWidth / 4, flagHeight);
+        MapleLeaf(content, "0.812 0.125 0.157", x + canadaX + flagWidth / 2, flagCenterY);
     }
 
     private static string Purpose(FinancialTransaction item)
