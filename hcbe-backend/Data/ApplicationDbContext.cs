@@ -50,6 +50,9 @@ public class ApplicationDbContext : DbContext
     public DbSet<AssociationCalendarItem> AssociationCalendarItems { get; set; }
     public DbSet<Opportunity> Opportunities { get; set; }
     public DbSet<OpportunityApplication> OpportunityApplications { get; set; }
+    public DbSet<OpportunityApplicationDocument> OpportunityApplicationDocuments { get; set; }
+    public DbSet<VolunteerTimeEntry> VolunteerTimeEntries { get; set; }
+    public DbSet<OpportunityCertificate> OpportunityCertificates { get; set; }
     public DbSet<TeamMember> TeamMembers { get; set; }
     public DbSet<MembershipApplication> MembershipApplications { get; set; }
     public DbSet<NewsletterSubscription> NewsletterSubscriptions { get; set; }
@@ -457,6 +460,17 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<OpportunityApplication>()
             .HasOne(item => item.Member).WithMany().HasForeignKey(item => item.MemberId).OnDelete(DeleteBehavior.Cascade);
         modelBuilder.Entity<OpportunityApplication>().HasIndex(item => new { item.OpportunityId, item.MemberId }).IsUnique();
+        modelBuilder.Entity<OpportunityApplicationDocument>()
+            .HasOne(item => item.OpportunityApplication).WithMany(item => item.Documents).HasForeignKey(item => item.OpportunityApplicationId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<OpportunityApplicationDocument>().HasIndex(item => new { item.OpportunityApplicationId, item.CreatedAt });
+        modelBuilder.Entity<VolunteerTimeEntry>()
+            .HasOne(item => item.OpportunityApplication).WithMany(item => item.VolunteerTimeEntries).HasForeignKey(item => item.OpportunityApplicationId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<VolunteerTimeEntry>().HasIndex(item => new { item.OpportunityApplicationId, item.Status, item.ActivityDate });
+        modelBuilder.Entity<VolunteerTimeEntry>().Property(item => item.Hours).HasPrecision(6, 2);
+        modelBuilder.Entity<OpportunityCertificate>()
+            .HasOne(item => item.OpportunityApplication).WithOne(item => item.Certificate).HasForeignKey<OpportunityCertificate>(item => item.OpportunityApplicationId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<OpportunityCertificate>().HasIndex(item => item.CertificateNumber).IsUnique();
+        modelBuilder.Entity<OpportunityCertificate>().Property(item => item.ConfirmedHours).HasPrecision(8, 2);
 
         var associationDomainsProperty = modelBuilder.Entity<Association>()
             .Property(a => a.Domains)

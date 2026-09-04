@@ -89,6 +89,9 @@ test('member can register and enter the member portal', async ({ page }) => {
   await page.getByRole('tab', { name: /^associations$/i }).click();
   await expect(page.getByRole('heading', { name: /votre organisation, au même endroit|your organization, all in one place/i })).toBeVisible();
   await expect(page.getByRole('heading', { name: /rejoindre ou représenter une organisation|join or represent an organization/i })).toBeVisible();
+  await page.getByRole('tab', { name: /occasions|opportunities/i }).click();
+  await expect(page.getByRole('heading', { name: /mettez votre talent en mouvement|put your talent in motion/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /mes candidatures|my applications/i })).toBeVisible();
   await page.getByRole('tab', { name: /^notifications$/i }).click();
   await expect(page.getByRole('heading', { name: /mes notifications|my notifications/i })).toBeVisible();
   await page.getByRole('tab', { name: /mes préférences|my preferences/i }).click();

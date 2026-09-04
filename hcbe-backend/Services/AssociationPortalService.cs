@@ -146,7 +146,7 @@ public sealed class AssociationPortalService(
         var access = await AccessAsync(userId, associationId);
         if (access is null || !access.Permissions.Contains(DocumentsManage)) return ApiResponse<AssociationDocumentDto>.ErrorResponse("Document management access denied");
         if (!fileStorage.IsAllowedExtension(file.FileName)) return ApiResponse<AssociationDocumentDto>.ErrorResponse("File type not allowed");
-        var saved = await fileStorage.SaveAsync(file, $"organizations/{associationId:N}");
+        var saved = await fileStorage.SaveAsync(file, $"organizations-{associationId:N}");
         var item = new AssociationDocument
         {
             AssociationId = associationId, Title = request.Title.Trim(), TitleEn = Normalize(request.TitleEn),

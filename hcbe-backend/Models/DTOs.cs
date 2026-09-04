@@ -502,14 +502,34 @@ public record UpdateAssociationServiceCaseRequest([Required] string Status);
 
 public record OpportunityDto(Guid Id, string Title, string? TitleEn, string Description, string? DescriptionEn,
     string Type, string Organization, string? Location, bool IsRemote, string? Skills, string? ApplyUrl,
-    DateTime? DeadlineUtc, string Status, int ApplicationCount, DateTime CreatedAt, DateTime UpdatedAt);
+    DateTime? DeadlineUtc, string Status, int ApplicationCount, DateTime CreatedAt, DateTime UpdatedAt,
+    string? Region = null, string? Availability = null, string? Commitment = null,
+    string? Requirements = null, string? RequirementsEn = null, string? Benefits = null, string? BenefitsEn = null,
+    string? ContactEmail = null, DateTime? StartsAtUtc = null, DateTime? EndsAtUtc = null);
 public record UpsertOpportunityRequest([Required]string Title, string? TitleEn, [Required]string Description,
     string? DescriptionEn, [Required]string Type, [Required]string Organization, string? Location,
-    bool IsRemote, string? Skills, string? ApplyUrl, DateTime? DeadlineUtc, string Status = "Draft");
+    bool IsRemote, string? Skills, string? ApplyUrl, DateTime? DeadlineUtc, string Status = "Draft",
+    string? Region = null, string? Availability = null, string? Commitment = null,
+    string? Requirements = null, string? RequirementsEn = null, string? Benefits = null, string? BenefitsEn = null,
+    [EmailAddress]string? ContactEmail = null, DateTime? StartsAtUtc = null, DateTime? EndsAtUtc = null);
+public record OpportunityApplicationDocumentDto(Guid Id, string FileName, string Url, string ContentType, long SizeBytes, DateTime CreatedAt);
+public record VolunteerTimeEntryDto(Guid Id, DateTime ActivityDate, decimal Hours, string Description, string Status,
+    string? ReviewNotes, DateTime? ReviewedAt, DateTime CreatedAt, DateTime UpdatedAt);
+public record OpportunityCertificateDto(Guid Id, string CertificateNumber, string? ContributionSummary,
+    decimal? ConfirmedHours, DateTime IssuedAtUtc, string DownloadUrl);
 public record OpportunityApplicationDto(Guid Id, Guid OpportunityId, string OpportunityTitle, string? OpportunityTitleEn, Guid MemberId,
-    string MemberName, string MemberEmail, string Message, string Status, string? AdminNotes, DateTime CreatedAt, DateTime UpdatedAt);
-public record CreateOpportunityApplicationRequest([Required][StringLength(1500, MinimumLength = 20)] string Message);
+    string MemberName, string MemberEmail, string Message, string Status, string? AdminNotes, DateTime CreatedAt, DateTime UpdatedAt,
+    string? Experience = null, string? Availability = null, int MatchScore = 0, IReadOnlyList<string>? MatchReasons = null,
+    IReadOnlyList<OpportunityApplicationDocumentDto>? Documents = null, IReadOnlyList<VolunteerTimeEntryDto>? VolunteerTimeEntries = null,
+    OpportunityCertificateDto? Certificate = null, decimal ApprovedVolunteerHours = 0, string OpportunityType = "Community");
+public record OpportunityMatchDto(OpportunityDto Opportunity, int Score, IReadOnlyList<string> Reasons);
+public record CreateOpportunityApplicationRequest([Required][StringLength(1500, MinimumLength = 20)] string Message,
+    [StringLength(2000)] string? Experience = null, [StringLength(500)] string? Availability = null);
 public record ReviewOpportunityApplicationRequest([Required]string Status, string? AdminNotes);
+public record CreateVolunteerTimeEntryRequest(DateTime ActivityDate, [Range(typeof(decimal), "0.25", "24")] decimal Hours,
+    [Required, StringLength(1000, MinimumLength = 5)] string Description);
+public record ReviewVolunteerTimeEntryRequest([Required]string Status, [StringLength(1000)] string? ReviewNotes = null);
+public record IssueOpportunityCertificateRequest([StringLength(1500)] string? ContributionSummary = null);
 
 public record MentorshipGoalDto(Guid Id, Guid MatchId, Guid CreatedByMemberId, string Title, string Status, DateTime? DueAtUtc, DateTime CreatedAt, DateTime UpdatedAt);
 public record MentorshipCheckInDto(Guid Id, Guid MatchId, Guid MemberId, string MemberName, string Summary, int Rating, bool NeedsCommitteeSupport, DateTime CreatedAt);

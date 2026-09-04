@@ -28,6 +28,66 @@ public static class ReceiptPdfRenderer
         return BuildPdf(content.ToString(), item.ReceiptNumber);
     }
 
+    public static byte[] RenderCertificate(OpportunityApplication application)
+    {
+        ArgumentNullException.ThrowIfNull(application);
+        ArgumentNullException.ThrowIfNull(application.Certificate);
+        var content = new StringBuilder();
+        Fill(content, "0.969 0.976 0.957", 0, 0, PageWidth, PageHeight);
+        Stroke(content, "0.043 0.231 0.129", 26, 26, 543, 790, 2);
+        Stroke(content, "0.961 0.773 0.094", 34, 34, 527, 774, 0.8);
+        RoundedFill(content, "0.043 0.231 0.129", 48, 666, 499, 112, 18);
+        Fill(content, "0.961 0.773 0.094", 48, 666, 5, 112);
+        CircleStroke(content, "0.149 0.365 0.235", 520, 768, 52, 18);
+        DrawLogo(content, 72, 746);
+
+        Text(content, "ATTESTATION DE PARTICIPATION", 74, 630, 10, true, "0.043 0.231 0.129", 1.2);
+        Text(content, "CERTIFICATE OF PARTICIPATION", 74, 610, 8, true, "0.435 0.478 0.443", 0.8);
+        Text(content, "Le HCBE Canada atteste que / HCBE Canada certifies that", 74, 562, 9, false, "0.310 0.353 0.318");
+        var memberName = $"{application.Member?.FirstName} {application.Member?.LastName}".Trim();
+        Text(content, memberName, 74, 515, 28, true, "0.043 0.231 0.129");
+        Line(content, "0.827 0.859 0.820", 74, 493, 521, 493, 0.9);
+
+        Text(content, "a contribué à / contributed to", 74, 458, 8.5, false, "0.435 0.478 0.443");
+        var title = application.Opportunity?.Title ?? "Initiative communautaire HCBE";
+        var titleLines = Wrap(title, 48);
+        for (var index = 0; index < Math.Min(2, titleLines.Count); index++)
+            Text(content, titleLines[index], 74, 425 - index * 24, 17, true, "0.086 0.145 0.106");
+
+        var certificate = application.Certificate;
+        var summary = certificate!.ContributionSummary;
+        if (!string.IsNullOrWhiteSpace(summary))
+        {
+            var summaryLines = Wrap(summary, 80);
+            for (var index = 0; index < Math.Min(3, summaryLines.Count); index++)
+                Text(content, summaryLines[index], 74, 354 - index * 17, 9, false, "0.310 0.353 0.318");
+        }
+
+        RoundedFill(content, "1 1 1", 74, 196, 447, 92, 12);
+        RoundedStroke(content, "0.827 0.859 0.820", 74, 196, 447, 92, 12, 0.8);
+        Text(content, "DATE D'ÉMISSION / ISSUE DATE", 96, 257, 7, true, "0.435 0.478 0.443", 0.65);
+        Text(content, certificate.IssuedAtUtc.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), 96, 230, 11, true, "0.086 0.145 0.106");
+        Line(content, "0.827 0.859 0.820", 286, 213, 286, 271, 0.7);
+        Text(content, certificate.ConfirmedHours.HasValue ? "HEURES CONFIRMÉES / CONFIRMED HOURS" : "TYPE DE PARTICIPATION / PARTICIPATION TYPE", 310, 257, 7, true, "0.435 0.478 0.443", 0.5);
+        Text(content, certificate.ConfirmedHours.HasValue ? $"{certificate.ConfirmedHours:0.##} h" : TypeLabel(application.Opportunity?.Type), 310, 230, 11, true, "0.086 0.145 0.106");
+
+        Text(content, "HCBE Canada", 74, 142, 11, true, "0.043 0.231 0.129");
+        Text(content, "Haut Conseil des Burkinabè du Canada", 74, 123, 8, false, "0.310 0.353 0.318");
+        Text(content, "contact@hcbe.ca  |  hcbe.ca", 74, 105, 8, false, "0.310 0.353 0.318");
+        Text(content, "N° / NO.", 377, 142, 6.8, true, "0.435 0.478 0.443", 0.5);
+        Text(content, certificate.CertificateNumber, 377, 122, 8.2, true, "0.043 0.231 0.129");
+        Text(content, "Document vérifiable émis électroniquement / Verifiable electronically issued document", 74, 65, 7, false, "0.435 0.478 0.443");
+        return BuildPdf(content.ToString(), certificate.CertificateNumber);
+    }
+
+    private static string TypeLabel(string? type) => type switch
+    {
+        "Job" => "Emploi / Employment",
+        "Training" => "Formation / Training",
+        "Business" => "Affaires / Business",
+        _ => "Participation communautaire / Community participation"
+    };
+
     public static string DownloadFileName(FinancialTransaction item)
     {
         var safeNumber = new string((item.ReceiptNumber ?? string.Empty)
@@ -358,7 +418,7 @@ public static class ReceiptPdfRenderer
             $"<< /Length {streamLength} >>\nstream\n{content}endstream",
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding /ToUnicode 8 0 R >>",
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding /ToUnicode 8 0 R >>",
-            $"<< /Title ({Escape(receiptNumber)}) /Author (HCBE Canada) /Creator (HCBE payment service) >>",
+            $"<< /Title ({Escape(receiptNumber)}) /Author (HCBE Canada) /Creator (HCBE document service) >>",
             $"<< /Length {Encoding.ASCII.GetByteCount(unicodeMap)} >>\nstream\n{unicodeMap}endstream"
         };
 

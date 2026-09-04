@@ -1505,6 +1505,40 @@ static void EnsureSqliteSecuritySchema(ApplicationDbContext context)
     )");
     context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_OpportunityApplications_OpportunityId_MemberId ON OpportunityApplications(OpportunityId, MemberId)");
     context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_OpportunityApplications_MemberId ON OpportunityApplications(MemberId)");
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE Opportunities ADD COLUMN Region TEXT"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE Opportunities ADD COLUMN Availability TEXT"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE Opportunities ADD COLUMN Commitment TEXT"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE Opportunities ADD COLUMN Requirements TEXT"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE Opportunities ADD COLUMN RequirementsEn TEXT"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE Opportunities ADD COLUMN Benefits TEXT"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE Opportunities ADD COLUMN BenefitsEn TEXT"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE Opportunities ADD COLUMN ContactEmail TEXT"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE Opportunities ADD COLUMN StartsAtUtc TEXT"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE Opportunities ADD COLUMN EndsAtUtc TEXT"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE OpportunityApplications ADD COLUMN Experience TEXT"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE OpportunityApplications ADD COLUMN Availability TEXT"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE OpportunityApplications ADD COLUMN MatchScore INTEGER NOT NULL DEFAULT 0"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE OpportunityApplications ADD COLUMN MatchReasons TEXT"); } catch { }
+    context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS OpportunityApplicationDocuments (
+        Id TEXT NOT NULL PRIMARY KEY, OpportunityApplicationId TEXT NOT NULL, FileName TEXT NOT NULL, Url TEXT NOT NULL,
+        ContentType TEXT NOT NULL, SizeBytes INTEGER NOT NULL, CreatedAt TEXT NOT NULL,
+        FOREIGN KEY (OpportunityApplicationId) REFERENCES OpportunityApplications(Id) ON DELETE CASCADE
+    )");
+    context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_OpportunityApplicationDocuments_OpportunityApplicationId_CreatedAt ON OpportunityApplicationDocuments(OpportunityApplicationId, CreatedAt)");
+    context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS VolunteerTimeEntries (
+        Id TEXT NOT NULL PRIMARY KEY, OpportunityApplicationId TEXT NOT NULL, ActivityDate TEXT NOT NULL,
+        Hours TEXT NOT NULL, Description TEXT NOT NULL, Status TEXT NOT NULL DEFAULT 'Pending', ReviewNotes TEXT,
+        ReviewedByUserId TEXT, ReviewedAt TEXT, CreatedAt TEXT NOT NULL, UpdatedAt TEXT NOT NULL,
+        FOREIGN KEY (OpportunityApplicationId) REFERENCES OpportunityApplications(Id) ON DELETE CASCADE
+    )");
+    context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_VolunteerTimeEntries_OpportunityApplicationId_Status ON VolunteerTimeEntries(OpportunityApplicationId, Status)");
+    context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS OpportunityCertificates (
+        Id TEXT NOT NULL PRIMARY KEY, OpportunityApplicationId TEXT NOT NULL, CertificateNumber TEXT NOT NULL,
+        ContributionSummary TEXT, ConfirmedHours TEXT, IssuedByUserId TEXT NOT NULL, IssuedAtUtc TEXT NOT NULL,
+        FOREIGN KEY (OpportunityApplicationId) REFERENCES OpportunityApplications(Id) ON DELETE CASCADE
+    )");
+    context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_OpportunityCertificates_OpportunityApplicationId ON OpportunityCertificates(OpportunityApplicationId)");
+    context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_OpportunityCertificates_CertificateNumber ON OpportunityCertificates(CertificateNumber)");
 
     context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS MentorshipGoals (
         Id TEXT NOT NULL PRIMARY KEY, MatchId TEXT NOT NULL, CreatedByMemberId TEXT NOT NULL, Title TEXT NOT NULL,

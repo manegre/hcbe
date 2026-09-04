@@ -123,7 +123,7 @@ public sealed class CommunityGrowthServiceTests : IDisposable
     {
         var memberUser = AddMember("volunteer@example.com");
         await _context.SaveChangesAsync();
-        var service = new OpportunityService(_context, _notifications);
+        var service = new OpportunityService(_context, _notifications, Mock.Of<IFileStorageService>());
         var request = new UpsertOpportunityRequest(
             "Accueil des nouveaux membres", null, "Accompagner les nouveaux membres lors des rencontres.", null,
             "Volunteer", "HCBE Canada", "Toronto", false, "Accueil", null, DateTime.UtcNow.AddDays(20), "Published");

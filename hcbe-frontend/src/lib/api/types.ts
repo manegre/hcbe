@@ -523,9 +523,15 @@ export interface Opportunity {
   type: 'Volunteer' | 'Job' | 'Business' | 'Training' | 'Community'; organization: string;
   location?: string; isRemote: boolean; skills?: string; applyUrl?: string; deadlineUtc?: string;
   status: 'Draft' | 'Published' | 'Closed'; applicationCount: number; createdAt: string; updatedAt: string;
+  region?: string; availability?: string; commitment?: string; requirements?: string; requirementsEn?: string;
+  benefits?: string; benefitsEn?: string; contactEmail?: string; startsAtUtc?: string; endsAtUtc?: string;
 }
 export type UpsertOpportunityRequest = Omit<Opportunity, 'id' | 'applicationCount' | 'createdAt' | 'updatedAt'>;
-export interface OpportunityApplication { id: string; opportunityId: string; opportunityTitle: string; opportunityTitleEn?: string; memberId: string; memberName: string; memberEmail: string; message: string; status: 'Submitted' | 'Reviewed' | 'Accepted' | 'Declined'; adminNotes?: string; createdAt: string; updatedAt: string; }
+export interface OpportunityMatch { opportunity: Opportunity; score: number; reasons: Array<'skills' | 'region' | 'availability' | 'remote'>; }
+export interface OpportunityApplicationDocument { id: string; fileName: string; url: string; contentType: string; sizeBytes: number; createdAt: string; }
+export interface VolunteerTimeEntry { id: string; activityDate: string; hours: number; description: string; status: 'Pending' | 'Approved' | 'Rejected'; reviewNotes?: string; reviewedAt?: string; createdAt: string; updatedAt: string; }
+export interface OpportunityCertificate { id: string; certificateNumber: string; contributionSummary?: string; confirmedHours?: number; issuedAtUtc: string; downloadUrl: string; }
+export interface OpportunityApplication { id: string; opportunityId: string; opportunityTitle: string; opportunityTitleEn?: string; opportunityType: Opportunity['type']; memberId: string; memberName: string; memberEmail: string; message: string; experience?: string; availability?: string; matchScore: number; matchReasons: string[]; documents: OpportunityApplicationDocument[]; volunteerTimeEntries: VolunteerTimeEntry[]; certificate?: OpportunityCertificate; approvedVolunteerHours: number; status: 'Submitted' | 'Reviewed' | 'Accepted' | 'Declined'; adminNotes?: string; createdAt: string; updatedAt: string; }
 export interface MentorshipGoal { id: string; matchId: string; createdByMemberId: string; title: string; status: 'Open' | 'Completed' | 'Cancelled'; dueAtUtc?: string; createdAt: string; updatedAt: string; }
 export interface MentorshipCheckIn { id: string; matchId: string; memberId: string; memberName: string; summary: string; rating: number; needsCommitteeSupport: boolean; createdAt: string; }
 export interface MentorshipJourney { matchId: string; goals: MentorshipGoal[]; checkIns: MentorshipCheckIn[]; }
