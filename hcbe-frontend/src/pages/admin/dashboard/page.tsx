@@ -206,6 +206,10 @@ export const AdminDashboard = () => {
     { label: t('admin.dashboard.createProject'), href: '/admin/projects/create', icon: 'ri-hammer-line' },
     { label: t('admin.dashboard.createDocument'), href: '/admin/documents/create', icon: 'ri-file-add-line' },
     { label: t('admin.dashboard.reviewApplications'), href: '/admin/membership-applications', icon: 'ri-user-follow-line' },
+    { label: t('admin.dashboard.createAssociation'), href: '/admin/associations/create', icon: 'ri-community-line' },
+    { label: t('admin.dashboard.createConsultation'), href: '/admin/consultations/create', icon: 'ri-discuss-line' },
+    { label: t('admin.dashboard.createGrant'), href: '/admin/grants/create', icon: 'ri-hand-coin-line' },
+    { label: t('admin.dashboard.createMember'), href: '/admin/members/create', icon: 'ri-user-add-line' },
   ];
 
   return (
@@ -359,10 +363,10 @@ export const AdminDashboard = () => {
               <i className="ri-flashlight-line text-xl" aria-hidden="true" />
             </span>
           </div>
-          <div className="mt-5 space-y-2 xl:mt-3 xl:space-y-1.5">
+          <div className="mt-5 space-y-2 xl:mt-3 xl:space-y-1">
             {quickActions.map((action) => (
-              <Link key={action.href} to={action.href} className="group flex min-h-[48px] items-center gap-3 rounded-xl border border-white/10 bg-white/[0.045] px-3.5 text-sm font-semibold text-white/85 transition-all hover:border-gold/35 hover:bg-white/[0.09] hover:text-white xl:min-h-[42px] xl:text-xs">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.07] text-gold xl:h-7 xl:w-7">
+              <Link key={action.href} to={action.href} className="group flex min-h-[48px] items-center gap-3 rounded-xl border border-white/10 bg-white/[0.045] px-3.5 text-sm font-semibold text-white/85 transition-all hover:border-gold/35 hover:bg-white/[0.09] hover:text-white xl:min-h-[36px] xl:rounded-[10px] xl:px-3 xl:text-[11px]">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.07] text-gold transition-colors group-hover:bg-gold group-hover:text-green-deep xl:h-6 xl:w-6 xl:rounded-md">
                   <i className={action.icon} aria-hidden="true" />
                 </span>
                 <span className="flex-1">{action.label}</span>
