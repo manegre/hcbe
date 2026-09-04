@@ -255,7 +255,7 @@ export const AdminDashboard = () => {
           <Link
             key={stat.key}
             to={stat.link}
-            className={`group relative min-h-[154px] overflow-hidden rounded-[18px] border border-green/10 bg-white p-4 shadow-[0_10px_30px_rgba(0,59,27,.055)] transition-all duration-300 hover:-translate-y-1 hover:border-green/25 hover:shadow-[0_20px_45px_rgba(0,59,27,.10)] sm:min-h-[164px] sm:p-5 xl:min-h-[108px] xl:p-3.5 ${index === statCards.length - 1 ? 'col-span-2 sm:col-span-1' : ''}`}
+            className={`group relative min-h-[154px] overflow-hidden rounded-[18px] border border-green/10 bg-surface p-4 shadow-[0_10px_30px_rgba(0,59,27,.055)] transition-all duration-300 hover:-translate-y-1 hover:border-green/25 hover:shadow-[0_20px_45px_rgba(0,59,27,.10)] sm:min-h-[164px] sm:p-5 xl:min-h-[108px] xl:p-3.5 ${index === statCards.length - 1 ? 'col-span-2 sm:col-span-1' : ''}`}
           >
             <div className="flex items-start justify-between gap-3">
               <span className="text-[10px] font-bold tabular-nums text-green/35">{String(index + 1).padStart(2, '0')}</span>
@@ -277,7 +277,7 @@ export const AdminDashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1.5fr)_minmax(290px,0.5fr)] xl:grid-rows-2 xl:gap-3">
-        <section className="overflow-hidden rounded-[18px] border border-green/10 bg-white shadow-[0_12px_34px_rgba(0,59,27,.05)] xl:col-start-1 xl:row-start-1 xl:flex xl:min-h-0 xl:flex-col">
+        <section className="overflow-hidden rounded-[18px] border border-green/10 bg-surface shadow-[0_12px_34px_rgba(0,59,27,.05)] xl:col-start-1 xl:row-start-1 xl:flex xl:min-h-0 xl:flex-col">
           <div className="flex flex-col gap-3 border-b border-green/10 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6 xl:shrink-0 xl:px-4 xl:py-3">
             <div>
               <div className="flex items-center gap-3">
@@ -371,7 +371,7 @@ export const AdminDashboard = () => {
             ))}
           </div>
         </section>
-      <section className="space-y-4 xl:col-start-1 xl:row-start-2 xl:flex xl:min-h-0 xl:flex-col xl:space-y-0 xl:overflow-hidden xl:rounded-[18px] xl:border xl:border-green/10 xl:bg-white xl:shadow-[0_12px_34px_rgba(0,59,27,.05)]">
+      <section className="space-y-4 xl:col-start-1 xl:row-start-2 xl:flex xl:min-h-0 xl:flex-col xl:space-y-0 xl:overflow-hidden xl:rounded-[18px] xl:border xl:border-green/10 xl:bg-surface xl:shadow-[0_12px_34px_rgba(0,59,27,.05)]">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between xl:shrink-0 xl:border-b xl:border-green/10 xl:px-4 xl:py-3">
           <div>
             <div className="flex items-center gap-3">
@@ -391,11 +391,11 @@ export const AdminDashboard = () => {
 
         <div className="mt-4 xl:mt-0 xl:min-h-0 xl:flex-1 xl:overflow-auto">
           {isLoading ? (
-            <div className="flex min-h-[180px] items-center justify-center rounded-[18px] border border-green/10 bg-white xl:h-full xl:min-h-0 xl:rounded-none xl:border-0">
+            <div className="flex min-h-[180px] items-center justify-center rounded-[18px] border border-green/10 bg-surface xl:h-full xl:min-h-0 xl:rounded-none xl:border-0">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-line border-t-green" />
             </div>
           ) : upcomingEvents.length === 0 ? (
-            <div className="flex min-h-[180px] flex-col items-center justify-center rounded-[18px] border border-dashed border-green/20 bg-white/65 px-6 py-9 text-center xl:h-full xl:min-h-0 xl:flex-row xl:gap-4 xl:rounded-none xl:border-0 xl:py-3 xl:text-left">
+            <div className="flex min-h-[180px] flex-col items-center justify-center rounded-[18px] border border-dashed border-green/20 bg-surface/65 px-6 py-9 text-center xl:h-full xl:min-h-0 xl:flex-row xl:gap-4 xl:rounded-none xl:border-0 xl:py-3 xl:text-left">
               <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-green/7 text-xl text-green xl:h-10 xl:w-10">
                 <i className="ri-calendar-todo-line" aria-hidden="true" />
               </span>
