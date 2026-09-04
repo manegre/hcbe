@@ -57,6 +57,8 @@ export interface MemberPreference {
   emailServiceUpdates: boolean;
   emailNewsletter: boolean;
   pushNotifications: boolean;
+  digestFrequency: 'Off' | 'Weekly';
+  lastDigestSentAtUtc?: string;
   hasCompletedPreferences: boolean;
   updatedAt: string;
 }
@@ -75,7 +77,36 @@ export interface MemberOnboarding {
   preferences: MemberPreference;
 }
 
-export type UpdateMemberPreferenceRequest = Omit<MemberPreference, 'hasCompletedPreferences' | 'updatedAt'>;
+export type UpdateMemberPreferenceRequest = Omit<MemberPreference, 'hasCompletedPreferences' | 'updatedAt' | 'lastDigestSentAtUtc'>;
+
+export interface AppNotification {
+  id: string; type: string; title: string; message: string; relatedEntityId?: string;
+  link?: string; isRead: boolean; userId?: string; createdAt: string; readAt?: string;
+}
+
+export interface SavedMemberItem {
+  id: string; entityType: 'Event' | 'Opportunity'; entityId: string; title: string;
+  titleEn?: string; subtitle?: string; occursAtUtc?: string; createdAtUtc: string;
+}
+
+export interface MemberDashboardEvent {
+  id: string; title: string; titleEn?: string; date: string; location?: string;
+  registrationStatus: string; confirmationCode: string;
+}
+
+export interface MemberDashboardOpportunity {
+  id: string; title: string; titleEn?: string; type: string; organization: string;
+  location?: string; isRemote: boolean; deadlineUtc?: string;
+}
+
+export interface MemberEngagementDashboard {
+  memberName: string; membershipStatus: string; unreadNotifications: number; unreadMessages: number;
+  openServiceCases: number; upcomingEvents: MemberDashboardEvent[];
+  opportunities: MemberDashboardOpportunity[]; savedItems: SavedMemberItem[];
+  recentNotifications: AppNotification[];
+}
+
+export interface MemberBlock { id: string; memberId: string; memberName: string; createdAtUtc: string; }
 
 export interface PrivacyRequest {
   id: string;

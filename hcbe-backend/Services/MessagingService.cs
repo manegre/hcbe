@@ -42,6 +42,7 @@ public class MessagingService : IMessagingService
         var memberId = await GetMemberIdAsync(userId);
         if (memberId is null) return ApiResponse<ConversationDto>.ErrorResponse("Member profile required");
         if (memberId == request.MemberId) return ApiResponse<ConversationDto>.ErrorResponse("You cannot message yourself");
+        if (await IsBlockedAsync(memberId.Value, request.MemberId)) return ApiResponse<ConversationDto>.ErrorResponse("Messaging is unavailable for this member");
         var relationships = await GetRelationshipsAsync(memberId.Value);
         var relationship = relationships.FirstOrDefault(x => x.MemberId == request.MemberId);
         if (relationship is null) return ApiResponse<ConversationDto>.ErrorResponse("An accepted connection or active mentorship match is required");
@@ -77,6 +78,8 @@ public class MessagingService : IMessagingService
         var conversation = memberId is null ? null : await FindForMemberAsync(conversationId, memberId.Value, false);
         if (conversation is null) return ApiResponse<PrivateMessageDto>.ErrorResponse("Conversation not found");
         if (conversation.Status != "Active") return ApiResponse<PrivateMessageDto>.ErrorResponse("This conversation is suspended");
+        var counterpartId = conversation.MemberOneId == memberId ? conversation.MemberTwoId : conversation.MemberOneId;
+        if (await IsBlockedAsync(memberId!.Value, counterpartId)) return ApiResponse<PrivateMessageDto>.ErrorResponse("Messaging is unavailable for this member");
         var body = request.Body.Trim();
         if (body.Length == 0) return ApiResponse<PrivateMessageDto>.ErrorResponse("Message cannot be empty");
         var message = new PrivateMessage { ConversationId = conversationId, SenderMemberId = memberId!.Value, Body = body };
@@ -152,8 +155,16 @@ public class MessagingService : IMessagingService
             var other = item.MentorApplication!.MemberId == memberId ? item.MenteeApplication!.Member : item.MentorApplication.Member;
             if (other is not null && !results.ContainsKey(other.Id)) results[other.Id] = new Relationship(other.Id, Name(other), "Mentorship", item.Id);
         }
-        return results.Values.ToList();
+        var blockedIds = await _context.MemberBlocks.AsNoTracking()
+            .Where(item => item.BlockerMemberId == memberId || item.BlockedMemberId == memberId)
+            .Select(item => item.BlockerMemberId == memberId ? item.BlockedMemberId : item.BlockerMemberId)
+            .ToListAsync();
+        return results.Values.Where(item => !blockedIds.Contains(item.MemberId)).ToList();
     }
+
+    private Task<bool> IsBlockedAsync(Guid first, Guid second) => _context.MemberBlocks.AsNoTracking().AnyAsync(item =>
+        (item.BlockerMemberId == first && item.BlockedMemberId == second) ||
+        (item.BlockerMemberId == second && item.BlockedMemberId == first));
 
     private Task<Guid?> GetMemberIdAsync(Guid userId) => _context.Users.AsNoTracking().Where(x => x.Id == userId).Select(x => x.MemberId).FirstOrDefaultAsync();
     private IQueryable<PrivateConversation> ConversationsQuery(bool noTracking = true)

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Button, Field, inputClasses } from '../../../components/ui';
 import { communityApi } from '../../../lib/api/community';
 import { messagingApi } from '../../../lib/api/messaging';
+import { notificationsApi } from '../../../lib/api/notifications';
 import MemberMessagingPanel from './MemberMessagingPanel';
 import MemberServiceCasesPanel from './MemberServiceCasesPanel';
 import MemberPreferencesPanel from './MemberPreferencesPanel';
@@ -10,6 +11,8 @@ import MemberAssociationsPanel from './MemberAssociationsPanel';
 import MemberOpportunitiesPanel from './MemberOpportunitiesPanel';
 import MentorshipJourneyPanel from './MentorshipJourneyPanel';
 import MemberFinancePanel from './MemberFinancePanel';
+import MemberDashboardPanel from './MemberDashboardPanel';
+import MemberNotificationsPanel from './MemberNotificationsPanel';
 import type {
   ConnectionRequestDto,
   CreateMentorshipApplicationRequest,
@@ -20,7 +23,7 @@ import type {
   UpsertNetworkingProfileRequest,
 } from '../../../lib/api/types';
 
-type Tab = 'overview' | 'membership' | 'services' | 'opportunities' | 'associations' | 'network' | 'mentorship' | 'requests' | 'messages' | 'profile' | 'preferences';
+type Tab = 'overview' | 'membership' | 'services' | 'opportunities' | 'associations' | 'network' | 'mentorship' | 'requests' | 'messages' | 'notifications' | 'profile' | 'preferences';
 
 interface MemberCommunityWorkspaceProps {
   member: MemberDto;
@@ -66,7 +69,7 @@ const MemberCommunityWorkspace = ({ member, accountPanel, onLogout }: MemberComm
   const fr = !i18n.language.startsWith('en');
   const [tab, setTab] = useState<Tab>(() => {
     const requested = new URLSearchParams(window.location.search).get('section');
-    return ['overview', 'membership', 'services', 'opportunities', 'associations', 'network', 'mentorship', 'requests', 'messages', 'profile', 'preferences'].includes(requested ?? '') ? requested as Tab : 'overview';
+    return ['overview', 'membership', 'services', 'opportunities', 'associations', 'network', 'mentorship', 'requests', 'messages', 'notifications', 'profile', 'preferences'].includes(requested ?? '') ? requested as Tab : 'overview';
   });
   const [applications, setApplications] = useState<MentorshipApplicationDto[]>([]);
   const [matches, setMatches] = useState<MentorshipMatchDto[]>([]);
@@ -81,11 +84,12 @@ const MemberCommunityWorkspace = ({ member, accountPanel, onLogout }: MemberComm
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   const copy = fr ? {
     eyebrow: 'Espace privé', title: 'Communauté des membres',
     intro: 'Développez des relations utiles dans un cadre confidentiel, volontaire et modéré par le HCBE Canada.',
-    mentorship: 'Mentorat', network: 'Annuaire privé', requests: 'Mises en relation', messages: 'Messages', services: 'Mes demandes', preferences: 'Mes préférences', associations: 'Associations', opportunities: 'Occasions', membership: 'Mon adhésion',
+    mentorship: 'Mentorat', network: 'Annuaire privé', requests: 'Mises en relation', messages: 'Messages', notifications: 'Notifications', services: 'Mes demandes', preferences: 'Mes préférences', associations: 'Associations', opportunities: 'Occasions', membership: 'Mon adhésion',
     apply: 'Proposer mon profil', myApplications: 'Mes candidatures', myMatches: 'Mes jumelages',
     noApplications: 'Aucune candidature de mentorat pour le moment.', noMatches: 'Aucun jumelage proposé.',
     summary: 'Parcours professionnel', expertise: 'Expertise et domaines', objectives: 'Objectifs du mentorat',
@@ -137,7 +141,7 @@ const MemberCommunityWorkspace = ({ member, accountPanel, onLogout }: MemberComm
   } : {
     eyebrow: 'Private workspace', title: 'Member community',
     intro: 'Build useful relationships in a confidential, voluntary environment moderated by HCBE Canada.',
-    mentorship: 'Mentorship', network: 'Private directory', requests: 'Connections', messages: 'Messages', services: 'My requests', preferences: 'My preferences', associations: 'Associations', opportunities: 'Opportunities', membership: 'My membership',
+    mentorship: 'Mentorship', network: 'Private directory', requests: 'Connections', messages: 'Messages', notifications: 'Notifications', services: 'My requests', preferences: 'My preferences', associations: 'Associations', opportunities: 'Opportunities', membership: 'My membership',
     apply: 'Submit my profile', myApplications: 'My applications', myMatches: 'My matches',
     noApplications: 'No mentorship applications yet.', noMatches: 'No match has been proposed.',
     summary: 'Professional background', expertise: 'Expertise and fields', objectives: 'Mentorship goals',
@@ -223,6 +227,7 @@ const MemberCommunityWorkspace = ({ member, accountPanel, onLogout }: MemberComm
   };
 
   useEffect(() => { void load(); }, []);
+  useEffect(() => { notificationsApi.unreadCount().then((result) => setUnreadNotifications(result.data ?? 0)).catch(() => undefined); }, [tab]);
 
   const run = async (action: () => Promise<{ success: boolean; message?: string }>, successMessage?: string) => {
     setBusy(true); setNotice(null);
@@ -287,6 +292,7 @@ const MemberCommunityWorkspace = ({ member, accountPanel, onLogout }: MemberComm
     ['mentorship', 'ri-user-heart-line', copy.mentorship, applications.length],
     ['requests', 'ri-links-line', copy.requests, pendingRequestCount],
     ['messages', 'ri-chat-smile-2-line', copy.messages, unreadMessages],
+    ['notifications', 'ri-notification-3-line', copy.notifications, unreadNotifications],
     ['profile', 'ri-user-settings-line', copy.profile, 0],
     ['preferences', 'ri-notification-3-line', copy.preferences, 0],
   ] as const;
@@ -361,7 +367,9 @@ const MemberCommunityWorkspace = ({ member, accountPanel, onLogout }: MemberComm
           </div>
         )}
 
-        {!loading && tab === 'overview' && (
+        {!loading && tab === 'overview' && <MemberDashboardPanel onNavigate={(section) => setTab(section)} />}
+
+        {!loading && false && tab === 'overview' && (
           <div className="space-y-7">
             <div className="grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(280px,.75fr)]">
               <section className="relative overflow-hidden rounded-[26px] bg-green-deep p-6 text-white sm:p-8">
@@ -697,6 +705,7 @@ const MemberCommunityWorkspace = ({ member, accountPanel, onLogout }: MemberComm
         )}
 
         {!loading && tab === 'messages' && <MemberMessagingPanel onUnreadChange={setUnreadMessages} />}
+        {!loading && tab === 'notifications' && <MemberNotificationsPanel onUnreadChange={setUnreadNotifications} />}
         {!loading && tab === 'membership' && <MemberFinancePanel member={member} />}
         {!loading && tab === 'services' && <MemberServiceCasesPanel />}
         {!loading && tab === 'preferences' && <MemberPreferencesPanel />}

@@ -214,6 +214,20 @@ public sealed class EventRegistrationService(
         return ApiResponse<EventRegistrationDto>.SuccessResponse(Map(registration, registration.Event!, position));
     }
 
+    public async Task<ApiResponse<EventRegistrationDto>> CheckInByCodeAsync(Guid eventId, string confirmationCode)
+    {
+        var code = confirmationCode.Trim().ToUpperInvariant();
+        if (code.Length == 0) return ApiResponse<EventRegistrationDto>.ErrorResponse("Confirmation code is required");
+        var registration = await Query(tracking: true).FirstOrDefaultAsync(item => item.EventId == eventId && item.ConfirmationCode == code);
+        if (registration is null) return ApiResponse<EventRegistrationDto>.ErrorResponse("Registration not found");
+        if (registration.Status is "Cancelled" or "Waitlisted") return ApiResponse<EventRegistrationDto>.ErrorResponse("This registration cannot be checked in");
+        registration.Status = "Attended";
+        registration.CheckedInAt ??= DateTime.UtcNow;
+        registration.UpdatedAt = DateTime.UtcNow;
+        await context.SaveChangesAsync();
+        return ApiResponse<EventRegistrationDto>.SuccessResponse(Map(registration, registration.Event!));
+    }
+
     public async Task<(byte[]? Content, string? FileName)> BuildCalendarAsync(Guid eventId)
     {
         var item = await context.Events.AsNoTracking().FirstOrDefaultAsync(eventEntity =>

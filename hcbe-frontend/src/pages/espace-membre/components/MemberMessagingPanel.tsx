@@ -6,6 +6,8 @@ import type { ConversationDto, MessagingContactDto, PrivateMessageDto } from '..
 import { createMessagingHubConnection } from '../../../lib/realtime/messaging-hub';
 import type { HubConnection } from '@microsoft/signalr';
 import { notifyFromApp } from '../../../lib/pwa/notifications';
+import { engagementApi } from '../../../lib/api/engagement';
+import type { MemberBlock } from '../../../lib/api/types';
 
 interface MemberMessagingPanelProps { onUnreadChange?: (count: number) => void; }
 
@@ -26,6 +28,7 @@ const MemberMessagingPanel = ({ onUnreadChange }: MemberMessagingPanelProps) => 
   const endRef = useRef<HTMLDivElement>(null);
   const activeIdRef = useRef<string | null>(null);
   const [hubConnection, setHubConnection] = useState<HubConnection | null>(null);
+  const [blocks, setBlocks] = useState<MemberBlock[]>([]);
 
   const c = fr ? {
     title: 'Correspondances privées', intro: 'Discutez avec les membres qui ont accepté une mise en relation. Vos échanges ne sont pas publics.',
@@ -38,6 +41,7 @@ const MemberMessagingPanel = ({ onUnreadChange }: MemberMessagingPanelProps) => 
     workspace: 'Messagerie des membres', privateLabel: 'Échanges privés', conversationCount: 'conversation(s)', contactCount: 'nouveau(x) contact(s)',
     noConversationTitle: 'Choisissez une conversation', noConversationText: 'Sélectionnez un échange à gauche ou commencez une nouvelle conversation avec un contact autorisé.',
     protectedTitle: 'Un espace de confiance', protectedText: 'Seuls les contacts issus d’une mise en relation acceptée ou d’un jumelage peuvent vous écrire.',
+    block: 'Bloquer', unblock: 'Débloquer', blocked: 'Vous avez bloqué ce membre. Les nouveaux messages sont désactivés.', blockConfirm: 'Bloquer ce membre et désactiver les nouveaux messages ?', unblocked: 'Le membre a été débloqué.',
   } : {
     title: 'Private correspondence', intro: 'Talk with members who accepted a connection. Your exchanges are not public.',
     newChat: 'New conversation', eligible: 'Eligible contacts', conversations: 'Conversations', search: 'Search…',
@@ -49,20 +53,23 @@ const MemberMessagingPanel = ({ onUnreadChange }: MemberMessagingPanelProps) => 
     workspace: 'Member messaging', privateLabel: 'Private exchanges', conversationCount: 'conversation(s)', contactCount: 'new contact(s)',
     noConversationTitle: 'Choose a conversation', noConversationText: 'Select a conversation on the left or start a new one with an eligible contact.',
     protectedTitle: 'A trusted space', protectedText: 'Only contacts from an accepted connection or mentorship match can message you.',
+    block: 'Block', unblock: 'Unblock', blocked: 'You blocked this member. New messages are disabled.', blockConfirm: 'Block this member and disable new messages?', unblocked: 'The member has been unblocked.',
   };
 
   const active = conversations.find((item) => item.id === activeId);
+  const activeBlock = active ? blocks.find((item) => item.memberId === active.counterpartMemberId) : undefined;
   const availableContacts = contacts.filter((item) => !item.hasConversation && item.memberName.toLowerCase().includes(search.toLowerCase()));
   const filteredConversations = useMemo(() => conversations.filter((item) => item.counterpartName.toLowerCase().includes(search.toLowerCase())), [conversations, search]);
 
   const loadShell = async (keepSelection = true) => {
-    const [contactResult, conversationResult] = await Promise.all([messagingApi.getContacts(), messagingApi.getConversations()]);
+    const [contactResult, conversationResult, blockResult] = await Promise.all([messagingApi.getContacts(), messagingApi.getConversations(), engagementApi.getBlocks()]);
     if (contactResult.success && contactResult.data) setContacts(contactResult.data);
     if (conversationResult.success && conversationResult.data) {
       setConversations(conversationResult.data);
       onUnreadChange?.(conversationResult.data.reduce((sum, item) => sum + item.unreadCount, 0));
       if (!keepSelection && conversationResult.data[0]) setActiveId(conversationResult.data[0].id);
     }
+    if (blockResult.success && blockResult.data) setBlocks(blockResult.data);
     setLoading(false);
   };
 
@@ -139,6 +146,15 @@ const MemberMessagingPanel = ({ onUnreadChange }: MemberMessagingPanelProps) => 
     setSending(false);
   };
 
+  const toggleBlock = async () => {
+    if (!active) return;
+    if (!activeBlock && !window.confirm(c.blockConfirm)) return;
+    setNotice(null);
+    const result = activeBlock ? await engagementApi.unblock(active.counterpartMemberId) : await engagementApi.block(active.counterpartMemberId);
+    setNotice(result.success ? (activeBlock ? c.unblocked : c.blocked) : result.message || c.error);
+    await loadShell();
+  };
+
   const time = (value: string) => new Date(value).toLocaleTimeString(fr ? 'fr-CA' : 'en-CA', { hour: '2-digit', minute: '2-digit' });
 
   return (
@@ -195,7 +211,7 @@ const MemberMessagingPanel = ({ onUnreadChange }: MemberMessagingPanelProps) => 
           ) : <>
             <header className="flex items-center justify-between gap-3 border-b border-line bg-canvas/35 px-4 py-4 sm:px-5">
               <div className="flex min-w-0 items-center gap-3"><button type="button" onClick={() => setActiveId(null)} className="flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-surface lg:hidden"><i className="ri-arrow-left-line" /></button><span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-green text-xs font-bold text-white">{active.counterpartName.split(' ').map((part) => part[0]).slice(0,2).join('')}</span><div className="min-w-0"><h4 className="truncate font-display text-lg font-bold text-green-deep">{active.counterpartName}</h4><p className="mt-0.5 inline-flex rounded-full bg-green/[0.07] px-2 py-1 text-[9px] font-bold uppercase tracking-[.11em] text-green">{active.relationshipType === 'Mentorship' ? c.mentorship : c.networking}</p></div></div>
-              <button type="button" onClick={() => setReporting(true)} className="inline-flex h-9 items-center gap-2 rounded-lg px-3 text-[9px] font-bold uppercase tracking-[.12em] text-red-link transition-colors hover:bg-red-link/5"><i className="ri-flag-line" />{c.report}</button>
+              <div className="flex items-center gap-1"><button type="button" onClick={toggleBlock} className="inline-flex h-9 items-center gap-2 rounded-lg px-3 text-[9px] font-bold uppercase tracking-[.12em] text-ink-variant transition-colors hover:bg-canvas"><i className={activeBlock ? 'ri-user-follow-line' : 'ri-user-forbid-line'} />{activeBlock ? c.unblock : c.block}</button><button type="button" onClick={() => setReporting(true)} className="inline-flex h-9 items-center gap-2 rounded-lg px-3 text-[9px] font-bold uppercase tracking-[.12em] text-red-link transition-colors hover:bg-red-link/5"><i className="ri-flag-line" />{c.report}</button></div>
             </header>
 
             <div className="flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top_left,rgba(255,205,0,.06),transparent_38%)] px-4 py-6 sm:px-6">
@@ -203,7 +219,7 @@ const MemberMessagingPanel = ({ onUnreadChange }: MemberMessagingPanelProps) => 
               <div ref={endRef} />
             </div>
 
-            {active.status === 'Suspended' ? <p className="border-t border-line bg-red-link/5 px-5 py-4 text-sm text-red-link">{c.suspended}</p> : (
+            {activeBlock ? <p className="border-t border-line bg-gold/[.08] px-5 py-4 text-sm text-green-deep"><i className="ri-user-forbid-line mr-2" />{c.blocked}</p> : active.status === 'Suspended' ? <p className="border-t border-line bg-red-link/5 px-5 py-4 text-sm text-red-link">{c.suspended}</p> : (
               <form onSubmit={send} className="border-t border-line bg-canvas/25 p-4"><div className="flex items-end gap-3 rounded-2xl border border-line bg-surface p-2 pl-4 shadow-[0_8px_24px_rgba(0,59,27,.05)]"><textarea rows={1} maxLength={2000} className="max-h-32 min-h-10 flex-1 resize-none bg-transparent py-2 text-sm text-ink outline-none placeholder:text-ink-variant/60" value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); } }} placeholder={c.placeholder} /><Button type="submit" variant="secondary" disabled={sending || !draft.trim()} className="h-11 shrink-0 rounded-xl px-4"><i className="ri-send-plane-fill" /><span className="hidden sm:inline">{c.send}</span></Button></div></form>
             )}
           </>}

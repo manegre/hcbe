@@ -94,5 +94,17 @@ public sealed class EventRegistrationServiceTests : IDisposable
         closed.Success.Should().BeFalse();
     }
 
+    [Fact]
+    public async Task CheckInByCodeAsync_MarksConfirmedParticipantAsAttended()
+    {
+        var registered = (await _service.RegisterAsync(_firstUser.Id, _event.Id, new CreateEventRegistrationRequest())).Data!;
+
+        var result = await _service.CheckInByCodeAsync(_event.Id, registered.ConfirmationCode.ToLowerInvariant());
+
+        result.Success.Should().BeTrue();
+        result.Data!.Status.Should().Be("Attended");
+        result.Data.CheckedInAt.Should().NotBeNull();
+    }
+
     public void Dispose() => _context.Dispose();
 }

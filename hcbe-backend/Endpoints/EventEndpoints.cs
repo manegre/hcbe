@@ -109,6 +109,15 @@ public static class EventEndpoints
         .WithName("UpdateEventRegistrationForAdmin")
         .RequireAuthorization();
 
+        group.MapPost("/admin/{id:guid}/registrations/check-in/{confirmationCode}", async (
+            Guid id, string confirmationCode, HttpContext context, IEventRegistrationService registrationService) =>
+        {
+            if (!context.HasPermission(AdminPermissions.EventsManage)) return Results.Forbid();
+            return (await registrationService.CheckInByCodeAsync(id, confirmationCode)).HandleServiceResponse();
+        })
+        .WithName("CheckInEventRegistrationForAdmin")
+        .RequireAuthorization();
+
         group.MapGet("/admin/{id:guid}/registrations/export", async (
             Guid id,
             HttpContext context,

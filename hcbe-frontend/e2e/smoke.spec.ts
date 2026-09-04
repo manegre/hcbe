@@ -63,7 +63,11 @@ test('member can register and enter the member portal', async ({ page }) => {
   await page.locator('#inscription-membre-form button[type="submit"]').click();
 
   await expect(page.getByRole('navigation', { name: /communauté des membres|member community/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /votre espace est prêt|your space is ready/i })).toBeVisible();
+  await page.getByRole('tab', { name: /^notifications$/i }).click();
+  await expect(page.getByRole('heading', { name: /mes notifications|my notifications/i })).toBeVisible();
   await page.getByRole('tab', { name: /mes préférences|my preferences/i }).click();
+  await expect(page.getByText(/résumé communautaire|community digest/i)).toBeVisible();
   await expect(page.getByRole('heading', { name: /confidentialité et données personnelles|privacy and personal data/i })).toBeVisible();
   await expect(page.getByRole('button', { name: /^télécharger$|^download$/i })).toBeEnabled();
   await expect(page.getByRole('button', { name: /demander la suppression|request deletion/i })).toBeEnabled();

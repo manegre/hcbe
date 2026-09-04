@@ -369,6 +369,7 @@ builder.Services.AddScoped<IUserAdminService, UserAdminService>();
 builder.Services.AddScoped<IPublicSubmissionService, PublicSubmissionService>();
 builder.Services.AddScoped<IMemberAccountService, MemberAccountService>();
 builder.Services.AddScoped<IMemberExperienceService, MemberExperienceService>();
+builder.Services.AddScoped<IMemberEngagementService, MemberEngagementService>();
 builder.Services.AddScoped<IEmailSender, ConfiguredEmailSender>();
 builder.Services.AddScoped<IEmailOutbox, EmailOutbox>();
 builder.Services.AddSingleton<IEmailTemplateRenderer, EmailTemplateRenderer>();
@@ -398,6 +399,7 @@ builder.Services.Configure<FinanceOptions>(builder.Configuration.GetSection(Fina
 builder.Services.AddSingleton<IPaymentGateway, StripePaymentGateway>();
 builder.Services.AddScoped<IFinanceService, FinanceService>();
 builder.Services.AddHostedService<MembershipReminderWorker>();
+builder.Services.AddHostedService<MemberEngagementWorker>();
 
 // Enable static file serving for uploads
 builder.Services.Configure<IISServerOptions>(options =>
@@ -1257,6 +1259,7 @@ app.MapPublicSubmissionEndpoints();
 app.MapCommunityEndpoints();
 app.MapMessagingEndpoints();
 app.MapMemberAccountEndpoints();
+app.MapMemberEngagementEndpoints();
 app.MapPartnerEndpoints();
 app.MapAuditEndpoints();
 app.MapEmailOutboxEndpoints();
@@ -1411,6 +1414,19 @@ static void EnsureSqliteSecuritySchema(ApplicationDbContext context)
         HasCompletedPreferences INTEGER NOT NULL DEFAULT 0, UpdatedAt TEXT NOT NULL,
         FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE CASCADE
     )");
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE MemberPreferences ADD COLUMN DigestFrequency TEXT NOT NULL DEFAULT 'Off'"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE MemberPreferences ADD COLUMN LastDigestSentAtUtc TEXT"); } catch { }
+    context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS SavedMemberItems (
+        Id TEXT NOT NULL PRIMARY KEY, UserId TEXT NOT NULL, EntityType TEXT NOT NULL, EntityId TEXT NOT NULL,
+        CreatedAtUtc TEXT NOT NULL, FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE CASCADE
+    )");
+    context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_SavedMemberItems_UserId_EntityType_EntityId ON SavedMemberItems(UserId, EntityType, EntityId)");
+    context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS MemberBlocks (
+        Id TEXT NOT NULL PRIMARY KEY, BlockerMemberId TEXT NOT NULL, BlockedMemberId TEXT NOT NULL, CreatedAtUtc TEXT NOT NULL,
+        FOREIGN KEY (BlockerMemberId) REFERENCES Members(Id) ON DELETE RESTRICT,
+        FOREIGN KEY (BlockedMemberId) REFERENCES Members(Id) ON DELETE RESTRICT
+    )");
+    context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_MemberBlocks_BlockerMemberId_BlockedMemberId ON MemberBlocks(BlockerMemberId, BlockedMemberId)");
     try { context.Database.ExecuteSqlRaw("ALTER TABLE CmsContentItems ADD COLUMN ScheduledPublishAtUtc TEXT"); } catch { }
     try { context.Database.ExecuteSqlRaw("ALTER TABLE NewsletterCampaigns ADD COLUMN Audience TEXT NOT NULL DEFAULT 'Newsletter'"); } catch { }
     try { context.Database.ExecuteSqlRaw("ALTER TABLE NewsletterCampaigns ADD COLUMN PreferenceCategory TEXT NOT NULL DEFAULT 'newsletter'"); } catch { }

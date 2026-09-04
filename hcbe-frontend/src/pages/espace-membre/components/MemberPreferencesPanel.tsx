@@ -11,6 +11,7 @@ const defaults: UpdateMemberPreferenceRequest = {
   preferredLanguage: 'fr', timeZone: 'America/Toronto', emailEvents: false,
   emailOpportunities: false, emailMentorship: false, emailServiceUpdates: false,
   emailNewsletter: false, pushNotifications: false,
+  digestFrequency: 'Off',
 };
 
 export default function MemberPreferencesPanel() {
@@ -25,7 +26,7 @@ export default function MemberPreferencesPanel() {
     const response = await memberAccountApi.getOnboarding();
     if (response.data) {
       setOnboarding(response.data);
-      const { hasCompletedPreferences, updatedAt: _updated, ...preferences } = response.data.preferences;
+      const { hasCompletedPreferences, updatedAt: _updated, lastDigestSentAtUtc: _lastDigest, ...preferences } = response.data.preferences;
       setForm(hasCompletedPreferences ? preferences : { ...defaults, preferredLanguage: preferences.preferredLanguage, timeZone: preferences.timeZone });
     }
   };
@@ -59,6 +60,7 @@ export default function MemberPreferencesPanel() {
       emailServiceUpdates: false,
       emailNewsletter: false,
       pushNotifications: false,
+      digestFrequency: 'Off' as const,
     };
     setForm(withdrawn);
     await persist(withdrawn);
@@ -91,6 +93,12 @@ export default function MemberPreferencesPanel() {
           <div className="grid gap-5 sm:grid-cols-2">
             <Field label={fr ? 'Langue préférée' : 'Preferred language'} htmlFor="preference-language"><select id="preference-language" className={inputClasses} value={form.preferredLanguage} onChange={(event) => setForm({ ...form, preferredLanguage: event.target.value as 'fr' | 'en' })}><option value="fr">Français</option><option value="en">English</option></select></Field>
             <Field label={fr ? 'Fuseau horaire' : 'Time zone'} htmlFor="preference-timezone"><select id="preference-timezone" className={inputClasses} value={form.timeZone} onChange={(event) => setForm({ ...form, timeZone: event.target.value })}><option value="America/Toronto">Eastern — Toronto / Montréal</option><option value="America/Winnipeg">Central — Winnipeg</option><option value="America/Edmonton">Mountain — Edmonton</option><option value="America/Vancouver">Pacific — Vancouver</option><option value="America/Halifax">Atlantic — Halifax</option></select></Field>
+          </div>
+          <div className="rounded-2xl border border-line bg-canvas/45 p-5">
+            <div className="grid gap-4 sm:grid-cols-[1fr_240px] sm:items-center">
+              <div><p className="text-sm font-semibold text-green-deep">{fr ? 'Résumé communautaire' : 'Community digest'}</p><p className="mt-1 text-xs leading-5 text-ink-variant">{fr ? 'Recevez un seul courriel hebdomadaire avec les prochains événements et les nouvelles occasions. Désactivé par défaut.' : 'Receive one weekly email with upcoming events and new opportunities. Off by default.'}</p></div>
+              <select className={inputClasses} value={form.digestFrequency} onChange={(event) => setForm({ ...form, digestFrequency: event.target.value as 'Off' | 'Weekly' })}><option value="Off">{fr ? 'Désactivé' : 'Off'}</option><option value="Weekly">{fr ? 'Chaque semaine' : 'Weekly'}</option></select>
+            </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">{options.map(([key, label, icon]) => <label key={key} className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-4 ${form[key] ? 'border-green/25 bg-green/[.045]' : 'border-line'}`}><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-green/8 text-lg text-green"><i className={icon} /></span><span className="flex-1 text-sm font-semibold text-green-deep">{label}</span><input type="checkbox" className="h-5 w-5 accent-green" checked={Boolean(form[key])} onChange={async (event) => { let checked = event.target.checked; if (key === 'pushNotifications' && checked && 'Notification' in window) checked = (await Notification.requestPermission()) === 'granted'; setForm({ ...form, [key]: checked }); }} /></label>)}</div>
           {notice && <p className="rounded-xl border border-green/15 bg-green/5 px-4 py-3 text-sm text-green">{notice}</p>}

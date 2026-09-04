@@ -34,7 +34,8 @@ public record UserDto(
 public record MemberPreferenceDto(
     string PreferredLanguage, string TimeZone, bool EmailEvents, bool EmailOpportunities,
     bool EmailMentorship, bool EmailServiceUpdates, bool EmailNewsletter,
-    bool PushNotifications, bool HasCompletedPreferences, DateTime UpdatedAt);
+    bool PushNotifications, bool HasCompletedPreferences, DateTime UpdatedAt,
+    string DigestFrequency = "Off", DateTime? LastDigestSentAtUtc = null);
 
 public record UpdateMemberPreferenceRequest(
     [Required] string PreferredLanguage,
@@ -44,7 +45,30 @@ public record UpdateMemberPreferenceRequest(
     bool EmailMentorship,
     bool EmailServiceUpdates,
     bool EmailNewsletter,
-    bool PushNotifications);
+    bool PushNotifications,
+    string DigestFrequency = "Off");
+
+public record SavedMemberItemDto(
+    Guid Id, string EntityType, Guid EntityId, string Title, string? TitleEn,
+    string? Subtitle, DateTime? OccursAtUtc, DateTime CreatedAtUtc);
+
+public record MemberDashboardEventDto(
+    Guid Id, string Title, string? TitleEn, DateTime Date, string? Location,
+    string RegistrationStatus, string ConfirmationCode);
+
+public record MemberDashboardOpportunityDto(
+    Guid Id, string Title, string? TitleEn, string Type, string Organization,
+    string? Location, bool IsRemote, DateTime? DeadlineUtc);
+
+public record MemberEngagementDashboardDto(
+    string MemberName, string MembershipStatus, int UnreadNotifications,
+    int UnreadMessages, int OpenServiceCases,
+    IReadOnlyList<MemberDashboardEventDto> UpcomingEvents,
+    IReadOnlyList<MemberDashboardOpportunityDto> Opportunities,
+    IReadOnlyList<SavedMemberItemDto> SavedItems,
+    IReadOnlyList<NotificationDto> RecentNotifications);
+
+public record MemberBlockDto(Guid Id, Guid MemberId, string MemberName, DateTime CreatedAtUtc);
 
 public record OnboardingStepDto(string Key, string Title, bool Completed, string ActionUrl);
 public record MemberOnboardingDto(int CompletionPercent, bool IsComplete, IReadOnlyList<OnboardingStepDto> Steps, MemberPreferenceDto Preferences);

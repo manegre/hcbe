@@ -20,6 +20,8 @@ public class ApplicationDbContext : DbContext
 
     public DbSet<User> Users { get; set; }
     public DbSet<MemberPreference> MemberPreferences { get; set; }
+    public DbSet<SavedMemberItem> SavedMemberItems { get; set; }
+    public DbSet<MemberBlock> MemberBlocks { get; set; }
     public DbSet<Member> Members { get; set; }
     public DbSet<MemberProfile> MemberProfiles { get; set; }
     public DbSet<Event> Events { get; set; }
@@ -112,6 +114,18 @@ public class ApplicationDbContext : DbContext
             .HasOne(item => item.User).WithOne().HasForeignKey<MemberPreference>(item => item.UserId).OnDelete(DeleteBehavior.Cascade);
         modelBuilder.Entity<MemberPreference>().Property(item => item.PreferredLanguage).HasMaxLength(5);
         modelBuilder.Entity<MemberPreference>().Property(item => item.TimeZone).HasMaxLength(100);
+        modelBuilder.Entity<MemberPreference>().Property(item => item.DigestFrequency).HasMaxLength(20).HasDefaultValue("Off");
+
+        modelBuilder.Entity<SavedMemberItem>()
+            .HasOne(item => item.User).WithMany().HasForeignKey(item => item.UserId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<SavedMemberItem>().Property(item => item.EntityType).HasMaxLength(30);
+        modelBuilder.Entity<SavedMemberItem>().HasIndex(item => new { item.UserId, item.EntityType, item.EntityId }).IsUnique();
+
+        modelBuilder.Entity<MemberBlock>()
+            .HasOne(item => item.BlockerMember).WithMany().HasForeignKey(item => item.BlockerMemberId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<MemberBlock>()
+            .HasOne(item => item.BlockedMember).WithMany().HasForeignKey(item => item.BlockedMemberId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<MemberBlock>().HasIndex(item => new { item.BlockerMemberId, item.BlockedMemberId }).IsUnique();
 
         modelBuilder.Entity<RefreshToken>()
             .HasOne(token => token.User)

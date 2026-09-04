@@ -23,7 +23,7 @@ public class NotificationService : INotificationService
             // Filter by user if provided, otherwise get notifications for all admins (userId is null)
             if (userId.HasValue)
             {
-                query = query.Where(n => n.UserId == null || n.UserId == userId);
+                query = query.Where(n => n.UserId == userId);
             }
             else
             {
@@ -56,8 +56,11 @@ public class NotificationService : INotificationService
                 return ApiResponse<NotificationDto>.ErrorResponse("Notification not found");
             }
 
-            // Check if notification belongs to user (if userId is provided)
-            if (userId.HasValue && notification.UserId.HasValue && notification.UserId != userId)
+            if (userId.HasValue && notification.UserId != userId)
+            {
+                return ApiResponse<NotificationDto>.ErrorResponse("Unauthorized");
+            }
+            if (!userId.HasValue && notification.UserId.HasValue)
             {
                 return ApiResponse<NotificationDto>.ErrorResponse("Unauthorized");
             }
@@ -87,7 +90,7 @@ public class NotificationService : INotificationService
 
             if (userId.HasValue)
             {
-                query = query.Where(n => n.UserId == null || n.UserId == userId);
+                query = query.Where(n => n.UserId == userId);
             }
             else
             {
@@ -123,7 +126,7 @@ public class NotificationService : INotificationService
 
             if (userId.HasValue)
             {
-                query = query.Where(n => n.UserId == null || n.UserId == userId);
+                query = query.Where(n => n.UserId == userId);
             }
             else
             {
@@ -163,6 +166,20 @@ public class NotificationService : INotificationService
             // Log error but don't throw - notification creation failure shouldn't break the main operation
             Console.WriteLine($"Failed to create notification: {ex.Message}");
         }
+    }
+
+    public async Task CreateForUserAsync(Guid userId, string type, string title, string message, Guid? relatedEntityId = null, string? link = null)
+    {
+        _context.Notifications.Add(new Notification
+        {
+            Type = type,
+            Title = title,
+            Message = message,
+            RelatedEntityId = relatedEntityId,
+            Link = link,
+            UserId = userId
+        });
+        await _context.SaveChangesAsync();
     }
 
     private static NotificationDto MapToDto(Notification notification)

@@ -75,6 +75,20 @@ public class MessagingServiceTests : IDisposable
         (await _service.SendMessageAsync(_idrissa.Id, conversation.Id, new SendPrivateMessageRequest("Another message"))).Success.Should().BeFalse();
     }
 
+    [Fact]
+    public async Task BlockingEitherParticipant_DisablesNewMessages()
+    {
+        await AddAcceptedConnection();
+        var conversation = (await _service.StartConversationAsync(_awa.Id, new StartConversationRequest(_idrissa.MemberId!.Value))).Data!;
+        _context.MemberBlocks.Add(new MemberBlock { BlockerMemberId = _idrissa.MemberId.Value, BlockedMemberId = _awa.MemberId!.Value });
+        await _context.SaveChangesAsync();
+
+        var result = await _service.SendMessageAsync(_awa.Id, conversation.Id, new SendPrivateMessageRequest("This should be blocked"));
+
+        result.Success.Should().BeFalse();
+        (await _service.GetEligibleContactsAsync(_awa.Id)).Data.Should().BeEmpty();
+    }
+
     private async Task AddAcceptedConnection()
     {
         _context.ConnectionRequests.Add(new ConnectionRequest

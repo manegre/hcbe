@@ -33,6 +33,8 @@ public sealed class MemberExperienceService(ApplicationDbContext context) : IMem
     {
         if (request.PreferredLanguage is not ("fr" or "en")) return ApiResponse<MemberPreferenceDto>.ErrorResponse("Preferred language must be fr or en");
         if (string.IsNullOrWhiteSpace(request.TimeZone) || request.TimeZone.Length > 100) return ApiResponse<MemberPreferenceDto>.ErrorResponse("A valid time zone is required");
+        var digestFrequency = request.DigestFrequency.Trim();
+        if (digestFrequency is not ("Off" or "Weekly")) return ApiResponse<MemberPreferenceDto>.ErrorResponse("Digest frequency must be Off or Weekly");
         var user = await context.Users.AsNoTracking().SingleOrDefaultAsync(item => item.Id == userId && item.IsActive && item.MemberId != null);
         if (user is null) return ApiResponse<MemberPreferenceDto>.ErrorResponse("Member account not found");
         var item = await GetOrCreateAsync(userId);
@@ -44,6 +46,7 @@ public sealed class MemberExperienceService(ApplicationDbContext context) : IMem
         item.EmailServiceUpdates = request.EmailServiceUpdates;
         item.EmailNewsletter = request.EmailNewsletter;
         item.PushNotifications = request.PushNotifications;
+        item.DigestFrequency = digestFrequency;
         item.HasCompletedPreferences = true;
         item.UpdatedAt = DateTime.UtcNow;
 
@@ -78,5 +81,6 @@ public sealed class MemberExperienceService(ApplicationDbContext context) : IMem
     private static MemberPreferenceDto Map(MemberPreference item) => new(
         item.PreferredLanguage, item.TimeZone, item.EmailEvents, item.EmailOpportunities,
         item.EmailMentorship, item.EmailServiceUpdates, item.EmailNewsletter,
-        item.PushNotifications, item.HasCompletedPreferences, item.UpdatedAt);
+        item.PushNotifications, item.HasCompletedPreferences, item.UpdatedAt,
+        item.DigestFrequency, item.LastDigestSentAtUtc);
 }

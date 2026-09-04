@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { eventsApi } from '../../lib/api/events';
 import { buildApiUrl } from '../../lib/api/base-url';
 import type { Event, EventRegistration } from '../../lib/api/types';
+import QRCode from 'qrcode';
 
 interface EventRegistrationPanelProps {
   event: Event;
@@ -29,6 +30,7 @@ export const EventRegistrationPanel = ({ event, isPast, externalLabel }: EventRe
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState('');
   const [accessibilityNeeds, setAccessibilityNeeds] = useState('');
+  const [checkInQr, setCheckInQr] = useState('');
 
   useEffect(() => {
     if (event.registrationMode !== 'Native' || !isAuthenticated || !user?.memberId) {
@@ -44,6 +46,11 @@ export const EventRegistrationPanel = ({ event, isPast, externalLabel }: EventRe
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [event.id, event.registrationMode, isAuthenticated, user?.memberId]);
+
+  useEffect(() => {
+    if (!registration || registration.status === 'Cancelled') { setCheckInQr(''); return; }
+    QRCode.toDataURL(registration.confirmationCode, { width: 180, margin: 1, color: { dark: '#0b351d', light: '#ffffff' } }).then(setCheckInQr).catch(() => setCheckInQr(''));
+  }, [registration]);
 
   const register = async () => {
     setSubmitting(true);
@@ -125,6 +132,7 @@ export const EventRegistrationPanel = ({ event, isPast, externalLabel }: EventRe
             ? (isFrench ? `Position ${registration.waitlistPosition} sur la liste d’attente.` : `Position ${registration.waitlistPosition} on the waiting list.`)
             : (isFrench ? `Confirmation ${registration.confirmationCode}` : `Confirmation ${registration.confirmationCode}`)}
         </p>
+        {checkInQr && registration.status !== 'Waitlisted' && <div className="mt-4 flex items-center gap-4 rounded-xl border border-white/15 bg-white/[.07] p-3"><img src={checkInQr} alt={isFrench ? 'Code QR de présence' : 'Attendance QR code'} className="h-20 w-20 rounded bg-white p-1" /><p className="text-xs leading-5 text-white/65">{isFrench ? 'Présentez ce code QR à l’accueil pour confirmer votre présence.' : 'Show this QR code at check-in to confirm your attendance.'}</p></div>}
         {registration.meetingLink && (
           <a href={registration.meetingLink} target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex min-h-11 w-full items-center justify-between rounded-control bg-gold px-4 text-[11px] font-bold uppercase tracking-[.1em] text-green-deep">
             {isFrench ? 'Rejoindre la rencontre' : 'Join the meeting'}<i className="ri-video-chat-line text-lg" />

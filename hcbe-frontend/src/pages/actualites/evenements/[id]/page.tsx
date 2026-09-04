@@ -15,6 +15,8 @@ import { formatEventDateTime } from '../../../../lib/events/timezone';
 import { localized, localizedOptional } from '../../../../lib/i18n/localized';
 import { isImageFile } from '../../../../lib/media/is-image-file';
 import { EventRegistrationPanel } from '../../../../components/events/EventRegistrationPanel';
+import { useAuth } from '../../../../contexts/AuthContext';
+import { engagementApi } from '../../../../lib/api/engagement';
 
 interface PracticalDetail {
   icon: string;
@@ -61,7 +63,9 @@ export const EventDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
+  const { isAuthenticated, user } = useAuth();
   const [event, setEvent] = useState<Event | null>(null);
+  const [saved, setSaved] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const categories = useEventCategories();
 
@@ -87,6 +91,17 @@ export const EventDetailPage: React.FC = () => {
 
     void loadEvent();
   }, [id, navigate]);
+
+  useEffect(() => {
+    if (!id || !isAuthenticated || !user?.memberId) return;
+    engagementApi.getSaved().then((response) => setSaved(Boolean(response.data?.some((item) => item.entityType === 'Event' && item.entityId === id)))).catch(() => undefined);
+  }, [id, isAuthenticated, user?.memberId]);
+
+  const toggleSaved = async () => {
+    if (!id) return;
+    if (saved) await engagementApi.removeSaved('Event', id); else await engagementApi.save('Event', id);
+    setSaved((current) => !current);
+  };
 
   const locale = i18n.language.startsWith('fr') ? 'fr-CA' : 'en-CA';
 
@@ -388,6 +403,7 @@ export const EventDetailPage: React.FC = () => {
                     <p className="mt-1 text-sm leading-6 text-white/80">{formatDate(event.registrationDeadline, event.timeZone)}</p>
                   </div>
                 )}
+                {isAuthenticated && user?.memberId && <button type="button" onClick={toggleSaved} className={`mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-control border text-[10px] font-bold uppercase tracking-[.11em] transition ${saved ? 'border-gold bg-gold text-green-deep' : 'border-white/20 text-white hover:border-gold hover:text-gold'}`}><i className={saved ? 'ri-bookmark-fill' : 'ri-bookmark-line'} />{saved ? (i18n.language.startsWith('fr') ? 'Événement enregistré' : 'Event saved') : (i18n.language.startsWith('fr') ? 'Enregistrer pour plus tard' : 'Save for later')}</button>}
                 <EventRegistrationPanel event={event} isPast={isPast} externalLabel={actionLabel} />
               </section>
 

@@ -111,6 +111,8 @@ public sealed class CommunityGrowthServiceTests : IDisposable
         public int Count { get; private set; }
         public Task CreateNotificationAsync(string type, string title, string message, Guid? relatedEntityId = null, string? link = null)
         { Count++; return Task.CompletedTask; }
+        public Task CreateForUserAsync(Guid userId, string type, string title, string message, Guid? relatedEntityId = null, string? link = null)
+        { Count++; return Task.CompletedTask; }
         public Task<ApiResponse<List<NotificationDto>>> GetNotificationsAsync(Guid? userId = null, int limit = 5) => throw new NotSupportedException();
         public Task<ApiResponse<NotificationDto>> MarkAsReadAsync(Guid id, Guid? userId = null) => throw new NotSupportedException();
         public Task<ApiResponse> MarkAllAsReadAsync(Guid? userId = null) => throw new NotSupportedException();

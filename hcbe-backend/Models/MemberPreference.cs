@@ -12,6 +12,8 @@ public sealed class MemberPreference
     public bool EmailServiceUpdates { get; set; }
     public bool EmailNewsletter { get; set; }
     public bool PushNotifications { get; set; }
+    public string DigestFrequency { get; set; } = "Off";
+    public DateTime? LastDigestSentAtUtc { get; set; }
     public bool HasCompletedPreferences { get; set; }
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }

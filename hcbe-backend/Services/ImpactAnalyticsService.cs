@@ -14,6 +14,9 @@ public sealed class ImpactAnalyticsService(ApplicationDbContext context) : IImpa
         var activeMentorships = await context.MentorshipMatches.CountAsync(item => item.Status == "Active"); var completedMentorships = await context.MentorshipMatches.CountAsync(item => item.Status == "Completed");
         var opportunityApplications = await context.OpportunityApplications.CountAsync(); var managedAssociations = await context.Associations.CountAsync(item => item.OwnerMemberId != null);
         var activeUsers = await context.Users.CountAsync(item => item.IsActive && item.LastLoginAtUtc >= currentStart);
+        var savedItems = await context.SavedMemberItems.CountAsync();
+        var unreadMemberNotifications = await context.Notifications.CountAsync(item => item.UserId != null && !item.IsRead);
+        var weeklyDigests = await context.MemberPreferences.CountAsync(item => item.DigestFrequency == "Weekly");
         var averageResolutionHours = resolvedCases.Count == 0 ? 0 : resolvedCases.Average(item => (item.ResolvedAt!.Value - item.CreatedAt).TotalHours);
         var metrics = new List<ImpactMetricDto>
         {
@@ -26,6 +29,9 @@ public sealed class ImpactAnalyticsService(ApplicationDbContext context) : IImpa
             new("mentorship-completed", "Jumelages complétés", completedMentorships, null, "jumelages"),
             new("opportunities", "Candidatures aux occasions", opportunityApplications, null, "candidatures"),
             new("associations", "Associations autogérées", managedAssociations, null, "associations")
+            ,new("saved-items", "Contenus enregistrés", savedItems, null, "favoris")
+            ,new("unread-notifications", "Notifications membres non lues", unreadMemberNotifications, null, "notifications")
+            ,new("weekly-digests", "Résumés hebdomadaires actifs", weeklyDigests, null, "membres")
         };
         var periods = new List<ImpactPeriodDto>();
         for (var offset = 5; offset >= 0; offset--)

@@ -13,10 +13,10 @@ public static class NotificationEndpoints
             .WithTags("Notifications")
             .WithOpenApi();
 
-        group.MapGet("/", async (INotificationService notificationService, HttpContext context) =>
+        group.MapGet("/", async (int? limit, bool? member, INotificationService notificationService, HttpContext context) =>
         {
-            var userId = context.GetUserId();
-            var response = await notificationService.GetNotificationsAsync(userId, limit: 5);
+            var scope = context.IsAdmin() && member != true ? null : context.GetUserId();
+            var response = await notificationService.GetNotificationsAsync(scope, Math.Clamp(limit ?? 30, 1, 100));
             return response.HandleServiceResponse();
         })
         .WithName("GetNotifications")
@@ -24,10 +24,10 @@ public static class NotificationEndpoints
         .Produces<ApiResponse<List<NotificationDto>>>()
         .Produces(400);
 
-        group.MapGet("/unread-count", async (INotificationService notificationService, HttpContext context) =>
+        group.MapGet("/unread-count", async (bool? member, INotificationService notificationService, HttpContext context) =>
         {
-            var userId = context.GetUserId();
-            var response = await notificationService.GetUnreadCountAsync(userId);
+            var scope = context.IsAdmin() && member != true ? null : context.GetUserId();
+            var response = await notificationService.GetUnreadCountAsync(scope);
             return response.HandleServiceResponse();
         })
         .WithName("GetUnreadCount")
@@ -35,10 +35,10 @@ public static class NotificationEndpoints
         .Produces<ApiResponse<int>>()
         .Produces(400);
 
-        group.MapPut("/{id:guid}/read", async (Guid id, INotificationService notificationService, HttpContext context) =>
+        group.MapPut("/{id:guid}/read", async (Guid id, bool? member, INotificationService notificationService, HttpContext context) =>
         {
-            var userId = context.GetUserId();
-            var response = await notificationService.MarkAsReadAsync(id, userId);
+            var scope = context.IsAdmin() && member != true ? null : context.GetUserId();
+            var response = await notificationService.MarkAsReadAsync(id, scope);
             return response.HandleServiceResponse();
         })
         .WithName("MarkNotificationAsRead")
@@ -47,10 +47,10 @@ public static class NotificationEndpoints
         .Produces(404)
         .Produces(400);
 
-        group.MapPut("/mark-all-read", async (INotificationService notificationService, HttpContext context) =>
+        group.MapPut("/mark-all-read", async (bool? member, INotificationService notificationService, HttpContext context) =>
         {
-            var userId = context.GetUserId();
-            var response = await notificationService.MarkAllAsReadAsync(userId);
+            var scope = context.IsAdmin() && member != true ? null : context.GetUserId();
+            var response = await notificationService.MarkAllAsReadAsync(scope);
             return response.HandleServiceResponse();
         })
         .WithName("MarkAllNotificationsAsRead")

@@ -131,4 +131,7 @@ export const eventsApi = {
     adminNotes?: string,
   ): Promise<ApiResponse<EventRegistration>> =>
     apiClient.patch<EventRegistration>(`/api/events/admin/${eventId}/registrations/${registrationId}`, { status, adminNotes }),
+
+  checkInByCode: (eventId: string, confirmationCode: string): Promise<ApiResponse<EventRegistration>> =>
+    apiClient.post<EventRegistration>(`/api/events/admin/${eventId}/registrations/check-in/${encodeURIComponent(confirmationCode)}`),
 };

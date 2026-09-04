@@ -15,6 +15,7 @@ export const EventRegistrationsManager = ({ eventId }: { eventId: string }) => {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [message, setMessage] = useState('');
+  const [checkInCode, setCheckInCode] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -72,6 +73,19 @@ export const EventRegistrationsManager = ({ eventId }: { eventId: string }) => {
     }
   };
 
+  const checkIn = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!checkInCode.trim()) return;
+    setMessage('');
+    try {
+      const response = await eventsApi.checkInByCode(eventId, checkInCode.trim());
+      if (!response.success || !response.data) throw new Error(response.message || (fr ? 'Code invalide.' : 'Invalid code.'));
+      setCheckInCode('');
+      setMessage(fr ? `${response.data.memberName} est maintenant présent(e).` : `${response.data.memberName} is now checked in.`);
+      await load();
+    } catch (error) { setMessage(error instanceof Error ? error.message : (fr ? 'Pointage impossible.' : 'Unable to check in.')); }
+  };
+
   return (
     <section className="overflow-hidden rounded-[22px] border border-line bg-surface shadow-[0_16px_45px_rgba(0,59,27,.06)]">
       <div className="border-b border-line bg-green-deep px-5 py-6 text-white sm:px-7">
@@ -95,6 +109,11 @@ export const EventRegistrationsManager = ({ eventId }: { eventId: string }) => {
         <select value={status} onChange={(event) => setStatus(event.target.value)} className={`${inputClasses} cursor-pointer sm:w-48`}><option value="">{fr ? 'Tous les statuts' : 'All statuses'}</option>{statuses.map((item) => <option key={item} value={item}>{item}</option>)}</select>
         <Button type="button" variant="secondary" onClick={exportCsv}><i className="ri-download-line" />CSV</Button>
       </div>
+      <form onSubmit={checkIn} className="flex flex-col gap-3 border-b border-line bg-gold/[.07] p-4 sm:flex-row sm:items-center sm:px-5">
+        <div className="flex items-center gap-3 sm:min-w-56"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-green text-lg text-white"><i className="ri-qr-scan-2-line" /></span><div><strong className="block text-sm text-green-deep">{fr ? 'Pointage rapide' : 'Quick check-in'}</strong><span className="text-xs text-ink-variant">{fr ? 'Scannez ou saisissez le code.' : 'Scan or enter the code.'}</span></div></div>
+        <input value={checkInCode} onChange={(event) => setCheckInCode(event.target.value.toUpperCase())} className={`${inputClasses} font-mono uppercase sm:flex-1`} placeholder={fr ? 'Code de confirmation' : 'Confirmation code'} />
+        <Button type="submit" variant="primary" disabled={!checkInCode.trim()}>{fr ? 'Marquer présent' : 'Check in'}</Button>
+      </form>
 
       {message && <p className="border-b border-line bg-gold/[.08] px-5 py-3 text-sm text-green">{message}</p>}
       {loading ? (
