@@ -13,7 +13,7 @@ public static class ReceiptPdfRenderer
 {
     private const double PageWidth = 595;
     private const double PageHeight = 842;
-    private const double Margin = 48;
+    private const double Margin = 44;
 
     public static byte[] Render(FinancialTransaction item)
     {
@@ -39,74 +39,112 @@ public static class ReceiptPdfRenderer
     private static void DrawBackground(StringBuilder content)
     {
         Fill(content, "0.969 0.976 0.957", 0, 0, PageWidth, PageHeight);
-        Fill(content, "0.043 0.231 0.129", 0, 628, PageWidth, 214);
-        Fill(content, "0.961 0.773 0.094", Margin, 628, 7, 214);
-        Fill(content, "1 1 1", Margin, 82, PageWidth - Margin * 2, 520);
-        Stroke(content, "0.827 0.859 0.820", Margin, 82, PageWidth - Margin * 2, 520, 0.8);
+        RoundedFill(content, "0.043 0.231 0.129", 34, 592, 527, 216, 22);
+        Fill(content, "0.961 0.773 0.094", 52, 616, 4, 166);
+
+        // Quiet concentric rings echo the HCBE interface without competing with receipt data.
+        CircleStroke(content, "0.149 0.365 0.235", 536, 798, 70, 22);
+        CircleStroke(content, "0.149 0.365 0.235", 536, 798, 42, 16);
+
+        RoundedFill(content, "1 1 1", Margin, 445, PageWidth - Margin * 2, 125, 16);
+        RoundedStroke(content, "0.827 0.859 0.820", Margin, 445, PageWidth - Margin * 2, 125, 16, 0.75);
+        RoundedFill(content, "1 1 1", Margin, 185, PageWidth - Margin * 2, 238, 16);
+        RoundedStroke(content, "0.827 0.859 0.820", Margin, 185, PageWidth - Margin * 2, 238, 16, 0.75);
+        RoundedFill(content, "0.925 0.945 0.918", Margin, 78, PageWidth - Margin * 2, 82, 12);
     }
 
     private static void DrawHeader(StringBuilder content, FinancialTransaction item)
     {
-        Text(content, "HCBE CANADA", Margin + 22, 795, 11, true, "0.961 0.773 0.094", 1.4);
-        Text(content, "REÇU DE PAIEMENT  /  PAYMENT RECEIPT", Margin + 22, 753, 9, true, "0.788 0.851 0.808", 1.1);
-        Text(content, item.ReceiptNumber, Margin + 22, 710, 25, true, "1 1 1");
-        Text(content, "Confirmation officielle du paiement", Margin + 22, 684, 10, false, "0.788 0.851 0.808");
-        Text(content, "Official payment confirmation", Margin + 22, 669, 10, false, "0.788 0.851 0.808");
+        DrawLogo(content, Margin + 24, 771);
+        Text(content, "REÇU DE PAIEMENT  /  PAYMENT RECEIPT", Margin + 24, 718, 8.5, true, "0.788 0.851 0.808", 1.05);
+        Text(content, item.ReceiptNumber, Margin + 24, 678, 23, true, "1 1 1");
+        Text(content, "Confirmation officielle du paiement  /  Official payment confirmation", Margin + 24, 647, 9.2, false, "0.788 0.851 0.808");
 
         var status = Status(item.Status);
-        var badgeWidth = Math.Max(104, Measure(status, 9, true) + 30);
-        Fill(content, "0.961 0.773 0.094", PageWidth - Margin - badgeWidth, 779, badgeWidth, 31);
-        Text(content, status, PageWidth - Margin - badgeWidth + 15, 790, 9, true, "0.043 0.231 0.129");
+        var badgeWidth = Math.Min(190, Math.Max(94, Measure(status, 7.2, true) + 24));
+        var badgeX = PageWidth - Margin - 22 - badgeWidth;
+        RoundedFill(content, "0.961 0.773 0.094", badgeX, 757, badgeWidth, 30, 15);
+        Text(content, status, badgeX + 12, 768, 7.2, true, "0.043 0.231 0.129", 0.35);
     }
 
     private static void DrawSummary(StringBuilder content, FinancialTransaction item)
     {
         var amount = Money(item.AmountCents - item.RefundedAmountCents, item.Currency);
-        Text(content, "MONTANT NET  /  NET AMOUNT", Margin + 24, 564, 8, true, "0.435 0.478 0.443", 0.9);
-        Text(content, amount, Margin + 24, 521, 29, true, "0.043 0.231 0.129");
+        Text(content, "MONTANT CONFIRMÉ  /  CONFIRMED AMOUNT", Margin + 24, 539, 7.5, true, "0.435 0.478 0.443", 0.7);
+        Text(content, amount, Margin + 24, 492, 30, true, "0.043 0.231 0.129");
 
         var purpose = Purpose(item);
-        Text(content, "OBJET  /  PURPOSE", 330, 564, 8, true, "0.435 0.478 0.443", 0.9);
-        var purposeLines = Wrap(purpose, 34);
-        for (var index = 0; index < Math.Min(2, purposeLines.Count); index++)
-            Text(content, purposeLines[index], 330, 538 - index * 17, 11, index == 0, "0.086 0.145 0.106");
-
-        Line(content, "0.827 0.859 0.820", Margin + 24, 490, PageWidth - Margin - 24, 490, 0.8);
+        Line(content, "0.827 0.859 0.820", 298, 466, 298, 549, 0.8);
+        Text(content, "OBJET DU PAIEMENT  /  PAYMENT PURPOSE", 322, 539, 7.5, true, "0.435 0.478 0.443", 0.7);
+        var purposeLines = Wrap(purpose, 33);
+        for (var index = 0; index < Math.Min(3, purposeLines.Count); index++)
+            Text(content, purposeLines[index], 322, 510 - index * 17, 10.5, index == 0, "0.086 0.145 0.106");
     }
 
     private static void DrawDetails(StringBuilder content, FinancialTransaction item)
     {
         var payer = item.IsAnonymous ? "Donateur anonyme / Anonymous donor" : item.PayerName ?? item.PayerEmail;
         var paidAt = item.PaidAtUtc ?? item.CreatedAtUtc;
-        var rows = new List<(string Label, string Value)>
-        {
-            ("REÇU DE  /  RECEIVED FROM", payer),
-            ("DATE DU PAIEMENT  /  PAYMENT DATE", $"{paidAt:yyyy-MM-dd HH:mm} UTC"),
-            ("TYPE", item.Kind == FinanceKinds.Membership ? "Adhésion / Membership" : "Contribution / Contribution"),
-            ("MODE", item.IsRecurring ? "Renouvellement automatique / Recurring" : "Paiement unique / One-time"),
-            ("MONTANT INITIAL  /  ORIGINAL AMOUNT", Money(item.AmountCents, item.Currency))
-        };
-        if (item.RefundedAmountCents > 0)
-            rows.Add(("REMBOURSÉ  /  REFUNDED", Money(item.RefundedAmountCents, item.Currency)));
+        Text(content, "DÉTAILS DE LA TRANSACTION  /  TRANSACTION DETAILS", Margin + 24, 394, 8, true, "0.043 0.231 0.129", 0.85);
+        Line(content, "0.827 0.859 0.820", Margin + 24, 378, PageWidth - Margin - 24, 378, 0.7);
 
-        var y = 457d;
-        foreach (var (label, value) in rows)
-        {
-            Text(content, label, Margin + 24, y, 7.5, true, "0.435 0.478 0.443", 0.6);
-            var lines = Wrap(value, 48);
-            for (var index = 0; index < Math.Min(2, lines.Count); index++)
-                Text(content, lines[index], 274, y - index * 14, 10.5, false, "0.086 0.145 0.106");
-            y -= lines.Count > 1 ? 56 : 47;
-        }
+        Text(content, "REÇU DE  /  RECEIVED FROM", Margin + 24, 349, 6.8, true, "0.435 0.478 0.443", 0.55);
+        var payerLines = Wrap(payer, 34);
+        for (var index = 0; index < Math.Min(2, payerLines.Count); index++)
+            Text(content, payerLines[index], Margin + 24, 327 - index * 14, 9.5, index == 0, "0.086 0.145 0.106");
+        if (!item.IsAnonymous && !string.IsNullOrWhiteSpace(item.PayerEmail) && !string.Equals(payer, item.PayerEmail, StringComparison.OrdinalIgnoreCase))
+            Text(content, item.PayerEmail, Margin + 24, 325 - Math.Min(2, payerLines.Count) * 14, 8.5, false, "0.435 0.478 0.443");
+        Detail(content, "DATE DU PAIEMENT  /  PAYMENT DATE", $"{paidAt:yyyy-MM-dd HH:mm} UTC", 318, 349, 30);
+
+        Detail(content, "TYPE", item.Kind == FinanceKinds.Membership ? "Adhésion / Membership" : "Contribution / Contribution", Margin + 24, 284, 28);
+        Detail(content, "MODE DE PAIEMENT  /  PAYMENT MODE", item.IsRecurring ? "Renouvellement automatique / Recurring" : "Paiement unique / One-time", 318, 284, 30);
+
+        Detail(content, "MONTANT INITIAL  /  ORIGINAL AMOUNT", Money(item.AmountCents, item.Currency), Margin + 24, 219, 28);
+        Detail(content,
+            item.RefundedAmountCents > 0 ? "REMBOURSÉ  /  REFUNDED" : "ÉTAT DU PAIEMENT  /  PAYMENT STATUS",
+            item.RefundedAmountCents > 0 ? Money(item.RefundedAmountCents, item.Currency) : Status(item.Status),
+            318, 219, 30);
     }
 
     private static void DrawFooter(StringBuilder content)
     {
-        Line(content, "0.961 0.773 0.094", Margin + 24, 155, PageWidth - Margin - 24, 155, 2);
-        Text(content, "HCBE Canada", Margin + 24, 132, 10, true, "0.043 0.231 0.129");
-        Text(content, "contact@hcbe.ca  |  hcbe.ca", Margin + 24, 114, 9, false, "0.310 0.353 0.318");
-        Text(content, "Ce document confirme un paiement et son état actuel. Il ne constitue pas un reçu fiscal de don de bienfaisance.", Margin, 54, 7.5, false, "0.310 0.353 0.318");
-        Text(content, "This document confirms a payment and its current status. It is not a charitable tax receipt.", Margin, 41, 7.5, false, "0.310 0.353 0.318");
+        Fill(content, "0.961 0.773 0.094", Margin, 78, 4, 82);
+        Text(content, "DOCUMENT DE CONFIRMATION  /  CONFIRMATION DOCUMENT", Margin + 24, 137, 7.2, true, "0.043 0.231 0.129", 0.65);
+        Text(content, "Ce document confirme un paiement et son état actuel. Il ne constitue pas un reçu fiscal de don de bienfaisance.", Margin + 24, 114, 7.2, false, "0.310 0.353 0.318");
+        Text(content, "This document confirms a payment and its current status. It is not a charitable tax receipt.", Margin + 24, 96, 7.2, false, "0.310 0.353 0.318");
+
+        Text(content, "HCBE Canada", Margin, 48, 9, true, "0.043 0.231 0.129");
+        Text(content, "contact@hcbe.ca  |  hcbe.ca", Margin, 32, 8, false, "0.310 0.353 0.318");
+        Text(content, "ÉMIS ÉLECTRONIQUEMENT  /  ISSUED ELECTRONICALLY", 362, 40, 6.8, true, "0.435 0.478 0.443", 0.55);
+    }
+
+    private static void Detail(StringBuilder content, string label, string value, double x, double y, int wrapLimit)
+    {
+        Text(content, label, x, y, 6.8, true, "0.435 0.478 0.443", 0.55);
+        var lines = Wrap(value, wrapLimit);
+        for (var index = 0; index < Math.Min(2, lines.Count); index++)
+            Text(content, lines[index], x, y - 22 - index * 14, 9.5, index == 0, "0.086 0.145 0.106");
+    }
+
+    private static void DrawLogo(StringBuilder content, double x, double y)
+    {
+        // Burkina Faso flag.
+        RoundedFill(content, "0.937 0.169 0.176", x, y - 4, 25, 8, 2);
+        RoundedFill(content, "0 0.620 0.286", x, y - 11, 25, 8, 2);
+        Star(content, "0.988 0.820 0.086", x + 12.5, y - 3.5, 4.4, 2);
+
+        Text(content, "HCBE", x + 36, y - 3, 13.5, true, "1 1 1");
+        Polygon(content, "0.961 0.773 0.094",
+        [
+            (x + 79, y + 1), (x + 83, y - 3), (x + 79, y - 7), (x + 75, y - 3)
+        ]);
+        Text(content, "Canada", x + 87, y - 3, 13.5, true, "1 1 1");
+
+        // Canada flag with a simplified maple leaf, rendered as vector geometry.
+        RoundedFill(content, "1 1 1", x + 141, y - 11, 28, 15, 2);
+        Fill(content, "0.812 0.125 0.157", x + 141, y - 11, 6, 15);
+        Fill(content, "0.812 0.125 0.157", x + 163, y - 11, 6, 15);
+        MapleLeaf(content, "0.812 0.125 0.157", x + 155, y - 3.5);
     }
 
     private static string Purpose(FinancialTransaction item)
@@ -157,6 +195,97 @@ public static class ReceiptPdfRenderer
     private static void Fill(StringBuilder content, string color, double x, double y, double width, double height) =>
         content.Append(color).Append(" rg ").Append(Number(x)).Append(' ').Append(Number(y)).Append(' ')
             .Append(Number(width)).Append(' ').Append(Number(height)).Append(" re f\n");
+
+    private static void RoundedFill(StringBuilder content, string color, double x, double y, double width, double height, double radius)
+    {
+        content.Append(color).Append(" rg ");
+        RoundedPath(content, x, y, width, height, radius);
+        content.Append("f\n");
+    }
+
+    private static void RoundedStroke(StringBuilder content, string color, double x, double y, double width, double height, double radius, double lineWidth)
+    {
+        content.Append(color).Append(" RG ").Append(Number(lineWidth)).Append(" w ");
+        RoundedPath(content, x, y, width, height, radius);
+        content.Append("S\n");
+    }
+
+    private static void RoundedPath(StringBuilder content, double x, double y, double width, double height, double radius)
+    {
+        var r = Math.Min(radius, Math.Min(width, height) / 2);
+        var k = r * 0.55228475;
+        content.Append(Number(x + r)).Append(' ').Append(Number(y)).Append(" m ")
+            .Append(Number(x + width - r)).Append(' ').Append(Number(y)).Append(" l ")
+            .Append(Number(x + width - r + k)).Append(' ').Append(Number(y)).Append(' ')
+            .Append(Number(x + width)).Append(' ').Append(Number(y + r - k)).Append(' ')
+            .Append(Number(x + width)).Append(' ').Append(Number(y + r)).Append(" c ")
+            .Append(Number(x + width)).Append(' ').Append(Number(y + height - r)).Append(" l ")
+            .Append(Number(x + width)).Append(' ').Append(Number(y + height - r + k)).Append(' ')
+            .Append(Number(x + width - r + k)).Append(' ').Append(Number(y + height)).Append(' ')
+            .Append(Number(x + width - r)).Append(' ').Append(Number(y + height)).Append(" c ")
+            .Append(Number(x + r)).Append(' ').Append(Number(y + height)).Append(" l ")
+            .Append(Number(x + r - k)).Append(' ').Append(Number(y + height)).Append(' ')
+            .Append(Number(x)).Append(' ').Append(Number(y + height - r + k)).Append(' ')
+            .Append(Number(x)).Append(' ').Append(Number(y + height - r)).Append(" c ")
+            .Append(Number(x)).Append(' ').Append(Number(y + r)).Append(" l ")
+            .Append(Number(x)).Append(' ').Append(Number(y + r - k)).Append(' ')
+            .Append(Number(x + r - k)).Append(' ').Append(Number(y)).Append(' ')
+            .Append(Number(x + r)).Append(' ').Append(Number(y)).Append(" c h ");
+    }
+
+    private static void CircleStroke(StringBuilder content, string color, double centerX, double centerY, double radius, double lineWidth)
+    {
+        var k = radius * 0.55228475;
+        content.Append(color).Append(" RG ").Append(Number(lineWidth)).Append(" w ")
+            .Append(Number(centerX + radius)).Append(' ').Append(Number(centerY)).Append(" m ")
+            .Append(Number(centerX + radius)).Append(' ').Append(Number(centerY + k)).Append(' ')
+            .Append(Number(centerX + k)).Append(' ').Append(Number(centerY + radius)).Append(' ')
+            .Append(Number(centerX)).Append(' ').Append(Number(centerY + radius)).Append(" c ")
+            .Append(Number(centerX - k)).Append(' ').Append(Number(centerY + radius)).Append(' ')
+            .Append(Number(centerX - radius)).Append(' ').Append(Number(centerY + k)).Append(' ')
+            .Append(Number(centerX - radius)).Append(' ').Append(Number(centerY)).Append(" c ")
+            .Append(Number(centerX - radius)).Append(' ').Append(Number(centerY - k)).Append(' ')
+            .Append(Number(centerX - k)).Append(' ').Append(Number(centerY - radius)).Append(' ')
+            .Append(Number(centerX)).Append(' ').Append(Number(centerY - radius)).Append(" c ")
+            .Append(Number(centerX + k)).Append(' ').Append(Number(centerY - radius)).Append(' ')
+            .Append(Number(centerX + radius)).Append(' ').Append(Number(centerY - k)).Append(' ')
+            .Append(Number(centerX + radius)).Append(' ').Append(Number(centerY)).Append(" c S\n");
+    }
+
+    private static void Star(StringBuilder content, string color, double centerX, double centerY, double outerRadius, double innerRadius)
+    {
+        var points = Enumerable.Range(0, 10)
+            .Select(index =>
+            {
+                var angle = -Math.PI / 2 + index * Math.PI / 5;
+                var radius = index % 2 == 0 ? outerRadius : innerRadius;
+                return (X: centerX + Math.Cos(angle) * radius, Y: centerY + Math.Sin(angle) * radius);
+            })
+            .ToArray();
+        Polygon(content, color, points);
+    }
+
+    private static void MapleLeaf(StringBuilder content, string color, double centerX, double centerY)
+    {
+        var points = new (double X, double Y)[]
+        {
+            (centerX, centerY + 6), (centerX + 1.3, centerY + 2.7), (centerX + 4.1, centerY + 4),
+            (centerX + 3.1, centerY + 0.9), (centerX + 5.8, centerY), (centerX + 2.3, centerY - 1.1),
+            (centerX + 3, centerY - 3.3), (centerX + 0.8, centerY - 2.4), (centerX + 0.6, centerY - 6),
+            (centerX - 0.6, centerY - 6), (centerX - 0.8, centerY - 2.4), (centerX - 3, centerY - 3.3),
+            (centerX - 2.3, centerY - 1.1), (centerX - 5.8, centerY), (centerX - 3.1, centerY + 0.9),
+            (centerX - 4.1, centerY + 4), (centerX - 1.3, centerY + 2.7)
+        };
+        Polygon(content, color, points);
+    }
+
+    private static void Polygon(StringBuilder content, string color, IReadOnlyList<(double X, double Y)> points)
+    {
+        if (points.Count == 0) return;
+        content.Append(color).Append(" rg ").Append(Number(points[0].X)).Append(' ').Append(Number(points[0].Y)).Append(" m ");
+        foreach (var point in points.Skip(1)) content.Append(Number(point.X)).Append(' ').Append(Number(point.Y)).Append(" l ");
+        content.Append("h f\n");
+    }
 
     private static void Stroke(StringBuilder content, string color, double x, double y, double width, double height, double lineWidth) =>
         content.Append(color).Append(" RG ").Append(Number(lineWidth)).Append(" w ").Append(Number(x)).Append(' ')

@@ -33,6 +33,10 @@ public sealed class ReceiptPdfRendererTests
         source.Should().Contain("HCBE-2026-ABC123");
         source.Should().Contain("100.00 CAD");
         source.Should().Contain("PARTIALLY REFUNDED");
+        source.Should().Contain("(HCBE)");
+        source.Should().Contain("(Canada)");
+        source.Should().Contain("aminata@example.com");
+        source.Should().Contain("TRANSACTION DETAILS");
         source.Should().EndWith("%%EOF\n");
         source.Should().NotContain("<!doctype html>");
     }
