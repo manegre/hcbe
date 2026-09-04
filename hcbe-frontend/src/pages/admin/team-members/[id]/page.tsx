@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
 import { teamMembersApi } from '../../../../lib/api/team-members';
 import type { TeamMemberDto } from '../../../../lib/api/types';
@@ -7,6 +8,8 @@ import { AdminDetailLayout, DetailList, DetailRow } from '../../../../components
 import { Button, EmptyState } from '../../../../components/ui';
 
 const TeamMemberDetailPage: React.FC = () => {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language.startsWith('en') ? 'en-CA' : 'fr-CA';
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [member, setMember] = useState<TeamMemberDto | null>(null);
@@ -23,11 +26,11 @@ const TeamMemberDetailPage: React.FC = () => {
         if (response.success && response.data) {
           setMember(response.data);
         } else {
-          setError('Failed to load team member');
+          setError(t('admin.team.errorLoad'));
         }
       } catch (err) {
         console.error('Error loading team member:', err);
-        setError('Error loading team member');
+        setError(t('admin.team.errorLoad'));
       } finally {
         setLoading(false);
       }
@@ -37,7 +40,7 @@ const TeamMemberDetailPage: React.FC = () => {
   }, [id]);
 
   const handleDelete = async () => {
-    if (!id || !window.confirm('Are you sure you want to delete this team member?')) {
+    if (!id || !window.confirm(t('admin.team.confirmDelete'))) {
       return;
     }
 
@@ -48,7 +51,7 @@ const TeamMemberDetailPage: React.FC = () => {
       }
     } catch (err) {
       console.error('Error deleting team member:', err);
-      alert('Failed to delete team member');
+      alert(t('admin.team.errorDelete'));
     }
   };
 
@@ -64,10 +67,10 @@ const TeamMemberDetailPage: React.FC = () => {
     return (
       <EmptyState
         tone="error"
-        title={error || 'Team member not found'}
+        title={error || t('admin.team.notFound')}
         action={
           <Button to="/admin/team-members" variant="secondary">
-            Back to list
+            {t('admin.common.backToList')}
           </Button>
         }
       />
@@ -80,15 +83,15 @@ const TeamMemberDetailPage: React.FC = () => {
       backPath="/admin/team-members"
       status={{
         status: member.isActive ? 'published' : 'draft',
-        label: member.isActive ? 'Active' : 'Inactive',
+        label: member.isActive ? t('admin.common.active') : t('admin.common.inactive'),
       }}
       actions={
         <>
           <Button to={`/admin/team-members/${id}/edit`} variant="secondary">
-            Edit
+            {t('admin.common.edit')}
           </Button>
           <Button variant="destructive" onClick={handleDelete}>
-            Delete
+            {t('admin.common.delete')}
           </Button>
         </>
       }
@@ -101,25 +104,25 @@ const TeamMemberDetailPage: React.FC = () => {
           />
 
           <DetailList>
-            <DetailRow label="Position" value={member.position} />
-            <DetailRow label="Position (English)" value={member.positionEn || 'N/A'} />
-            <DetailRow label="Email" value={member.email || 'N/A'} />
-            <DetailRow label="Region" value={member.region} />
-            <DetailRow label="Region (English)" value={member.regionEn || 'N/A'} />
-            <DetailRow label="Zone" value={member.zone} />
-            <DetailRow label="Zone (English)" value={member.zoneEn || 'N/A'} />
-            <DetailRow label="Display Order" value={member.order} />
-            <DetailRow label="Created" value={new Date(member.createdAt).toLocaleDateString()} />
-            <DetailRow label="Updated" value={new Date(member.updatedAt).toLocaleDateString()} />
+            <DetailRow label={t('admin.team.positionFr')} value={member.position} />
+            <DetailRow label={t('admin.team.positionEn')} value={member.positionEn || 'N/A'} />
+            <DetailRow label={t('admin.common.email')} value={member.email || 'N/A'} />
+            <DetailRow label={t('admin.team.regionFr')} value={member.region} />
+            <DetailRow label={t('admin.team.regionEn')} value={member.regionEn || 'N/A'} />
+            <DetailRow label={t('admin.common.zone')} value={member.zone} />
+            <DetailRow label={t('admin.team.zoneEn')} value={member.zoneEn || 'N/A'} />
+            <DetailRow label={t('admin.common.order')} value={member.order} />
+            <DetailRow label={t('admin.team.createdAt')} value={new Date(member.createdAt).toLocaleDateString(locale)} />
+            <DetailRow label={t('admin.team.updatedAt')} value={new Date(member.updatedAt).toLocaleDateString(locale)} />
           </DetailList>
 
           {member.bio && (
             <div>
-              <h2 className="font-display text-headline-sm text-green">Biography</h2>
+              <h2 className="font-display text-headline-sm text-green">{t('admin.team.biographyFr')}</h2>
               <p className="mt-3 text-body-md text-ink-variant">{member.bio}</p>
             </div>
           )}
-          {member.bioEn && <div><h2 className="font-display text-headline-sm text-green">Biography (English)</h2><p className="mt-3 text-body-md text-ink-variant">{member.bioEn}</p></div>}
+          {member.bioEn && <div><h2 className="font-display text-headline-sm text-green">{t('admin.team.biographyEn')}</h2><p className="mt-3 text-body-md text-ink-variant">{member.bioEn}</p></div>}
         </>
       }
     />

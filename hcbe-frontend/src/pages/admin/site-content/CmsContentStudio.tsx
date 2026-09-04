@@ -106,6 +106,24 @@ const compactLabel = (value: string, limit = 105) => {
   return `${normalized.slice(0, limit - 1).trimEnd()}…`;
 };
 
+const templateVariables = (value: string) => Array.from(
+  new Set(Array.from(value.matchAll(/\{\{\s*([\w.-]+)(?:\s*,[^}]*)?\s*\}\}/g), (match) => match[1])),
+);
+
+const templateExamples: Record<string, string> = {
+  count: '12',
+  current: '2',
+  total: '8',
+  name: 'Awa',
+  firstName: 'Awa',
+  year: String(new Date().getFullYear()),
+};
+
+const previewTemplate = (value: string) => value.replace(
+  /\{\{\s*([\w.-]+)(?:\s*,[^}]*)?\s*\}\}/g,
+  (_token, variable: string) => templateExamples[variable] || `[${variable}]`,
+);
+
 const localizedValue = (entry: CatalogEntry, stored: CmsContentItemDto | undefined, english: boolean) => {
   if (english) return stored?.draftValueEn ?? stored?.publishedValueEn ?? entry.fallbackEn;
   return stored?.draftValueFr ?? stored?.publishedValueFr ?? entry.fallbackFr;
@@ -128,7 +146,7 @@ const readableEntryLabel = (
     }
   }
 
-  const content = localizedValue(entry, itemByKey[entry.key], english);
+  const content = previewTemplate(localizedValue(entry, itemByKey[entry.key], english));
   return compactLabel(content || configuredLabel);
 };
 
@@ -146,6 +164,9 @@ const copy = {
     empty: 'Aucun champ ne correspond à cette recherche.', editorHint: 'Sélectionnez un élément dans la liste pour le modifier.',
     seo: 'Référencement', media: 'Médias', content: 'Contenu', status: 'Diffusion en direct', error: 'Une erreur est survenue.',
     schedule: 'Programmer la publication', scheduleAction: 'Programmer', scheduled: 'Publication programmée.',
+    pages: 'Pages', fallback: 'Les contenus intégrés restent disponibles comme valeurs de secours.',
+    variables: 'Variables automatiques', preview: 'Aperçu avec des données exemples',
+    templateError: 'Conservez toutes les variables automatiques dans les versions française et anglaise.',
   },
   en: {
     eyebrow: 'Publishing studio', title: 'Control the entire public website',
@@ -160,6 +181,9 @@ const copy = {
     editorHint: 'Select an item from the list to edit it.', seo: 'SEO', media: 'Media', content: 'Content',
     status: 'Live publishing', error: 'Something went wrong.',
     schedule: 'Schedule publication', scheduleAction: 'Schedule', scheduled: 'Publication scheduled.',
+    pages: 'Pages', fallback: 'Built-in content remains available as a resilient fallback.',
+    variables: 'Automatic variables', preview: 'Preview with sample data',
+    templateError: 'Keep every automatic variable in both the French and English versions.',
   },
 };
 
@@ -220,6 +244,13 @@ export const CmsContentStudio = () => {
 
   const save = async (publish: boolean, schedule = false) => {
     if (!selected) return;
+    const expectedVariables = new Set([...templateVariables(selected.fallbackFr), ...templateVariables(selected.fallbackEn)]);
+    const frenchVariables = new Set(templateVariables(valueFr));
+    const englishVariables = new Set(templateVariables(valueEn));
+    if ([...expectedVariables].some((variable) => !frenchVariables.has(variable) || !englishVariables.has(variable))) {
+      setNotice(c.templateError);
+      return;
+    }
     setBusy(true); setNotice('');
     const request: UpsertCmsContentRequest = {
       key: selected.key,
@@ -326,13 +357,13 @@ export const CmsContentStudio = () => {
 
       <div className="grid min-h-[680px] xl:grid-cols-[230px_minmax(300px,.8fr)_minmax(440px,1.2fr)]">
         <aside className="border-b border-line bg-surface-container/45 p-4 xl:border-b-0 xl:border-r">
-          <p className="mb-3 px-2 text-[9px] font-bold uppercase tracking-[.17em] text-ink-variant">Pages</p>
+          <p className="mb-3 px-2 text-[9px] font-bold uppercase tracking-[.17em] text-ink-variant">{c.pages}</p>
           <div className="space-y-1">
             <PageButton active={page === 'all'} label={c.all} count={catalog.length} onClick={() => setPage('all')} />
             {pages.map((pageName) => <PageButton key={pageName} active={page === pageName} label={english ? pageLabels[pageName]?.en || pageName : pageLabels[pageName]?.fr || pageName} count={catalog.filter((entry) => entry.page === pageName).length} onClick={() => setPage(pageName)} />)}
           </div>
           <div className="mt-6 rounded-xl border border-line bg-surface p-3 text-xs leading-5 text-ink-variant">
-            <i className="ri-shield-check-line mr-2 text-green" />Les contenus intégrés restent disponibles comme valeurs de secours.
+            <i className="ri-shield-check-line mr-2 text-green" />{c.fallback}
           </div>
         </aside>
 
@@ -366,8 +397,8 @@ export const CmsContentStudio = () => {
             </div>}
 
             <div className="mt-6 grid gap-5">
-              <EditorField label={c.french} value={valueFr} setValue={setValueFr} multiline={selected.contentType === 'richtext' || selected.key.endsWith('.description')} />
-              <EditorField label={c.english} value={valueEn} setValue={setValueEn} multiline={selected.contentType === 'richtext' || selected.key.endsWith('.description')} />
+              <EditorField label={c.french} value={valueFr} setValue={setValueFr} multiline={selected.contentType === 'richtext' || selected.key.endsWith('.description')} variablesLabel={c.variables} previewLabel={c.preview} />
+              <EditorField label={c.english} value={valueEn} setValue={setValueEn} multiline={selected.contentType === 'richtext' || selected.key.endsWith('.description')} variablesLabel={c.variables} previewLabel={c.preview} />
             </div>
 
             {stored?.isPublished && <div className="mt-5 rounded-xl border border-green/10 bg-green/5 p-4"><p className="text-[9px] font-bold uppercase tracking-[.15em] text-green">{c.current} · v{stored.version}</p><div className="mt-2 grid gap-3 text-xs text-ink-variant sm:grid-cols-2"><p className="line-clamp-3">FR · {stored.publishedValueFr || '—'}</p><p className="line-clamp-3">EN · {stored.publishedValueEn || '—'}</p></div></div>}
@@ -391,4 +422,11 @@ export const CmsContentStudio = () => {
 
 const PageButton = ({ active, label, count, onClick }: { active: boolean; label: string; count: number; onClick: () => void }) => <button type="button" onClick={onClick} className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${active ? 'bg-green text-white shadow-sm' : 'text-ink-variant hover:bg-surface hover:text-green'}`}><span>{label}</span><span className={`rounded-full px-2 py-0.5 text-[9px] ${active ? 'bg-white/15' : 'bg-surface'}`}>{count}</span></button>;
 
-const EditorField = ({ label, value, setValue, multiline }: { label: string; value: string; setValue: (value: string) => void; multiline: boolean }) => <label className="block"><span className="mb-2 block text-[10px] font-bold uppercase tracking-[.13em] text-ink-variant">{label}</span>{multiline ? <textarea rows={6} className={`${inputClasses} min-h-32 resize-y leading-6`} value={value} onChange={(event) => setValue(event.target.value)} /> : <input className={inputClasses} value={value} onChange={(event) => setValue(event.target.value)} />}</label>;
+const EditorField = ({ label, value, setValue, multiline, variablesLabel, previewLabel }: { label: string; value: string; setValue: (value: string) => void; multiline: boolean; variablesLabel: string; previewLabel: string }) => {
+  const variables = templateVariables(value);
+  const parts = value.split(/(\{\{\s*[\w.-]+(?:\s*,[^}]*)?\s*\}\})/g).filter(Boolean);
+  const updatePart = (index: number, nextValue: string) => setValue(parts.map((part, partIndex) => partIndex === index ? nextValue : part).join(''));
+  const segmentedEditor = variables.length > 0 && !multiline;
+
+  return <label className="block"><span className="mb-2 block text-[10px] font-bold uppercase tracking-[.13em] text-ink-variant">{label}</span>{multiline ? <textarea rows={6} className={`${inputClasses} min-h-32 resize-y leading-6`} value={value} onChange={(event) => setValue(event.target.value)} /> : segmentedEditor ? <span className={`${inputClasses} flex h-auto min-h-11 flex-wrap items-center gap-1.5 py-1.5`}>{parts.map((part, index) => { const variable = part.match(/^\{\{\s*([\w.-]+)(?:\s*,[^}]*)?\s*\}\}$/)?.[1]; return variable ? <span key={`${variable}-${index}`} title={variablesLabel} className="inline-flex min-h-8 items-center gap-1.5 rounded-lg bg-green/10 px-2.5 text-sm font-semibold text-green"><i className="ri-magic-line" aria-hidden="true" />{templateExamples[variable] || variable}</span> : <input key={index} aria-label={label} className="min-h-8 min-w-28 flex-1 bg-transparent px-1 text-ink outline-none" value={part} onChange={(event) => updatePart(index, event.target.value)} />; })}</span> : <input className={inputClasses} value={value} onChange={(event) => setValue(event.target.value)} />}{variables.length > 0 && <span className="mt-2 block rounded-xl border border-gold/25 bg-gold/[.06] p-3"><span className="flex flex-wrap items-center gap-2 text-[9px] font-bold uppercase tracking-[.12em] text-ink-variant"><i className="ri-code-s-slash-line text-gold-ink" aria-hidden="true" />{variablesLabel}{variables.map((variable) => <span key={variable} className="rounded-full bg-surface px-2 py-1 normal-case tracking-normal text-green">{variable}</span>)}</span><span className="mt-2 block text-xs text-ink-variant"><strong className="text-green-deep">{previewLabel}:</strong> {previewTemplate(value)}</span></span>}</label>;
+};

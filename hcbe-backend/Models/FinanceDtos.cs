@@ -47,4 +47,4 @@ public sealed record FinanceDashboardDto(long PaidAmountCents, long RefundedAmou
 public sealed record AdminMembershipDto(Guid UserId, string MemberName, string Email, string Status,
     string? PlanName, DateTime? CurrentPeriodEndUtc, DateTime? GraceEndsAtUtc, bool AutoRenew);
 public sealed record MembershipVerificationDto(bool IsValid, string Status, string MemberName,
-    string? PlanName, DateTime? ValidUntilUtc, string VerificationCode);
+    string? PlanName, string? PlanNameEn, DateTime? ValidUntilUtc, string VerificationCode);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
 import { buildApiUrl } from '../../../../lib/api/base-url';
 import { AdminDetailLayout, DetailList, DetailRow } from '../../../../components/admin/AdminDetailLayout';
@@ -22,6 +23,8 @@ interface Document {
 }
 
 export const ViewDocumentPage: React.FC = () => {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language.startsWith('en') ? 'en-CA' : 'fr-CA';
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [document, setDocument] = useState<Document | null>(null);
@@ -52,7 +55,7 @@ export const ViewDocumentPage: React.FC = () => {
   };
 
   const handleDelete = async () => {
-    if (!document || !window.confirm(`Êtes-vous sûr de vouloir supprimer "${document.name}" ?`)) {
+    if (!document || !window.confirm(t('admin.documents.confirmDelete', { name: document.name }))) {
       return;
     }
 
@@ -70,7 +73,7 @@ export const ViewDocumentPage: React.FC = () => {
       }
     } catch (error) {
       console.error('Error deleting document:', error);
-      alert('Erreur lors de la suppression du document');
+      alert(t('admin.documents.errorDelete'));
     }
   };
 
@@ -114,10 +117,10 @@ export const ViewDocumentPage: React.FC = () => {
     return (
       <EmptyState
         tone="error"
-        title="Document non trouvé"
+        title={t('admin.documents.notFound')}
         action={
           <Button to="/admin/documents" variant="secondary">
-            Retour à la liste
+            {t('admin.common.backToList')}
           </Button>
         }
       />
@@ -128,10 +131,10 @@ export const ViewDocumentPage: React.FC = () => {
     <AdminDetailLayout
       title={document.name}
       backPath="/admin/documents"
-      backLabel="Retour à la liste"
+      backLabel={t('admin.common.backToList')}
       status={{
         status: document.isActive ? 'published' : 'draft',
-        label: document.isActive ? 'Actif' : 'Inactif',
+        label: document.isActive ? t('admin.common.active') : t('admin.common.inactive'),
       }}
       secondaryActions={
         <div className="flex flex-wrap items-center gap-2">
@@ -143,11 +146,11 @@ export const ViewDocumentPage: React.FC = () => {
         <>
           <Button to={`/admin/documents/${document.id}/edit`} variant="secondary">
             <i className="ri-edit-line" aria-hidden="true" />
-            Modifier
+            {t('admin.common.edit')}
           </Button>
           <Button variant="destructive" onClick={handleDelete}>
             <i className="ri-delete-bin-line" aria-hidden="true" />
-            Supprimer
+            {t('admin.common.delete')}
           </Button>
         </>
       }
@@ -155,26 +158,26 @@ export const ViewDocumentPage: React.FC = () => {
         <>
           {document.description && (
             <div>
-              <h2 className="font-display text-headline-sm text-green">Description</h2>
+              <h2 className="font-display text-headline-sm text-green">{t('admin.common.description')}</h2>
               <p className="mt-3 text-body-md text-ink-variant">{document.description}</p>
             </div>
           )}
 
           <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-            <AdminStatCard value={document.size || 'N/A'} label="Taille" icon="ri-hard-drive-3-line" />
-            <AdminStatCard value={document.pages || 'N/A'} label="Pages" icon="ri-pages-line" tone="neutral" />
-            <AdminStatCard value={document.downloads} label="Téléchargements" icon="ri-download-cloud-2-line" tone="gold" />
-            <AdminStatCard value={document.displayOrder} label="Ordre" icon="ri-sort-number-asc" tone="neutral" />
+            <AdminStatCard value={document.size || 'N/A'} label={t('admin.documents.colSize')} icon="ri-hard-drive-3-line" />
+            <AdminStatCard value={document.pages || 'N/A'} label={t('admin.documents.colPages')} icon="ri-pages-line" tone="neutral" />
+            <AdminStatCard value={document.downloads} label={t('admin.documents.colDownloads')} icon="ri-download-cloud-2-line" tone="gold" />
+            <AdminStatCard value={document.displayOrder} label={t('admin.common.order')} icon="ri-sort-number-asc" tone="neutral" />
           </div>
 
           <div>
-            <h2 className="font-display text-headline-sm text-green">Informations techniques</h2>
+            <h2 className="font-display text-headline-sm text-green">{t('admin.documents.technicalInfo')}</h2>
             <DetailList>
               <DetailRow label="ID" value={<span className="font-mono">{document.id}</span>} />
-              {document.type && <DetailRow label="Type de fichier" value={document.type} />}
+              {document.type && <DetailRow label={t('admin.documents.fileType')} value={document.type} />}
               <DetailRow
-                label="Date de création"
-                value={new Date(document.createdAt).toLocaleDateString('fr-FR', {
+                label={t('admin.documents.createdAt')}
+                value={new Date(document.createdAt).toLocaleDateString(locale, {
                   year: 'numeric',
                   month: 'long',
                   day: 'numeric',
@@ -189,7 +192,7 @@ export const ViewDocumentPage: React.FC = () => {
           {document.url && (
             <Button variant="primary" onClick={handleDownload} className="w-full justify-center rounded-xl">
               <i className="ri-download-line" aria-hidden="true" />
-              Télécharger le document
+              {t('admin.documents.download')}
             </Button>
           )}
         </>

@@ -11,14 +11,14 @@ const statisticDefaults: Record<string, string> = { provinces: '11', zones: '2',
 const blankNavigation = (): Omit<NavigationItemDto, 'id'> => ({ label: '', labelEn: '', url: '/', isActive: true, displayOrder: 0 });
 const blankFooter = (): Omit<FooterLinkDto, 'id'> => ({ category: 'Navigation', categoryEn: 'Navigation', label: '', labelEn: '', url: '/', isActive: true, displayOrder: 0 });
 const collections = [
-  { label: 'Événements', href: '/admin/events', icon: 'ri-calendar-event-line' },
-  { label: 'Actualités', href: '/admin/news', icon: 'ri-article-line' },
-  { label: 'Documents', href: '/admin/documents', icon: 'ri-file-text-line' },
-  { label: 'Associations', href: '/admin/associations', icon: 'ri-building-line' },
-  { label: 'Projets', href: '/admin/projects', icon: 'ri-hammer-line' },
-  { label: 'Bourses', href: '/admin/grants', icon: 'ri-hand-coin-line' },
-  { label: 'Consultations', href: '/admin/consultations', icon: 'ri-chat-poll-line' },
-  { label: 'Partenaires', href: '/admin/partners', icon: 'ri-shake-hands-line' },
+  { labelKey: 'admin.nav.events', href: '/admin/events', icon: 'ri-calendar-event-line' },
+  { labelKey: 'admin.nav.news', href: '/admin/news', icon: 'ri-article-line' },
+  { labelKey: 'admin.nav.documents', href: '/admin/documents', icon: 'ri-file-text-line' },
+  { labelKey: 'admin.nav.associations', href: '/admin/associations', icon: 'ri-building-line' },
+  { labelKey: 'admin.nav.projects', href: '/admin/projects', icon: 'ri-hammer-line' },
+  { labelKey: 'admin.nav.grants', href: '/admin/grants', icon: 'ri-hand-coin-line' },
+  { labelKey: 'admin.nav.consultations', href: '/admin/consultations', icon: 'ri-chat-poll-line' },
+  { labelKey: 'admin.nav.partners', href: '/admin/partners', icon: 'ri-shake-hands-line' },
 ] as const;
 
 const SiteContentPage = () => {
@@ -72,8 +72,8 @@ const SiteContentPage = () => {
       <AdminPageHeader title={t('admin.siteContent.title')} subtitle={t('admin.siteContent.subtitle')} icon="ri-layout-4-line" />
       {message && <p role="status" className="admin-panel border-l-4 border-l-gold px-5 py-4 text-sm text-ink">{message}</p>}
 
-      <nav aria-label="Collections de contenu" className="grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-8">
-        {collections.map((collection) => <Link key={collection.href} to={collection.href} className="group flex min-h-20 flex-col justify-between rounded-xl border border-line bg-surface px-3 py-3 shadow-sm transition-all hover:-translate-y-0.5 hover:border-green/35 hover:shadow-md"><i className={`${collection.icon} text-lg text-green`} aria-hidden="true" /><span className="mt-3 text-[10px] font-bold uppercase tracking-[.08em] text-ink-variant group-hover:text-green">{collection.label}</span></Link>)}
+      <nav aria-label={t('admin.siteContent.collections')} className="grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-8">
+        {collections.map((collection) => <Link key={collection.href} to={collection.href} className="group flex min-h-20 flex-col justify-between rounded-xl border border-line bg-surface px-3 py-3 shadow-sm transition-all hover:-translate-y-0.5 hover:border-green/35 hover:shadow-md"><i className={`${collection.icon} text-lg text-green`} aria-hidden="true" /><span className="mt-3 text-[10px] font-bold uppercase tracking-[.08em] text-ink-variant group-hover:text-green">{t(collection.labelKey)}</span></Link>)}
       </nav>
 
       <CmsContentStudio />
@@ -88,7 +88,7 @@ const SiteContentPage = () => {
       </CmsPanel>
 
       <CmsPanel eyebrow={t('admin.siteContent.navigation')} title={t('admin.siteContent.navigationHint')} icon="ri-menu-2-line">
-        <p className="mb-3 text-xs text-ink-variant">FR · EN · URL · {t('admin.common.order')}</p>
+        <p className="mb-3 text-xs text-ink-variant">{t('admin.siteContent.navigationColumns')}</p>
         <div className="space-y-3">
           {navigation.map((item) => <NavigationRow key={item.id} item={item} busy={busy} setItems={setNavigation} save={() => void run(() => siteContentApi.updateNavigation(item.id, item), t('admin.siteContent.saved'))} remove={() => void run(() => siteContentApi.deleteNavigation(item.id), t('admin.siteContent.deleted'))} />)}
           <div className="grid gap-3 rounded-xl border border-dashed border-green/35 p-4 md:grid-cols-[1fr_1fr_1.2fr_90px_auto]">
@@ -102,7 +102,7 @@ const SiteContentPage = () => {
       </CmsPanel>
 
       <CmsPanel eyebrow={t('admin.siteContent.footer')} title={t('admin.siteContent.footerHint')} icon="ri-layout-bottom-2-line">
-        <p className="mb-3 text-xs text-ink-variant">Catégorie FR · Category EN · Libellé FR · Label EN · URL · {t('admin.common.order')}</p>
+        <p className="mb-3 text-xs text-ink-variant">{t('admin.siteContent.footerColumns')}</p>
         <div className="space-y-3">
           {footer.map((item) => <FooterRow key={item.id} item={item} busy={busy} setItems={setFooter} save={() => void run(() => siteContentApi.updateFooter(item.id, item), t('admin.siteContent.saved'))} remove={() => void run(() => siteContentApi.deleteFooter(item.id), t('admin.siteContent.deleted'))} />)}
           <div className="grid gap-3 rounded-xl border border-dashed border-green/35 p-4 lg:grid-cols-[.8fr_.8fr_1fr_1fr_1.1fr_80px_auto]">
@@ -119,7 +119,10 @@ const SiteContentPage = () => {
 
 const CmsPanel = ({ eyebrow, title, icon, children }: { eyebrow: string; title: string; icon: string; children: ReactNode }) => <section className="admin-panel overflow-hidden"><header className="flex items-center gap-3 border-b border-line/60 bg-surface-container/55 px-5 py-4"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gold/15 text-gold-ink"><i className={icon} aria-hidden="true" /></span><div><p className="text-[10px] font-bold uppercase tracking-[.16em] text-green">{eyebrow}</p><h2 className="font-display text-lg text-green-deep">{title}</h2></div></header><div className="p-5">{children}</div></section>;
 
-const RowActions = ({ busy, active, onToggle, onSave, onDelete }: { busy: boolean; active: boolean; onToggle: () => void; onSave: () => void; onDelete: () => void }) => <div className="flex items-center justify-end gap-1"><button type="button" disabled={busy} onClick={onToggle} className={active ? 'h-10 w-10 text-green' : 'h-10 w-10 text-ink-variant'} aria-label="Toggle"><i className={active ? 'ri-eye-line' : 'ri-eye-off-line'} /></button><button type="button" disabled={busy} onClick={onSave} className="h-10 w-10 text-green" aria-label="Save"><i className="ri-save-line" /></button><button type="button" disabled={busy} onClick={onDelete} className="h-10 w-10 text-error" aria-label="Delete"><i className="ri-delete-bin-line" /></button></div>;
+const RowActions = ({ busy, active, onToggle, onSave, onDelete }: { busy: boolean; active: boolean; onToggle: () => void; onSave: () => void; onDelete: () => void }) => {
+  const { t } = useTranslation();
+  return <div className="flex items-center justify-end gap-1"><button type="button" disabled={busy} onClick={onToggle} className={active ? 'h-10 w-10 text-green' : 'h-10 w-10 text-ink-variant'} aria-label={active ? t('admin.common.deactivate') : t('admin.common.activate')}><i className={active ? 'ri-eye-line' : 'ri-eye-off-line'} /></button><button type="button" disabled={busy} onClick={onSave} className="h-10 w-10 text-green" aria-label={t('admin.common.save')}><i className="ri-save-line" /></button><button type="button" disabled={busy} onClick={onDelete} className="h-10 w-10 text-error" aria-label={t('admin.common.delete')}><i className="ri-delete-bin-line" /></button></div>;
+};
 
 const NavigationRow = ({ item, busy, setItems, save, remove }: { item: NavigationItemDto; busy: boolean; setItems: React.Dispatch<React.SetStateAction<NavigationItemDto[]>>; save: () => void; remove: () => void }) => <div className="grid gap-3 rounded-xl border border-line/70 bg-surface-container/40 p-4 md:grid-cols-[1fr_1fr_1.2fr_90px_auto]"><input aria-label="Label FR" className={inputClasses} value={item.label} onChange={(event) => setItems((rows) => rows.map((row) => row.id === item.id ? { ...row, label: event.target.value } : row))} /><input aria-label="Label EN" className={inputClasses} value={item.labelEn || ''} onChange={(event) => setItems((rows) => rows.map((row) => row.id === item.id ? { ...row, labelEn: event.target.value } : row))} /><input aria-label="URL" className={inputClasses} value={item.url} onChange={(event) => setItems((rows) => rows.map((row) => row.id === item.id ? { ...row, url: event.target.value } : row))} /><input aria-label="Order" type="number" className={inputClasses} value={item.displayOrder} onChange={(event) => setItems((rows) => rows.map((row) => row.id === item.id ? { ...row, displayOrder: Number(event.target.value) } : row))} /><RowActions busy={busy} active={item.isActive} onToggle={() => setItems((rows) => rows.map((row) => row.id === item.id ? { ...row, isActive: !row.isActive } : row))} onSave={save} onDelete={remove} /></div>;
 

@@ -20,12 +20,34 @@ test('public services and events pages load against the real API', async ({ page
   }
 });
 
+test('public and authentication routes render cleanly in French and English', async ({ page }) => {
+  const routes = [
+    '/', '/services', '/services/bourses', '/services/comites', '/services/documents-officiels',
+    '/actualites', '/actualites/evenements', '/actualites/annonces', '/actualites/souvenirs',
+    '/engagement', '/engagement/annuaire', '/engagement/projets', '/engagement/consultations',
+    '/contact', '/confidentialite', '/contribuer', '/espace-membre', '/admin/login',
+  ];
+
+  for (const language of ['fr', 'en']) {
+    await page.goto('/');
+    await page.evaluate((value) => window.localStorage.setItem('i18nextLng', value), language);
+    await page.reload();
+    for (const route of routes) {
+      await page.goto(route);
+      await expect(page.locator('#root')).toBeVisible();
+      await expect(page.locator('body')).not.toContainText(/\{\{\s*[\w.-]+(?:\s*,[^}]*)?\s*\}\}/);
+      await expect(page.locator('body')).not.toContainText(/(?:public|admin)\.[a-z][\w.-]{2,}/);
+      await expect(page.locator('html')).toHaveAttribute('lang', language);
+    }
+  }
+});
+
 test('privacy policy publishes account rights and the privacy contact', async ({ page }) => {
   await page.goto('/confidentialite');
 
   await expect(page.getByRole('heading', { name: /compte membre et finalités|member account and purposes/i })).toBeVisible();
   await expect(page.getByRole('heading', { name: /vos droits|your rights/i })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'contact@hcbe.ca' })).toHaveAttribute('href', /^mailto:contact@hcbe\.ca/);
+  await expect(page.getByRole('main').getByRole('link', { name: 'contact@hcbe.ca' })).toHaveAttribute('href', /^mailto:contact@hcbe\.ca/);
 });
 
 test('admin login page exposes an accessible sign-in form', async ({ page }) => {

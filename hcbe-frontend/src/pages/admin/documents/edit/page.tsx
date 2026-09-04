@@ -173,7 +173,7 @@ export const EditDocumentPage: React.FC = () => {
   if (!document) {
     return (
       <div className="py-12 text-center">
-        <h3 className="text-headline-md text-ink">Document non trouvé</h3>
+        <h3 className="text-headline-md text-ink">{t('admin.documents.notFound')}</h3>
         <Link to="/admin/documents" className="mt-4 inline-block text-body-md text-green hover:text-green-deep">
           {t('admin.common.backToList')}
         </Link>
@@ -292,7 +292,7 @@ export const EditDocumentPage: React.FC = () => {
               {t('admin.content.lang.settings')}
             </h2>
             <div className="space-y-6">
-              <Field label="Icône" htmlFor="icon">
+              <Field label={t('admin.documents.icon')} htmlFor="icon">
                 <select
                   id="icon"
                   value={formData.icon}
@@ -307,11 +307,11 @@ export const EditDocumentPage: React.FC = () => {
                 </select>
                 <div className="mt-2 flex items-center gap-2 text-body-md text-ink-variant">
                   <i className={`${formData.icon} text-2xl text-green`}></i>
-                  <span>Aperçu de l&apos;icône</span>
+                  <span>{t('admin.documents.iconPreview')}</span>
                 </div>
               </Field>
 
-              <Field label="Ordre d'affichage" htmlFor="displayOrder">
+              <Field label={t('admin.common.order')} htmlFor="displayOrder">
                 <input
                   type="number"
                   id="displayOrder"
@@ -339,20 +339,20 @@ export const EditDocumentPage: React.FC = () => {
                   <i className="ri-upload-line text-xl text-green" aria-hidden="true" />
                   <div>
                     <h3 className="text-label-md uppercase text-ink">
-                      Remplacer le fichier (optionnel)
+                      {t('admin.documents.replaceFile')}
                     </h3>
                     <div className="mt-2 text-body-md text-ink-variant">
-                      <p>Vous pouvez uploader un nouveau fichier pour remplacer l&apos;actuel.</p>
-                      {document.url && <p className="mt-1">Fichier actuel : {document.url}</p>}
+                      <p>{t('admin.documents.replaceFileHint')}</p>
+                      {document.url && <p className="mt-1">{t('admin.documents.currentFile')}: {document.url}</p>}
                     </div>
                   </div>
                 </div>
               </div>
 
-              <Field label="Nouveau fichier (optionnel)" htmlFor="newFile">
+              <Field label={t('admin.documents.newFile')} htmlFor="newFile">
                 <div className="flex flex-wrap items-center gap-3">
                   <Button type="button" variant="secondary" onClick={() => newFileInputRef.current?.click()}>
-                    Choisir un fichier
+                    {t('admin.documents.chooseFile')}
                   </Button>
                   {formData.file && (
                     <p className="break-all text-body-md text-green">

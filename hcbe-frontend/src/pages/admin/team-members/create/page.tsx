@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { AdminFormLayout } from '../../../../components/admin/AdminFormLayout';
 import { Button, Field, inputClasses } from '../../../../components/ui';
@@ -6,6 +7,7 @@ import { teamMembersApi } from '../../../../lib/api/team-members';
 import type { CreateTeamMemberRequest } from '../../../../lib/api/types';
 
 const TeamMemberCreatePage: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const formRef = useRef<HTMLFormElement>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -38,11 +40,11 @@ const TeamMemberCreatePage: React.FC = () => {
       if (response.success && response.data) {
         navigate(`/admin/team-members/${response.data.id}`);
       } else {
-        setError('Failed to create team member');
+        setError(t('admin.team.errorCreate'));
       }
     } catch (err) {
       console.error('Error creating team member:', err);
-      setError('Error creating team member');
+      setError(t('admin.team.errorCreate'));
     } finally {
       setSubmitting(false);
     }
@@ -61,14 +63,14 @@ const TeamMemberCreatePage: React.FC = () => {
   return (
     <form ref={formRef} onSubmit={handleSubmit} className="min-w-0">
       <AdminFormLayout
-        title="Add New Team Member"
+        title={t('admin.team.createTitle')}
         backPath={backPath}
-        backLabel="Cancel"
+        backLabel={t('admin.common.cancel')}
         onCancel={() => navigate(backPath)}
         onSave={() => formRef.current?.requestSubmit()}
         actions={
           <Button type="submit" variant="primary" disabled={submitting}>
-            {submitting ? 'Creating...' : 'Create Member'}
+            {submitting ? t('admin.team.creating') : t('admin.team.createAction')}
           </Button>
         }
         main={
@@ -78,7 +80,7 @@ const TeamMemberCreatePage: React.FC = () => {
             )}
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <div className="md:col-span-2">
-                <Field label="Name" htmlFor="name" required>
+                <Field label={t('admin.team.name')} htmlFor="name" required>
                   <input
                     type="text"
                     id="name"
@@ -87,13 +89,13 @@ const TeamMemberCreatePage: React.FC = () => {
                     onChange={handleChange}
                     required
                     className={inputClasses}
-                    placeholder="Full name"
+                    placeholder={t('admin.team.namePlaceholder')}
                   />
                 </Field>
               </div>
 
               <div className="md:col-span-2">
-                <Field label="Position" htmlFor="position" required>
+                <Field label={t('admin.team.positionFr')} htmlFor="position" required>
                   <input
                     type="text"
                     id="position"
@@ -102,18 +104,18 @@ const TeamMemberCreatePage: React.FC = () => {
                     onChange={handleChange}
                     required
                     className={inputClasses}
-                    placeholder="e.g., Co-Président"
+                    placeholder={t('admin.team.positionFrPlaceholder')}
                   />
                 </Field>
               </div>
 
               <div className="md:col-span-2">
-                <Field label="Position (English)" htmlFor="positionEn">
-                  <input type="text" id="positionEn" name="positionEn" value={formData.positionEn} onChange={handleChange} className={inputClasses} placeholder="e.g., Co-Chair" />
+                <Field label={t('admin.team.positionEn')} htmlFor="positionEn">
+                  <input type="text" id="positionEn" name="positionEn" value={formData.positionEn} onChange={handleChange} className={inputClasses} placeholder={t('admin.team.positionEnPlaceholder')} />
                 </Field>
               </div>
 
-              <Field label="Region" htmlFor="region" required>
+              <Field label={t('admin.team.regionFr')} htmlFor="region" required>
                 <input
                   type="text"
                   id="region"
@@ -125,11 +127,11 @@ const TeamMemberCreatePage: React.FC = () => {
                 />
               </Field>
 
-              <Field label="Region (English)" htmlFor="regionEn">
+              <Field label={t('admin.team.regionEn')} htmlFor="regionEn">
                 <input type="text" id="regionEn" name="regionEn" value={formData.regionEn} onChange={handleChange} className={inputClasses} />
               </Field>
 
-              <Field label="Zone" htmlFor="zone" required>
+              <Field label={t('admin.common.zone')} htmlFor="zone" required>
                 <select
                   id="zone"
                   name="zone"
@@ -138,18 +140,18 @@ const TeamMemberCreatePage: React.FC = () => {
                   required
                   className={`${inputClasses} cursor-pointer`}
                 >
-                  <option value="">Select Zone</option>
+                  <option value="">{t('admin.team.selectZone')}</option>
                   <option value="Zone 1">Zone 1</option>
                   <option value="Zone 2">Zone 2</option>
                 </select>
               </Field>
 
-              <Field label="Zone (English)" htmlFor="zoneEn">
+              <Field label={t('admin.team.zoneEn')} htmlFor="zoneEn">
                 <input type="text" id="zoneEn" name="zoneEn" value={formData.zoneEn} onChange={handleChange} className={inputClasses} placeholder="Zone 1" />
               </Field>
 
               <div className="md:col-span-2">
-                <Field label="Email" htmlFor="email">
+                <Field label={t('admin.common.email')} htmlFor="email">
                   <input
                     type="email"
                     id="email"
@@ -163,7 +165,7 @@ const TeamMemberCreatePage: React.FC = () => {
               </div>
 
               <div className="md:col-span-2">
-                <Field label="Photo URL" htmlFor="photo">
+                <Field label={t('admin.team.photoUrl')} htmlFor="photo">
                   <input
                     type="url"
                     id="photo"
@@ -177,7 +179,7 @@ const TeamMemberCreatePage: React.FC = () => {
               </div>
 
               <div className="md:col-span-2">
-                <Field label="Biography" htmlFor="bio">
+                <Field label={t('admin.team.biographyFr')} htmlFor="bio">
                   <textarea
                     id="bio"
                     name="bio"
@@ -185,18 +187,18 @@ const TeamMemberCreatePage: React.FC = () => {
                     onChange={handleChange}
                     rows={4}
                     className={inputClasses}
-                    placeholder="Brief biography..."
+                    placeholder={t('admin.team.biographyFrPlaceholder')}
                   />
                 </Field>
               </div>
 
               <div className="md:col-span-2">
-                <Field label="Biography (English)" htmlFor="bioEn">
-                  <textarea id="bioEn" name="bioEn" value={formData.bioEn} onChange={handleChange} rows={4} className={inputClasses} placeholder="Brief biography in English..." />
+                <Field label={t('admin.team.biographyEn')} htmlFor="bioEn">
+                  <textarea id="bioEn" name="bioEn" value={formData.bioEn} onChange={handleChange} rows={4} className={inputClasses} placeholder={t('admin.team.biographyEnPlaceholder')} />
                 </Field>
               </div>
 
-              <Field label="Display Order" htmlFor="order" required hint="Lower numbers appear first">
+              <Field label={t('admin.common.order')} htmlFor="order" required hint={t('admin.team.orderHint')}>
                 <input
                   type="number"
                   id="order"
@@ -219,7 +221,7 @@ const TeamMemberCreatePage: React.FC = () => {
                     onChange={handleChange}
                     className="h-5 w-5 rounded-control-sm border border-outline accent-green"
                   />
-                  <span className="text-body-md text-ink">Active</span>
+                  <span className="text-body-md text-ink">{t('admin.common.active')}</span>
                 </label>
               </div>
             </div>

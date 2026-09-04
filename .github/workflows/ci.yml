@@ -101,6 +101,8 @@ jobs:
         run: npm ci
       - name: Type check
         run: npm run typecheck
+      - name: Bilingual integrity check
+        run: npm run check:i18n
       - name: Dependency security audit
         run: npm audit --audit-level=high
       - name: Production build

@@ -227,8 +227,8 @@ const CreateProjectPage = () => {
                   required
                   className={`${inputClasses} cursor-pointer`}
                 >
-                  <option value="Développement au Burkina">Développement au Burkina</option>
-                  <option value="Initiative Locale">Initiative Locale</option>
+                  <option value="Développement au Burkina">{t('public.engagement.projets.type.Développement au Burkina')}</option>
+                  <option value="Initiative Locale">{t('public.engagement.projets.type.Initiative Locale')}</option>
                 </select>
               </Field>
               <Field label={t('admin.common.status')} htmlFor="status" required>
@@ -240,10 +240,10 @@ const CreateProjectPage = () => {
                   required
                   className={`${inputClasses} cursor-pointer`}
                 >
-                  <option value="Planification">Planification</option>
-                  <option value="En cours">En cours</option>
-                  <option value="Actif">Actif</option>
-                  <option value="Terminé">Terminé</option>
+                  <option value="Planification">{t('public.engagement.projets.status.Planification')}</option>
+                  <option value="En cours">{t('public.engagement.projets.status.En cours')}</option>
+                  <option value="Actif">{t('public.engagement.projets.status.Actif')}</option>
+                  <option value="Terminé">{t('public.engagement.projets.status.Terminé')}</option>
                 </select>
               </Field>
               <Field label={`${t('admin.projects.colProgress')} (0-100)`} htmlFor="progress" required>

@@ -173,7 +173,7 @@ const ContactPage = () => {
                   <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-red-link">
                     {t('public.contact.hero.badge')}
                   </p>
-                  <p className="mt-2 text-sm text-ink-variant">contact@hcbecanada.org</p>
+                  <p className="mt-2 text-sm text-ink-variant">contact@hcbe.ca</p>
                 </div>
                 <span className="flex h-12 w-12 items-center justify-center rounded-full bg-gold text-green shadow-[0_8px_24px_rgba(255,205,0,.25)]">
                   <i className="ri-mail-send-line text-xl" aria-hidden="true" />
@@ -335,7 +335,7 @@ const ContactPage = () => {
                 </div>
 
                 <div className="divide-y divide-white/10 px-7 md:px-8">
-                  <a href="mailto:contact@hcbecanada.org" className="group flex items-center gap-4 py-6">
+                  <a href="mailto:contact@hcbe.ca" className="group flex items-center gap-4 py-6">
                     <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-gold transition-colors group-hover:bg-gold group-hover:text-green">
                       <i className="ri-mail-line text-xl" aria-hidden="true" />
                     </span>
@@ -343,7 +343,7 @@ const ContactPage = () => {
                       <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-white/50">
                         {t('public.contact.coordinates.email')}
                       </span>
-                      <span className="mt-1 block text-sm font-semibold text-white">contact@hcbecanada.org</span>
+                      <span className="mt-1 block text-sm font-semibold text-white">contact@hcbe.ca</span>
                     </span>
                     <i className="ri-arrow-right-up-line ml-auto text-white/40 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" />
                   </a>
@@ -432,7 +432,7 @@ const ContactPage = () => {
                 {t('public.contact.faq.subtitle')}
               </p>
               <a
-                href="mailto:contact@hcbecanada.org"
+                href="mailto:contact@hcbe.ca"
                 className="mt-7 inline-flex min-h-[44px] items-center gap-2 text-label-md uppercase text-red-link transition-colors hover:text-green"
               >
                 {t('public.contact.form.title')}

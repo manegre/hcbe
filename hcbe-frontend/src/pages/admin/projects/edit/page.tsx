@@ -129,7 +129,7 @@ const EditProjectPage = () => {
   if (!project) {
     return (
       <div className="border border-error bg-surface px-6 py-12 text-center">
-        <p className="text-error">Project not found</p>
+        <p className="text-error">{t('admin.projects.notFound')}</p>
         <button
           onClick={() => navigate(backPath)}
           className="mt-2 text-body-md text-red-link underline hover:text-green"
@@ -279,8 +279,8 @@ const EditProjectPage = () => {
                   onChange={handleChange}
                   className={`${inputClasses} cursor-pointer`}
                 >
-                  <option value="Développement au Burkina">Développement au Burkina</option>
-                  <option value="Initiative Locale">Initiative Locale</option>
+                  <option value="Développement au Burkina">{t('public.engagement.projets.type.Développement au Burkina')}</option>
+                  <option value="Initiative Locale">{t('public.engagement.projets.type.Initiative Locale')}</option>
                 </select>
               </Field>
               <Field label={t('admin.common.status')} htmlFor="status">
@@ -291,10 +291,10 @@ const EditProjectPage = () => {
                   onChange={handleChange}
                   className={`${inputClasses} cursor-pointer`}
                 >
-                  <option value="Planification">Planification</option>
-                  <option value="En cours">En cours</option>
-                  <option value="Actif">Actif</option>
-                  <option value="Terminé">Terminé</option>
+                  <option value="Planification">{t('public.engagement.projets.status.Planification')}</option>
+                  <option value="En cours">{t('public.engagement.projets.status.En cours')}</option>
+                  <option value="Actif">{t('public.engagement.projets.status.Actif')}</option>
+                  <option value="Terminé">{t('public.engagement.projets.status.Terminé')}</option>
                 </select>
               </Field>
               <Field label={`${t('admin.projects.colProgress')} (0-100)`} htmlFor="progress">

@@ -226,7 +226,7 @@ export const AdminDashboard = () => {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gold opacity-40 motion-reduce:animate-none" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-gold" />
             </span>
-            Données en direct
+            {t('admin.dashboard.liveData')}
           </div>
         </div>
       </div>

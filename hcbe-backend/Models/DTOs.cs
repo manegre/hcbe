@@ -464,7 +464,7 @@ public record OpportunityDto(Guid Id, string Title, string? TitleEn, string Desc
 public record UpsertOpportunityRequest([Required]string Title, string? TitleEn, [Required]string Description,
     string? DescriptionEn, [Required]string Type, [Required]string Organization, string? Location,
     bool IsRemote, string? Skills, string? ApplyUrl, DateTime? DeadlineUtc, string Status = "Draft");
-public record OpportunityApplicationDto(Guid Id, Guid OpportunityId, string OpportunityTitle, Guid MemberId,
+public record OpportunityApplicationDto(Guid Id, Guid OpportunityId, string OpportunityTitle, string? OpportunityTitleEn, Guid MemberId,
     string MemberName, string MemberEmail, string Message, string Status, string? AdminNotes, DateTime CreatedAt, DateTime UpdatedAt);
 public record CreateOpportunityApplicationRequest([Required][StringLength(1500, MinimumLength = 20)] string Message);
 public record ReviewOpportunityApplicationRequest([Required]string Status, string? AdminNotes);

@@ -1,4 +1,6 @@
 export default {
+  'public.nav.explore': 'Explorer le site',
+  'public.nav.language': 'Langue',
   'public.lang': 'Langue',
   'public.backToTop': 'Retour en haut',
   'public.nav.home': 'Accueil',

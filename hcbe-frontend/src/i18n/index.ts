@@ -7,8 +7,7 @@ i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    lng: 'fr',
-    fallbackLng: 'en',
+    fallbackLng: 'fr',
     debug: false,
     resources: messages,
     detection: {

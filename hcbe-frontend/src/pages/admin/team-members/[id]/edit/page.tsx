@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AdminFormLayout } from '../../../../../components/admin/AdminFormLayout';
 import { Button, Field, inputClasses } from '../../../../../components/ui';
@@ -6,6 +7,7 @@ import { teamMembersApi } from '../../../../../lib/api/team-members';
 import type { UpdateTeamMemberRequest } from '../../../../../lib/api/types';
 
 const TeamMemberEditPage: React.FC = () => {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const formRef = useRef<HTMLFormElement>(null);
@@ -55,11 +57,11 @@ const TeamMemberEditPage: React.FC = () => {
             isActive: member.isActive
           });
         } else {
-          setError('Failed to load team member');
+          setError(t('admin.team.errorLoad'));
         }
       } catch (err) {
         console.error('Error loading team member:', err);
-        setError('Error loading team member');
+        setError(t('admin.team.errorLoad'));
       } finally {
         setLoading(false);
       }
@@ -80,11 +82,11 @@ const TeamMemberEditPage: React.FC = () => {
       if (response.success) {
         navigate(`/admin/team-members/${id}`);
       } else {
-        setError('Failed to update team member');
+        setError(t('admin.team.errorUpdate'));
       }
     } catch (err) {
       console.error('Error updating team member:', err);
-      setError('Error updating team member');
+      setError(t('admin.team.errorUpdate'));
     } finally {
       setSubmitting(false);
     }
@@ -111,14 +113,14 @@ const TeamMemberEditPage: React.FC = () => {
   return (
     <form ref={formRef} onSubmit={handleSubmit} className="min-w-0">
       <AdminFormLayout
-        title="Edit Team Member"
+        title={t('admin.team.editTitle')}
         backPath={backPath}
-        backLabel="Cancel"
+        backLabel={t('admin.common.cancel')}
         onCancel={() => navigate(backPath)}
         onSave={() => formRef.current?.requestSubmit()}
         actions={
           <Button type="submit" variant="primary" disabled={submitting}>
-            {submitting ? 'Saving...' : 'Save Changes'}
+            {submitting ? t('admin.common.saving') : t('admin.common.saveChanges')}
           </Button>
         }
         main={
@@ -128,7 +130,7 @@ const TeamMemberEditPage: React.FC = () => {
             )}
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <div className="md:col-span-2">
-                <Field label="Name" htmlFor="name" required>
+                <Field label={t('admin.team.name')} htmlFor="name" required>
                   <input
                     type="text"
                     id="name"
@@ -142,7 +144,7 @@ const TeamMemberEditPage: React.FC = () => {
               </div>
 
               <div className="md:col-span-2">
-                <Field label="Position" htmlFor="position" required>
+                <Field label={t('admin.team.positionFr')} htmlFor="position" required>
                   <input
                     type="text"
                     id="position"
@@ -155,9 +157,9 @@ const TeamMemberEditPage: React.FC = () => {
                 </Field>
               </div>
 
-              <div className="md:col-span-2"><Field label="Position (English)" htmlFor="positionEn"><input type="text" id="positionEn" name="positionEn" value={formData.positionEn} onChange={handleChange} className={inputClasses} /></Field></div>
+              <div className="md:col-span-2"><Field label={t('admin.team.positionEn')} htmlFor="positionEn"><input type="text" id="positionEn" name="positionEn" value={formData.positionEn} onChange={handleChange} className={inputClasses} /></Field></div>
 
-              <Field label="Region" htmlFor="region" required>
+              <Field label={t('admin.team.regionFr')} htmlFor="region" required>
                 <input
                   type="text"
                   id="region"
@@ -169,9 +171,9 @@ const TeamMemberEditPage: React.FC = () => {
                 />
               </Field>
 
-              <Field label="Region (English)" htmlFor="regionEn"><input type="text" id="regionEn" name="regionEn" value={formData.regionEn} onChange={handleChange} className={inputClasses} /></Field>
+              <Field label={t('admin.team.regionEn')} htmlFor="regionEn"><input type="text" id="regionEn" name="regionEn" value={formData.regionEn} onChange={handleChange} className={inputClasses} /></Field>
 
-              <Field label="Zone" htmlFor="zone" required>
+              <Field label={t('admin.common.zone')} htmlFor="zone" required>
                 <select
                   id="zone"
                   name="zone"
@@ -180,16 +182,16 @@ const TeamMemberEditPage: React.FC = () => {
                   required
                   className={`${inputClasses} cursor-pointer`}
                 >
-                  <option value="">Select Zone</option>
+                  <option value="">{t('admin.team.selectZone')}</option>
                   <option value="Zone 1">Zone 1</option>
                   <option value="Zone 2">Zone 2</option>
                 </select>
               </Field>
 
-              <Field label="Zone (English)" htmlFor="zoneEn"><input type="text" id="zoneEn" name="zoneEn" value={formData.zoneEn} onChange={handleChange} className={inputClasses} /></Field>
+              <Field label={t('admin.team.zoneEn')} htmlFor="zoneEn"><input type="text" id="zoneEn" name="zoneEn" value={formData.zoneEn} onChange={handleChange} className={inputClasses} /></Field>
 
               <div className="md:col-span-2">
-                <Field label="Email" htmlFor="email">
+                <Field label={t('admin.common.email')} htmlFor="email">
                   <input
                     type="email"
                     id="email"
@@ -202,7 +204,7 @@ const TeamMemberEditPage: React.FC = () => {
               </div>
 
               <div className="md:col-span-2">
-                <Field label="Photo URL" htmlFor="photo">
+                <Field label={t('admin.team.photoUrl')} htmlFor="photo">
                   <input
                     type="url"
                     id="photo"
@@ -216,7 +218,7 @@ const TeamMemberEditPage: React.FC = () => {
               </div>
 
               <div className="md:col-span-2">
-                <Field label="Biography" htmlFor="bio">
+                <Field label={t('admin.team.biographyFr')} htmlFor="bio">
                   <textarea
                     id="bio"
                     name="bio"
@@ -228,9 +230,9 @@ const TeamMemberEditPage: React.FC = () => {
                 </Field>
               </div>
 
-              <div className="md:col-span-2"><Field label="Biography (English)" htmlFor="bioEn"><textarea id="bioEn" name="bioEn" value={formData.bioEn} onChange={handleChange} rows={4} className={inputClasses} /></Field></div>
+              <div className="md:col-span-2"><Field label={t('admin.team.biographyEn')} htmlFor="bioEn"><textarea id="bioEn" name="bioEn" value={formData.bioEn} onChange={handleChange} rows={4} className={inputClasses} /></Field></div>
 
-              <Field label="Display Order" htmlFor="order" required>
+              <Field label={t('admin.common.order')} htmlFor="order" required>
                 <input
                   type="number"
                   id="order"
@@ -253,7 +255,7 @@ const TeamMemberEditPage: React.FC = () => {
                     onChange={handleChange}
                     className="h-5 w-5 rounded-control-sm border border-outline accent-green"
                   />
-                  <span className="text-body-md text-ink">Active</span>
+                  <span className="text-body-md text-ink">{t('admin.common.active')}</span>
                 </label>
               </div>
             </div>

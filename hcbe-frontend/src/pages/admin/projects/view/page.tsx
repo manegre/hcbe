@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { projectsApi } from '../../../../lib/api/projects';
 import type { Project } from '../../../../lib/api/types';
 import { AdminDetailLayout, DetailList, DetailRow } from '../../../../components/admin/AdminDetailLayout';
 import { Button, EmptyState, Tag } from '../../../../components/ui';
+import { localized } from '../../../../lib/i18n/localized';
 
 const ViewProjectPage = () => {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language.startsWith('en') ? 'en-CA' : 'fr-CA';
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [loading, setLoading] = useState(true);
@@ -27,7 +31,7 @@ const ViewProjectPage = () => {
       setProject(response.data);
     } catch (err: any) {
       console.error('Error loading project:', err);
-      setError(err.message || 'Failed to load project');
+      setError(err.message || t('admin.projects.errorLoad'));
     } finally {
       setLoading(false);
     }
@@ -36,20 +40,20 @@ const ViewProjectPage = () => {
   const handleDelete = async () => {
     if (!project || !id) return;
 
-    if (!confirm(`Are you sure you want to delete "${project.title}"?`)) return;
+    if (!confirm(t('admin.projects.confirmDelete', { title: localized(project.title, project.titleEn, i18n.language) }))) return;
 
     try {
       await projectsApi.deleteProject(id);
       navigate('/admin/projects');
     } catch (err: any) {
       console.error('Error deleting project:', err);
-      setError(err.message || 'Failed to delete project');
+      setError(err.message || t('admin.projects.errorDelete'));
     }
   };
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return '';
-    return new Date(dateString).toLocaleDateString('fr-FR');
+    return new Date(dateString).toLocaleDateString(locale);
   };
 
   if (loading) {
@@ -64,10 +68,10 @@ const ViewProjectPage = () => {
     return (
       <EmptyState
         tone="error"
-        title={error || 'Project not found'}
+        title={error || t('admin.projects.notFound')}
         action={
           <Button to="/admin/projects" variant="secondary">
-            Back to Projects
+            {t('admin.common.backToList')}
           </Button>
         }
       />
@@ -76,21 +80,21 @@ const ViewProjectPage = () => {
 
   return (
     <AdminDetailLayout
-      title={project.title}
-      subtitle={`${project.location} • ${project.type}`}
+      title={localized(project.title, project.titleEn, i18n.language)}
+      subtitle={`${localized(project.location, project.locationEn, i18n.language)} • ${t(`public.engagement.projets.type.${project.type}`, { defaultValue: project.type })}`}
       backPath="/admin/projects"
       status={{
         status: project.isActive ? 'published' : 'draft',
-        label: project.isActive ? 'Active' : 'Inactive',
+        label: project.isActive ? t('admin.common.active') : t('admin.common.inactive'),
       }}
-      secondaryActions={<Tag>{project.status}</Tag>}
+      secondaryActions={<Tag>{t(`public.engagement.projets.status.${project.status}`, { defaultValue: project.status })}</Tag>}
       actions={
         <>
           <Button to={`/admin/projects/${project.id}/edit`} variant="secondary">
-            Edit
+            {t('admin.common.edit')}
           </Button>
           <Button variant="destructive" onClick={handleDelete}>
-            Delete
+            {t('admin.common.delete')}
           </Button>
         </>
       }
@@ -101,21 +105,21 @@ const ViewProjectPage = () => {
           {project.imageUrl ? (
             <img
               src={project.imageUrl}
-              alt={project.title}
+              alt={localized(project.title, project.titleEn, i18n.language)}
               className="h-64 w-full border border-line object-cover"
             />
           ) : (
             <div className="flex h-64 w-full items-center justify-center border border-line bg-surface-container">
               <div className="text-center text-ink-variant">
                 <i className="ri-image-line mb-2 block text-4xl"></i>
-                <div className="text-body-md">No image</div>
+                <div className="text-body-md">{t('admin.projects.noImage')}</div>
               </div>
             </div>
           )}
 
           <div className="border border-line bg-surface p-6">
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-label-md uppercase text-ink-variant">Progress</span>
+              <span className="text-label-md uppercase text-ink-variant">{t('admin.projects.colProgress')}</span>
               <span className="font-display text-headline-sm text-green">{project.progress}%</span>
             </div>
             <div className="h-3 w-full border border-line bg-surface-container">
@@ -124,33 +128,33 @@ const ViewProjectPage = () => {
           </div>
 
           <div>
-            <h2 className="font-display text-headline-sm text-green">Description</h2>
-            <p className="mt-3 text-body-md text-ink-variant">{project.description}</p>
+            <h2 className="font-display text-headline-sm text-green">{t('admin.common.description')}</h2>
+            <p className="mt-3 text-body-md text-ink-variant">{localized(project.description, project.descriptionEn, i18n.language)}</p>
           </div>
 
           <div>
-            <h2 className="font-display text-headline-sm text-green">Key Information</h2>
+            <h2 className="font-display text-headline-sm text-green">{t('admin.projects.keyInformation')}</h2>
             <DetailList>
-              <DetailRow label="Budget Total" value={project.budget} />
-              <DetailRow label="Fonds Collectés" value={project.fundsRaised} />
-              <DetailRow label="Bénéficiaires" value={project.beneficiaries} />
-              <DetailRow label="Type" value={project.type} />
+              <DetailRow label={t('admin.projects.totalBudget')} value={project.budget} />
+              <DetailRow label={t('admin.projects.fundsRaised')} value={project.fundsRaised} />
+              <DetailRow label={t('admin.projects.beneficiaries')} value={localized(project.beneficiaries, project.beneficiariesEn, i18n.language)} />
+              <DetailRow label={t('admin.common.type')} value={t(`public.engagement.projets.type.${project.type}`, { defaultValue: project.type })} />
             </DetailList>
           </div>
 
           {(project.startDate || project.endDate) && (
             <div>
-              <h2 className="font-display text-headline-sm text-green">Timeline</h2>
+              <h2 className="font-display text-headline-sm text-green">{t('admin.projects.timeline')}</h2>
               <DetailList>
-                {project.startDate && <DetailRow label="Date de début" value={formatDate(project.startDate)} />}
-                {project.endDate && <DetailRow label="Date de fin" value={formatDate(project.endDate)} />}
+                {project.startDate && <DetailRow label={t('admin.projects.startDate')} value={formatDate(project.startDate)} />}
+                {project.endDate && <DetailRow label={t('admin.projects.endDate')} value={formatDate(project.endDate)} />}
               </DetailList>
             </div>
           )}
 
           {project.partners.length > 0 && (
             <div>
-              <h2 className="font-display text-headline-sm text-green">Partenaires</h2>
+              <h2 className="font-display text-headline-sm text-green">{t('admin.projects.partners')}</h2>
               <div className="mt-3 flex flex-wrap gap-2">
                 {project.partners.map((partner, idx) => (
                   <Tag key={idx}>{partner}</Tag>
@@ -160,12 +164,12 @@ const ViewProjectPage = () => {
           )}
 
           <div>
-            <h2 className="font-display text-headline-sm text-green">Metadata</h2>
+            <h2 className="font-display text-headline-sm text-green">{t('admin.projects.metadata')}</h2>
             <DetailList>
-              <DetailRow label="Created" value={formatDate(project.createdAt)} />
-              <DetailRow label="Updated" value={formatDate(project.updatedAt)} />
-              <DetailRow label="Status" value={project.isActive ? 'Active' : 'Inactive'} />
-              <DetailRow label="Project ID" value={<span className="font-mono">{project.id}</span>} />
+              <DetailRow label={t('admin.projects.createdAt')} value={formatDate(project.createdAt)} />
+              <DetailRow label={t('admin.projects.updatedAt')} value={formatDate(project.updatedAt)} />
+              <DetailRow label={t('admin.common.status')} value={project.isActive ? t('admin.common.active') : t('admin.common.inactive')} />
+              <DetailRow label={t('admin.projects.projectId')} value={<span className="font-mono">{project.id}</span>} />
             </DetailList>
           </div>
         </>

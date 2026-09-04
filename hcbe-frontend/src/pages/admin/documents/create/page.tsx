@@ -219,10 +219,10 @@ export const CreateDocumentPage: React.FC = () => {
               {t('admin.content.lang.settings')}
             </h2>
             <div className="space-y-6">
-              <Field label="Fichier" htmlFor="file" required>
+              <Field label={t('admin.documents.file')} htmlFor="file" required>
                 <div className="flex flex-wrap items-center gap-3">
                   <Button type="button" variant="secondary" onClick={() => fileInputRef.current?.click()}>
-                    Télécharger un fichier
+                    {t('admin.documents.uploadFile')}
                   </Button>
                   {file ? (
                     <p className="break-all text-body-md text-green">
@@ -230,7 +230,7 @@ export const CreateDocumentPage: React.FC = () => {
                       {file.name}
                     </p>
                   ) : (
-                    <p className="text-body-md text-ink-variant">PDF, DOC, DOCX jusqu&apos;à 50MB</p>
+                    <p className="text-body-md text-ink-variant">{t('admin.documents.fileHint')}</p>
                   )}
                 </div>
                 <input
@@ -245,7 +245,7 @@ export const CreateDocumentPage: React.FC = () => {
                 />
               </Field>
 
-              <Field label="Icône" htmlFor="icon">
+              <Field label={t('admin.documents.icon')} htmlFor="icon">
                 <select
                   id="icon"
                   value={formData.icon}
@@ -260,7 +260,7 @@ export const CreateDocumentPage: React.FC = () => {
                 </select>
               </Field>
 
-              <Field label="Ordre d'affichage" htmlFor="displayOrder">
+              <Field label={t('admin.common.order')} htmlFor="displayOrder">
                 <input
                   type="number"
                   id="displayOrder"

@@ -395,12 +395,12 @@ public sealed class FinanceService(
 
     public async Task<ApiResponse<MembershipVerificationDto>> VerifyMembershipAsync(string code, CancellationToken cancellationToken)
     {
-        if (!TryDecodeVerificationCode(code, out var userId)) return ApiResponse<MembershipVerificationDto>.SuccessResponse(new(false, MembershipStatuses.Inactive, "", null, null, code));
+        if (!TryDecodeVerificationCode(code, out var userId)) return ApiResponse<MembershipVerificationDto>.SuccessResponse(new(false, MembershipStatuses.Inactive, "", null, null, null, code));
         var standing = await context.MembershipStandings.AsNoTracking().Include(item => item.User).ThenInclude(item => item!.Member).Include(item => item.Plan).SingleOrDefaultAsync(item => item.UserId == userId, cancellationToken);
-        if (standing?.User == null) return ApiResponse<MembershipVerificationDto>.SuccessResponse(new(false, MembershipStatuses.Inactive, "", null, null, code));
+        if (standing?.User == null) return ApiResponse<MembershipVerificationDto>.SuccessResponse(new(false, MembershipStatuses.Inactive, "", null, null, null, code));
         var effective = EffectiveStatus(standing);
         var name = standing.User.Member != null ? $"{standing.User.Member.FirstName} {standing.User.Member.LastName}" : $"{standing.User.FirstName} {standing.User.LastName}";
-        return ApiResponse<MembershipVerificationDto>.SuccessResponse(new(effective is MembershipStatuses.Active or MembershipStatuses.GracePeriod, effective, name.Trim(), standing.Plan?.Name, standing.CurrentPeriodEndUtc, code));
+        return ApiResponse<MembershipVerificationDto>.SuccessResponse(new(effective is MembershipStatuses.Active or MembershipStatuses.GracePeriod, effective, name.Trim(), standing.Plan?.Name, standing.Plan?.NameEn, standing.CurrentPeriodEndUtc, code));
     }
 
     public Task<FinancialTransaction?> FindReceiptAsync(string token, CancellationToken cancellationToken) =>

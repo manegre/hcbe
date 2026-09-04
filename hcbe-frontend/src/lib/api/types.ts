@@ -510,7 +510,7 @@ export interface Opportunity {
   status: 'Draft' | 'Published' | 'Closed'; applicationCount: number; createdAt: string; updatedAt: string;
 }
 export type UpsertOpportunityRequest = Omit<Opportunity, 'id' | 'applicationCount' | 'createdAt' | 'updatedAt'>;
-export interface OpportunityApplication { id: string; opportunityId: string; opportunityTitle: string; memberId: string; memberName: string; memberEmail: string; message: string; status: 'Submitted' | 'Reviewed' | 'Accepted' | 'Declined'; adminNotes?: string; createdAt: string; updatedAt: string; }
+export interface OpportunityApplication { id: string; opportunityId: string; opportunityTitle: string; opportunityTitleEn?: string; memberId: string; memberName: string; memberEmail: string; message: string; status: 'Submitted' | 'Reviewed' | 'Accepted' | 'Declined'; adminNotes?: string; createdAt: string; updatedAt: string; }
 export interface MentorshipGoal { id: string; matchId: string; createdByMemberId: string; title: string; status: 'Open' | 'Completed' | 'Cancelled'; dueAtUtc?: string; createdAt: string; updatedAt: string; }
 export interface MentorshipCheckIn { id: string; matchId: string; memberId: string; memberName: string; summary: string; rating: number; needsCommitteeSupport: boolean; createdAt: string; }
 export interface MentorshipJourney { matchId: string; goals: MentorshipGoal[]; checkIns: MentorshipCheckIn[]; }
@@ -1211,5 +1211,5 @@ export interface AdminMembership {
   planName?: string; currentPeriodEndUtc?: string; graceEndsAtUtc?: string; autoRenew: boolean;
 }
 export interface MembershipVerification {
-  isValid: boolean; status: string; memberName: string; planName?: string; validUntilUtc?: string; verificationCode: string;
+  isValid: boolean; status: string; memberName: string; planName?: string; planNameEn?: string; validUntilUtc?: string; verificationCode: string;
 }

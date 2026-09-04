@@ -33,7 +33,7 @@ const Footer = () => {
       { id: 'services', category: t('public.footer.navigation'), label: t('public.footer.services'), url: '/services', displayOrder: 1 },
       { id: 'news', category: t('public.footer.navigation'), label: t('public.footer.news'), url: '/actualites', displayOrder: 2 },
       { id: 'engagement', category: t('public.footer.navigation'), label: t('public.footer.engagement'), url: '/engagement', displayOrder: 3 },
-      { id: 'email', category: t('public.footer.contacts'), label: 'contact@hcbecanada.org', url: 'mailto:contact@hcbecanada.org', displayOrder: 0 },
+      { id: 'email', category: t('public.footer.contacts'), label: 'contact@hcbe.ca', url: 'mailto:contact@hcbe.ca', displayOrder: 0 },
       { id: 'country', category: t('public.footer.contacts'), label: t('public.footer.country'), url: '/contact', displayOrder: 1 },
     ] as FooterLinkDto[];
     return Object.entries(links.reduce<Record<string, FooterLinkDto[]>>((groups, link) => {

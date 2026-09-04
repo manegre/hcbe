@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button, Field, inputClasses } from '../../../components/ui';
 import { publicSubmissionsApi } from '../../../lib/api/public-submissions';
 
 const BenevolatsSection = () => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     nom: '',
     prenom: '',
@@ -34,7 +36,7 @@ const BenevolatsSection = () => {
         email: formData.email.trim(),
         phone: formData.telephone.trim(),
         city: formData.ville.trim(),
-        subject: 'Bénévolat',
+        subject: t('public.volunteer.subject'),
         details: formData.motivation.trim(),
         metadata: {
           competences: formData.competences.trim(),
@@ -65,16 +67,16 @@ const BenevolatsSection = () => {
     <section className="bg-background py-20">
       <div className="container-page max-w-4xl">
         <div className="mb-16 text-center">
-          <h2 className="font-display text-headline-lg text-green">Devenez Bénévole</h2>
+          <h2 className="font-display text-headline-lg text-green">{t('public.volunteer.title')}</h2>
           <p className="mx-auto mt-4 max-w-3xl text-body-lg text-ink-variant">
-            Contribuez au développement de notre communauté en partageant votre temps et vos compétences
+            {t('public.volunteer.subtitle')}
           </p>
         </div>
 
         <div className="border border-line bg-surface p-8">
           <form id="benevolat-form" data-readdy-form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid gap-6 md:grid-cols-2">
-              <Field label="Nom" htmlFor="nom" required>
+              <Field label={t('public.volunteer.lastName')} htmlFor="nom" required>
                 <input
                   type="text"
                   id="nom"
@@ -85,7 +87,7 @@ const BenevolatsSection = () => {
                   className={inputClasses}
                 />
               </Field>
-              <Field label="Prénom" htmlFor="prenom" required>
+              <Field label={t('public.volunteer.firstName')} htmlFor="prenom" required>
                 <input
                   type="text"
                   id="prenom"
@@ -99,7 +101,7 @@ const BenevolatsSection = () => {
             </div>
 
             <div className="grid gap-6 md:grid-cols-2">
-              <Field label="Email" htmlFor="email" required>
+              <Field label={t('public.volunteer.email')} htmlFor="email" required>
                 <input
                   type="email"
                   id="email"
@@ -110,7 +112,7 @@ const BenevolatsSection = () => {
                   className={inputClasses}
                 />
               </Field>
-              <Field label="Téléphone" htmlFor="telephone" required>
+              <Field label={t('public.volunteer.phone')} htmlFor="telephone" required>
                 <input
                   type="tel"
                   id="telephone"
@@ -123,7 +125,7 @@ const BenevolatsSection = () => {
               </Field>
             </div>
 
-            <Field label="Ville de résidence" htmlFor="ville" required>
+            <Field label={t('public.volunteer.city')} htmlFor="ville" required>
               <input
                 type="text"
                 id="ville"
@@ -135,20 +137,20 @@ const BenevolatsSection = () => {
               />
             </Field>
 
-            <Field label="Compétences et domaines d'expertise" htmlFor="competences" required>
+            <Field label={t('public.volunteer.skills')} htmlFor="competences" required>
               <input
                 type="text"
                 id="competences"
                 name="competences"
                 value={formData.competences}
                 onChange={handleChange}
-                placeholder="Ex: Juridique, RH, Finance, Communication..."
+                placeholder={t('public.volunteer.skillsPlaceholder')}
                 required
                 className={inputClasses}
               />
             </Field>
 
-            <Field label="Disponibilité" htmlFor="disponibilite" required>
+            <Field label={t('public.volunteer.availability')} htmlFor="disponibilite" required>
               <select
                 id="disponibilite"
                 name="disponibilite"
@@ -157,15 +159,15 @@ const BenevolatsSection = () => {
                 required
                 className={inputClasses}
               >
-                <option value="">Sélectionnez votre disponibilité</option>
-                <option value="quelques-heures-semaine">Quelques heures par semaine</option>
-                <option value="quelques-heures-mois">Quelques heures par mois</option>
-                <option value="evenements-ponctuels">Événements ponctuels</option>
-                <option value="flexible">Flexible</option>
+                <option value="">{t('public.volunteer.availabilityPlaceholder')}</option>
+                <option value="quelques-heures-semaine">{t('public.volunteer.availabilityWeekly')}</option>
+                <option value="quelques-heures-mois">{t('public.volunteer.availabilityMonthly')}</option>
+                <option value="evenements-ponctuels">{t('public.volunteer.availabilityEvents')}</option>
+                <option value="flexible">{t('public.volunteer.availabilityFlexible')}</option>
               </select>
             </Field>
 
-            <Field label="Motivation (max 500 caractères)" htmlFor="motivation" required>
+            <Field label={t('public.volunteer.motivation')} htmlFor="motivation" required>
               <textarea
                 id="motivation"
                 name="motivation"
@@ -173,24 +175,24 @@ const BenevolatsSection = () => {
                 onChange={handleChange}
                 maxLength={500}
                 rows={4}
-                placeholder="Pourquoi souhaitez-vous devenir bénévole au HCBE ?"
+                placeholder={t('public.volunteer.motivationPlaceholder')}
                 required
                 className={inputClasses}
               ></textarea>
               <div className="mt-1 text-right text-body-md text-ink-variant">
-                {formData.motivation.length}/500 caractères
+                {t('public.volunteer.characterCount', { count: formData.motivation.length })}
               </div>
             </Field>
 
             <Button type="submit" variant="primary" className="w-full justify-center">
-              Soumettre ma candidature
+              {t('public.volunteer.submit')}
             </Button>
           </form>
 
           {isSubmitted && (
             <div className="mt-6 border border-green bg-surface p-4 text-green">
               <i className="ri-check-line mr-2" aria-hidden="true"></i>
-              Merci pour votre candidature ! Nous vous contacterons bientôt.
+              {t('public.volunteer.success')}
             </div>
           )}
         </div>
