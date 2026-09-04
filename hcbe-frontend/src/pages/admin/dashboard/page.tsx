@@ -5,7 +5,9 @@ import { newsApi } from '../../../lib/api/news';
 import { projectsApi } from '../../../lib/api/projects';
 import type { Event, MembershipApplicationDto, NewsArticle } from '../../../lib/api/types';
 import { getEventLifecycle, isCurrentOrUpcomingEvent } from '../../../lib/events/lifecycle';
+import { formatEventDateTime } from '../../../lib/events/timezone';
 import { translateEventLifecycle } from '../../../lib/i18n/adminStatus';
+import { localized } from '../../../lib/i18n/localized';
 import { ArrowLink, Button, DataTable, StatusChip, Td } from '../../../components/ui';
 
 const eventLifecycleChipStatus = (event: Event): 'published' | 'draft' | 'past' | 'rejected' => {
@@ -157,6 +159,10 @@ export const AdminDashboard = () => {
       month: 'short',
       year: 'numeric',
     }).format(new Date(value));
+
+  const formatEventDay = (event: Event) => formatEventDateTime(event.date, locale, event.timeZone, { day: '2-digit' });
+  const formatEventMonth = (event: Event) => formatEventDateTime(event.date, locale, event.timeZone, { month: 'short' }).replace('.', '');
+  const formatEventTime = (event: Event) => formatEventDateTime(event.date, locale, event.timeZone, { hour: '2-digit', minute: '2-digit' });
 
   const statCards: { key: string; name: string; value: number; link: string; sub?: string }[] = [
     {
@@ -375,8 +381,8 @@ export const AdminDashboard = () => {
             ))}
           </div>
         </section>
-      <section className="space-y-4 xl:col-start-1 xl:row-start-2 xl:flex xl:min-h-0 xl:flex-col xl:space-y-0 xl:overflow-hidden xl:rounded-[18px] xl:border xl:border-green/10 xl:bg-surface xl:shadow-[0_12px_34px_rgba(0,59,27,.05)]">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between xl:shrink-0 xl:border-b xl:border-green/10 xl:px-4 xl:py-3">
+      <section className="overflow-hidden rounded-[18px] border border-green/10 bg-surface shadow-[0_12px_34px_rgba(0,59,27,.05)] xl:col-start-1 xl:row-start-2 xl:flex xl:min-h-0 xl:flex-col">
+        <div className="flex flex-col gap-3 border-b border-green/10 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6 xl:shrink-0 xl:px-4 xl:py-3">
           <div>
             <div className="flex items-center gap-3">
               <span className="flex h-9 w-9 items-center justify-center rounded-full bg-green/7 text-green">
@@ -393,13 +399,13 @@ export const AdminDashboard = () => {
           </ArrowLink>
         </div>
 
-        <div className="mt-4 xl:mt-0 xl:min-h-0 xl:flex-1 xl:overflow-auto">
+        <div className="xl:min-h-0 xl:flex-1 xl:overflow-auto">
           {isLoading ? (
-            <div className="flex min-h-[180px] items-center justify-center rounded-[18px] border border-green/10 bg-surface xl:h-full xl:min-h-0 xl:rounded-none xl:border-0">
+            <div className="flex min-h-[180px] items-center justify-center xl:h-full xl:min-h-0">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-line border-t-green" />
             </div>
           ) : upcomingEvents.length === 0 ? (
-            <div className="flex min-h-[180px] flex-col items-center justify-center rounded-[18px] border border-dashed border-green/20 bg-surface/65 px-6 py-9 text-center xl:h-full xl:min-h-0 xl:flex-row xl:gap-4 xl:rounded-none xl:border-0 xl:py-3 xl:text-left">
+            <div className="flex min-h-[180px] flex-col items-center justify-center bg-surface/65 px-6 py-9 text-center xl:h-full xl:min-h-0 xl:flex-row xl:gap-4 xl:py-3 xl:text-left">
               <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-green/7 text-xl text-green xl:h-10 xl:w-10">
                 <i className="ri-calendar-todo-line" aria-hidden="true" />
               </span>
@@ -411,34 +417,44 @@ export const AdminDashboard = () => {
               </div>
             </div>
           ) : (
-            <DataTable
-              columns={[
-                { key: 'title', label: t('admin.common.title') },
-                { key: 'date', label: t('admin.common.date') },
-                { key: 'location', label: t('admin.common.location') },
-                { key: 'status', label: t('admin.common.status') },
-                { key: 'action', label: t('admin.common.actions'), align: 'right' },
-              ]}
-            >
+            <div className="divide-y divide-green/10 bg-surface">
               {upcomingEvents.map((event) => (
-                <tr key={event.id} className="transition-colors hover:bg-surface-container">
-                  <Td className="text-ink">{event.title}</Td>
-                  <Td className="tabular-nums">{formatShortDate(event.date)}</Td>
-                  <Td>{event.location || t('admin.common.na')}</Td>
-                  <Td>
-                    <StatusChip
-                      status={eventLifecycleChipStatus(event)}
-                      label={translateEventLifecycle(event, t)}
-                    />
-                  </Td>
-                  <Td align="right">
-                    <ArrowLink to={`/admin/events/${event.id}`} tone="goldInk">
-                      {t('admin.common.view')}
-                    </ArrowLink>
-                  </Td>
-                </tr>
+                <Link
+                  key={event.id}
+                  to={`/admin/events/${event.id}`}
+                  className="group relative grid gap-4 px-4 py-4 transition-colors hover:bg-green/[0.035] sm:grid-cols-[76px_minmax(0,1fr)_auto] sm:items-center sm:px-5 xl:grid-cols-[62px_minmax(0,1fr)_minmax(125px,.42fr)_auto] xl:gap-3 xl:px-4 xl:py-2.5"
+                >
+                  <span className="relative flex h-[72px] w-[72px] shrink-0 flex-col items-center justify-center overflow-hidden rounded-2xl border border-green/15 bg-surface-container text-center shadow-[0_8px_22px_rgba(0,59,27,.06)] transition-all group-hover:-translate-y-0.5 group-hover:border-gold/55 group-hover:shadow-[0_12px_28px_rgba(0,59,27,.11)] xl:h-[58px] xl:w-[58px] xl:rounded-xl">
+                    <span className="absolute inset-x-0 top-0 h-1 bg-gold" aria-hidden="true" />
+                    <span className="mt-1 text-[9px] font-bold uppercase tracking-[.16em] text-red-link">{formatEventMonth(event)}</span>
+                    <span className="font-display text-[27px] font-bold leading-none tabular-nums text-green-deep xl:text-[23px]">{formatEventDay(event)}</span>
+                  </span>
+
+                  <span className="min-w-0">
+                    <span className="block truncate font-display text-lg font-bold text-green-deep transition-colors group-hover:text-green xl:text-[16px]">
+                      {localized(event.title, event.titleEn, i18n.language)}
+                    </span>
+                    <span className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-variant xl:mt-1 xl:text-[11px]">
+                      <span className="inline-flex items-center gap-1.5 font-semibold tabular-nums text-ink"><i className="ri-time-line text-gold-ink" aria-hidden="true" />{formatEventTime(event)}</span>
+                      <span className="inline-flex min-w-0 items-center gap-1.5"><i className="ri-map-pin-2-line shrink-0 text-gold-ink" aria-hidden="true" /><span className="truncate">{localized(event.location, event.locationEn, i18n.language) || t('admin.common.na')}</span></span>
+                    </span>
+                  </span>
+
+                  <span className="flex flex-wrap items-center gap-2 sm:col-start-2 xl:col-start-auto">
+                    <StatusChip status={eventLifecycleChipStatus(event)} label={translateEventLifecycle(event, t)} />
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-1 text-[9px] font-bold uppercase tracking-[.1em] text-ink-variant">
+                      <i className={event.format === 'Online' ? 'ri-live-line' : event.format === 'Hybrid' ? 'ri-broadcast-line' : 'ri-building-2-line'} aria-hidden="true" />
+                      {t(`admin.events.format.${event.format}`)}
+                    </span>
+                  </span>
+
+                  <span className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full border border-green/15 bg-surface text-green shadow-sm transition-all group-hover:border-green group-hover:bg-green group-hover:text-white sm:static sm:row-span-2 xl:row-span-1">
+                    <i className="ri-arrow-right-line transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+                    <span className="sr-only">{t('admin.common.view')}</span>
+                  </span>
+                </Link>
               ))}
-            </DataTable>
+            </div>
           )}
         </div>
       </section>
