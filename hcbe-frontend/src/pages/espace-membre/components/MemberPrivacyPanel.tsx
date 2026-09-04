@@ -101,19 +101,19 @@ export default function MemberPrivacyPanel({ fr, withdrawing, onWithdrawOptional
         <div className="grid gap-4 lg:grid-cols-3">
           <PrivacyAction icon="ri-download-cloud-2-line" eyebrow={fr ? 'Accès et portabilité' : 'Access and portability'} title={fr ? 'Télécharger mes données' : 'Download my data'} body={fr ? 'Recevez une copie JSON structurée des données liées à votre compte.' : 'Get a structured JSON copy of the data associated with your account.'}>
             <Button type="button" variant="secondary" onClick={exportData} disabled={exporting} className="w-full justify-center">
-              <i className={exporting ? 'ri-loader-4-line animate-spin' : 'ri-download-line'} />{exporting ? (fr ? 'Préparation…' : 'Preparing…') : (fr ? 'Télécharger' : 'Download')}
+              <i className={exporting ? 'ri-loader-4-line animate-spin' : 'ri-download-line'} aria-hidden="true" />{exporting ? (fr ? 'Préparation…' : 'Preparing…') : (fr ? 'Télécharger' : 'Download')}
             </Button>
           </PrivacyAction>
 
           <PrivacyAction icon="ri-notification-off-line" eyebrow={fr ? 'Retrait du consentement' : 'Withdraw consent'} title={fr ? 'Refuser les communications' : 'Opt out of communications'} body={fr ? 'Désactivez les courriels facultatifs et les notifications. Les messages essentiels de sécurité ou de service peuvent toujours être envoyés.' : 'Turn off optional emails and notifications. Essential security or service messages may still be sent.'}>
             <Button type="button" variant="secondary" onClick={onWithdrawOptional} disabled={withdrawing} className="w-full justify-center">
-              <i className={withdrawing ? 'ri-loader-4-line animate-spin' : 'ri-forbid-2-line'} />{fr ? 'Tout désactiver' : 'Turn all off'}
+              <i className={withdrawing ? 'ri-loader-4-line animate-spin' : 'ri-forbid-2-line'} aria-hidden="true" />{fr ? 'Tout désactiver' : 'Turn all off'}
             </Button>
           </PrivacyAction>
 
           <PrivacyAction icon="ri-edit-circle-line" eyebrow={fr ? 'Rectification' : 'Correction'} title={fr ? 'Corriger mon profil' : 'Correct my profile'} body={fr ? 'Mettez à jour vos coordonnées et contrôlez séparément votre visibilité dans l’annuaire privé.' : 'Update your details and separately control your private-directory visibility.'}>
             <Link to="/espace-membre?section=profile" className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-control border-2 border-green px-5 text-label-md uppercase text-green transition-colors hover:bg-green hover:text-white">
-              <i className="ri-user-settings-line" />{fr ? 'Modifier mon profil' : 'Edit my profile'}
+              <i className="ri-user-settings-line" aria-hidden="true" />{fr ? 'Modifier mon profil' : 'Edit my profile'}
             </Link>
           </PrivacyAction>
         </div>
@@ -131,11 +131,11 @@ export default function MemberPrivacyPanel({ fr, withdrawing, onWithdrawOptional
             </div>
             {pending ? (
               <Button type="button" variant="secondary" onClick={cancelDeletion} disabled={acting} className="shrink-0">
-                <i className={acting ? 'ri-loader-4-line animate-spin' : 'ri-arrow-go-back-line'} />{fr ? 'Annuler la suppression' : 'Cancel deletion'}
+                <i className={acting ? 'ri-loader-4-line animate-spin' : 'ri-arrow-go-back-line'} aria-hidden="true" />{fr ? 'Annuler la suppression' : 'Cancel deletion'}
               </Button>
             ) : (
               <Button type="button" variant="destructive" onClick={() => setConfirming(true)} disabled={loading || acting} className="shrink-0">
-                <i className="ri-delete-bin-6-line" />{fr ? 'Demander la suppression' : 'Request deletion'}
+                <i className="ri-delete-bin-6-line" aria-hidden="true" />{fr ? 'Demander la suppression' : 'Request deletion'}
               </Button>
             )}
           </div>
@@ -148,7 +148,7 @@ export default function MemberPrivacyPanel({ fr, withdrawing, onWithdrawOptional
               <div className="mt-3 flex flex-col gap-3 sm:flex-row">
                 <input id="delete-account-confirmation" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} autoComplete="off" className="min-h-11 flex-1 rounded-control border border-line bg-canvas px-4 text-sm outline-none focus:border-red-link focus:ring-2 focus:ring-red-link/10" />
                 <Button type="button" variant="destructive" onClick={requestDeletion} disabled={acting || confirmation !== confirmationWord}>
-                  <i className={acting ? 'ri-loader-4-line animate-spin' : 'ri-delete-bin-line'} />{fr ? 'Confirmer la demande' : 'Confirm request'}
+                  <i className={acting ? 'ri-loader-4-line animate-spin' : 'ri-delete-bin-line'} aria-hidden="true" />{fr ? 'Confirmer la demande' : 'Confirm request'}
                 </Button>
                 <Button type="button" variant="secondary" onClick={() => { setConfirming(false); setConfirmation(''); }} disabled={acting}>{fr ? 'Annuler' : 'Cancel'}</Button>
               </div>
@@ -160,7 +160,7 @@ export default function MemberPrivacyPanel({ fr, withdrawing, onWithdrawOptional
 
         <div className="mt-6 flex flex-col gap-3 border-t border-line pt-5 text-xs leading-5 text-ink-variant sm:flex-row sm:items-center sm:justify-between">
           <p>{fr ? 'Responsable de la protection des renseignements personnels : HCBE Canada · contact@hcbe.ca' : 'Privacy Officer: HCBE Canada · contact@hcbe.ca'}</p>
-          <Link to="/confidentialite" className="inline-flex items-center gap-2 font-semibold text-green hover:text-red-link">{fr ? 'Lire la politique de confidentialité' : 'Read the privacy policy'}<i className="ri-arrow-right-line" /></Link>
+          <Link to="/confidentialite" className="inline-flex items-center gap-2 font-semibold text-green hover:text-red-link">{fr ? 'Lire la politique de confidentialité' : 'Read the privacy policy'}<i className="ri-arrow-right-line" aria-hidden="true" /></Link>
         </div>
       </div>
     </section>
@@ -170,7 +170,7 @@ export default function MemberPrivacyPanel({ fr, withdrawing, onWithdrawOptional
 function PrivacyAction({ icon, eyebrow, title, body, children }: { icon: string; eyebrow: string; title: string; body: string; children: ReactNode }) {
   return (
     <article className="flex min-h-[250px] flex-col rounded-[22px] border border-line bg-canvas/55 p-5">
-      <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-green/10 text-xl text-green"><i className={icon} /></span>
+      <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-green/10 text-xl text-green"><i className={icon} aria-hidden="true" /></span>
       <p className="mt-5 text-[9px] font-bold uppercase tracking-[.14em] text-red-link">{eyebrow}</p>
       <h4 className="mt-2 font-display text-xl font-bold text-green-deep">{title}</h4>
       <p className="mt-2 flex-1 text-sm leading-6 text-ink-variant">{body}</p>
