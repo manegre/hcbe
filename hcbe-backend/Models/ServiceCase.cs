@@ -13,6 +13,8 @@ public class ServiceCase
     public string Priority { get; set; } = "Normal";
     public Guid? AssignedToUserId { get; set; }
     public User? AssignedToUser { get; set; }
+    public Guid? AssignedAssociationId { get; set; }
+    public Association? AssignedAssociation { get; set; }
     public string? InternalNotes { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

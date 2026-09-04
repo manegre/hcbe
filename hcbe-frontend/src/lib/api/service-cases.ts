@@ -29,7 +29,7 @@ export const serviceCasesApi = {
     return apiClient.get<ServiceCase[]>(`/api/admin/service-cases${query.size ? `?${query}` : ''}`);
   },
   adminGet: (id: string) => apiClient.get<ServiceCase>(`/api/admin/service-cases/${id}`),
-  adminUpdate: (id: string, data: { status?: string; priority?: string; assignedToUserId?: string; clearAssignee?: boolean; internalNotes?: string }) => apiClient.patch<ServiceCase>(`/api/admin/service-cases/${id}`, data),
+  adminUpdate: (id: string, data: { status?: string; priority?: string; assignedToUserId?: string; clearAssignee?: boolean; internalNotes?: string; assignedAssociationId?: string; clearAssociation?: boolean }) => apiClient.patch<ServiceCase>(`/api/admin/service-cases/${id}`, data),
   adminReply: (id: string, body: string, isInternal: boolean) => apiClient.post<ServiceCase>(`/api/admin/service-cases/${id}/messages`, { body, isInternal }),
   adminUpload: (id: string, file: File, isInternal: boolean) => upload(`/api/admin/service-cases/${id}/attachments?isInternal=${isInternal}`, file),
 };

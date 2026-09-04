@@ -18,9 +18,14 @@ public class Association
     public string? Website { get; set; }
     public List<string> Domains { get; set; } = new();
     public List<string> DomainsEn { get; set; } = new();
+    public string OrganizationType { get; set; } = "Association";
     public bool IsActive { get; set; } = true;
     public Guid? OwnerMemberId { get; set; }
     public Member? OwnerMember { get; set; }
+    public ICollection<AssociationMember> Members { get; set; } = new List<AssociationMember>();
+    public ICollection<AssociationJoinRequest> JoinRequests { get; set; } = new List<AssociationJoinRequest>();
+    public ICollection<AssociationDocument> Documents { get; set; } = new List<AssociationDocument>();
+    public ICollection<AssociationCalendarItem> CalendarItems { get; set; } = new List<AssociationCalendarItem>();
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }

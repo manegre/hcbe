@@ -44,6 +44,10 @@ public class ApplicationDbContext : DbContext
     public DbSet<Notification> Notifications { get; set; }
     public DbSet<Association> Associations { get; set; }
     public DbSet<AssociationClaimRequest> AssociationClaimRequests { get; set; }
+    public DbSet<AssociationMember> AssociationMembers { get; set; }
+    public DbSet<AssociationJoinRequest> AssociationJoinRequests { get; set; }
+    public DbSet<AssociationDocument> AssociationDocuments { get; set; }
+    public DbSet<AssociationCalendarItem> AssociationCalendarItems { get; set; }
     public DbSet<Opportunity> Opportunities { get; set; }
     public DbSet<OpportunityApplication> OpportunityApplications { get; set; }
     public DbSet<TeamMember> TeamMembers { get; set; }
@@ -321,11 +325,15 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<ServiceCase>()
             .HasOne(item => item.AssignedToUser).WithMany().HasForeignKey(item => item.AssignedToUserId).OnDelete(DeleteBehavior.SetNull);
         modelBuilder.Entity<ServiceCase>()
+            .HasOne(item => item.AssignedAssociation).WithMany().HasForeignKey(item => item.AssignedAssociationId).OnDelete(DeleteBehavior.SetNull);
+        modelBuilder.Entity<ServiceCase>()
             .HasIndex(item => item.TicketNumber).IsUnique();
         modelBuilder.Entity<ServiceCase>()
             .HasIndex(item => new { item.Status, item.Priority, item.UpdatedAt });
         modelBuilder.Entity<ServiceCase>()
             .HasIndex(item => new { item.MemberId, item.UpdatedAt });
+        modelBuilder.Entity<ServiceCase>()
+            .HasIndex(item => new { item.AssignedAssociationId, item.Status, item.UpdatedAt });
         modelBuilder.Entity<ServiceCaseMessage>()
             .HasOne(item => item.ServiceCase).WithMany(item => item.Messages).HasForeignKey(item => item.ServiceCaseId).OnDelete(DeleteBehavior.Cascade);
         modelBuilder.Entity<ServiceCaseMessage>()
@@ -415,12 +423,34 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<Association>()
             .HasOne(item => item.OwnerMember).WithMany().HasForeignKey(item => item.OwnerMemberId).OnDelete(DeleteBehavior.SetNull);
+        modelBuilder.Entity<Association>().Property(item => item.OrganizationType).HasMaxLength(30).HasDefaultValue("Association");
         modelBuilder.Entity<AssociationClaimRequest>()
             .HasOne(item => item.Association).WithMany().HasForeignKey(item => item.AssociationId).OnDelete(DeleteBehavior.Cascade);
         modelBuilder.Entity<AssociationClaimRequest>()
             .HasOne(item => item.Member).WithMany().HasForeignKey(item => item.MemberId).OnDelete(DeleteBehavior.Cascade);
         modelBuilder.Entity<AssociationClaimRequest>()
             .HasIndex(item => new { item.AssociationId, item.MemberId, item.Status });
+        modelBuilder.Entity<AssociationMember>()
+            .HasOne(item => item.Association).WithMany(item => item.Members).HasForeignKey(item => item.AssociationId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<AssociationMember>()
+            .HasOne(item => item.Member).WithMany().HasForeignKey(item => item.MemberId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<AssociationMember>().HasIndex(item => new { item.AssociationId, item.MemberId }).IsUnique();
+        modelBuilder.Entity<AssociationMember>().Property(item => item.Role).HasMaxLength(30);
+        modelBuilder.Entity<AssociationMember>().Property(item => item.Status).HasMaxLength(30);
+        modelBuilder.Entity<AssociationMember>().Property(item => item.Permissions).HasMaxLength(600);
+        modelBuilder.Entity<AssociationJoinRequest>()
+            .HasOne(item => item.Association).WithMany(item => item.JoinRequests).HasForeignKey(item => item.AssociationId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<AssociationJoinRequest>()
+            .HasOne(item => item.Member).WithMany().HasForeignKey(item => item.MemberId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<AssociationJoinRequest>()
+            .HasOne(item => item.ReviewedByUser).WithMany().HasForeignKey(item => item.ReviewedByUserId).OnDelete(DeleteBehavior.SetNull);
+        modelBuilder.Entity<AssociationJoinRequest>().HasIndex(item => new { item.AssociationId, item.MemberId, item.Status });
+        modelBuilder.Entity<AssociationDocument>()
+            .HasOne(item => item.Association).WithMany(item => item.Documents).HasForeignKey(item => item.AssociationId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<AssociationDocument>().HasIndex(item => new { item.AssociationId, item.CreatedAt });
+        modelBuilder.Entity<AssociationCalendarItem>()
+            .HasOne(item => item.Association).WithMany(item => item.CalendarItems).HasForeignKey(item => item.AssociationId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<AssociationCalendarItem>().HasIndex(item => new { item.AssociationId, item.StartsAtUtc });
         modelBuilder.Entity<Opportunity>().HasIndex(item => new { item.Status, item.DeadlineUtc });
         modelBuilder.Entity<OpportunityApplication>()
             .HasOne(item => item.Opportunity).WithMany(item => item.Applications).HasForeignKey(item => item.OpportunityId).OnDelete(DeleteBehavior.Cascade);

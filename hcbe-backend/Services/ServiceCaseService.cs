@@ -138,6 +138,14 @@ public sealed class ServiceCaseService(
             if (!validAdmin) return ApiResponse<ServiceCaseDto>.ErrorResponse("Assignee must be an active administrator");
             item.AssignedToUserId = request.AssignedToUserId;
         }
+        if (request.ClearAssociation) { item.AssignedAssociationId = null; item.AssignedAssociation = null; }
+        else if (request.AssignedAssociationId.HasValue)
+        {
+            var validOrganization = await context.Associations.FirstOrDefaultAsync(association => association.Id == request.AssignedAssociationId && association.IsActive);
+            if (validOrganization is null) return ApiResponse<ServiceCaseDto>.ErrorResponse("Assigned organization must be active");
+            item.AssignedAssociation = validOrganization;
+            if (item.Status == "Submitted") item.Status = "InReview";
+        }
         if (request.InternalNotes is not null) item.InternalNotes = Normalize(request.InternalNotes);
         item.UpdatedAt = DateTime.UtcNow;
         await context.SaveChangesAsync();
@@ -203,6 +211,7 @@ public sealed class ServiceCaseService(
         var query = context.ServiceCases
             .Include(item => item.Member)
             .Include(item => item.AssignedToUser)
+            .Include(item => item.AssignedAssociation)
             .Include(item => item.Messages).ThenInclude(message => message.AuthorUser)
             .Include(item => item.Attachments)
             .AsSplitQuery();
@@ -214,7 +223,8 @@ public sealed class ServiceCaseService(
         $"{item.Member?.FirstName} {item.Member?.LastName}".Trim(), item.Member?.Email ?? string.Empty,
         item.Category, item.Subject, item.Description, item.Status, item.Priority,
         item.AssignedToUserId, item.AssignedToUser is null ? null : $"{item.AssignedToUser.FirstName} {item.AssignedToUser.LastName}".Trim(),
-        includeInternal ? item.InternalNotes : null, item.CreatedAt, item.UpdatedAt, item.LastResponseAt, item.ResolvedAt,
+        includeInternal ? item.InternalNotes : null, item.AssignedAssociationId, item.AssignedAssociation?.Name,
+        item.CreatedAt, item.UpdatedAt, item.LastResponseAt, item.ResolvedAt,
         item.Messages.Where(message => includeInternal || !message.IsInternal).OrderBy(message => message.CreatedAt)
             .Select(message => new ServiceCaseMessageDto(message.Id, message.AuthorUserId, $"{message.AuthorUser?.FirstName} {message.AuthorUser?.LastName}".Trim(), message.Body, message.IsInternal, message.CreatedAt)).ToList(),
         item.Attachments.Where(attachment => includeInternal || !attachment.IsInternal).OrderBy(attachment => attachment.CreatedAt).Select(MapAttachment).ToList());

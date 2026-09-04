@@ -22,6 +22,7 @@ export const CANADA_PROVINCES = [
 ] as const;
 
 export interface AssociationFormValues {
+  organizationType: 'Association' | 'Committee';
   name: string;
   nameEn: string;
   description: string;
@@ -190,6 +191,14 @@ export const AssociationForm: React.FC<AssociationFormProps> = ({
                 {t('admin.associations.sectionBasic')}
               </h2>
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div className="md:col-span-2">
+                  <Field label={t('admin.associations.organizationType')} htmlFor="organizationType" required>
+                    <select id="organizationType" name="organizationType" value={formData.organizationType} onChange={handleInputChange} className={inputClasses}>
+                      <option value="Association">{t('admin.associations.typeAssociation')}</option>
+                      <option value="Committee">{t('admin.associations.typeCommittee')}</option>
+                    </select>
+                  </Field>
+                </div>
                 <div className="md:col-span-2">
                   <Field label={t('admin.associations.name')} htmlFor="name" required>
                     <input

@@ -11,6 +11,7 @@ export const CreateAssociationPage: React.FC = () => {
   const [error, setError] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [formData, setFormData] = useState<AssociationFormValues>({
+    organizationType: 'Association',
     name: '',
     nameEn: '',
     description: '',

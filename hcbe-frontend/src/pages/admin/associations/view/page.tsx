@@ -6,6 +6,7 @@ import type { Association } from '../../../../lib/api/types';
 import { resolveMediaUrl } from '../../../../lib/api/media-url';
 import { AdminDetailLayout, DetailList, DetailRow } from '../../../../components/admin/AdminDetailLayout';
 import { Button, EmptyState, Tag } from '../../../../components/ui';
+import { OrganizationWorkspaceAdmin } from './OrganizationWorkspaceAdmin';
 
 export const ViewAssociationPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -199,6 +200,7 @@ export const ViewAssociationPage: React.FC = () => {
               <DetailRow label={t('admin.associations.updatedLabel')} value={formatDateTime(association.updatedAt)} />
             </DetailList>
           </div>
+
         </>
       }
       aside={association.imageUrl ? (
@@ -211,6 +213,7 @@ export const ViewAssociationPage: React.FC = () => {
           }}
         />
       ) : undefined}
+      after={<OrganizationWorkspaceAdmin associationId={association.id} />}
     />
   );
 };

@@ -1436,7 +1436,10 @@ static void EnsureSqliteSecuritySchema(ApplicationDbContext context)
     try { context.Database.ExecuteSqlRaw("ALTER TABLE NewsletterCampaigns ADD COLUMN TargetInterest TEXT"); } catch { }
     try { context.Database.ExecuteSqlRaw("ALTER TABLE NewsletterCampaigns ADD COLUMN ScheduledAtUtc TEXT"); } catch { }
     try { context.Database.ExecuteSqlRaw("ALTER TABLE Associations ADD COLUMN OwnerMemberId TEXT"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE Associations ADD COLUMN OrganizationType TEXT NOT NULL DEFAULT 'Association'"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE ServiceCases ADD COLUMN AssignedAssociationId TEXT"); } catch { }
     context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_Associations_OwnerMemberId ON Associations(OwnerMemberId)");
+    context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_ServiceCases_AssignedAssociationId_Status_UpdatedAt ON ServiceCases(AssignedAssociationId, Status, UpdatedAt)");
     context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS AssociationClaimRequests (
         Id TEXT NOT NULL PRIMARY KEY, AssociationId TEXT NOT NULL, MemberId TEXT NOT NULL,
         Message TEXT NOT NULL, Status TEXT NOT NULL DEFAULT 'Pending', AdminNotes TEXT,
@@ -1446,6 +1449,46 @@ static void EnsureSqliteSecuritySchema(ApplicationDbContext context)
     )");
     context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_AssociationClaimRequests_AssociationId_MemberId_Status ON AssociationClaimRequests(AssociationId, MemberId, Status)");
     context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_AssociationClaimRequests_MemberId ON AssociationClaimRequests(MemberId)");
+
+    context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS AssociationMembers (
+        Id TEXT NOT NULL PRIMARY KEY, AssociationId TEXT NOT NULL, MemberId TEXT NOT NULL,
+        Role TEXT NOT NULL DEFAULT 'Member', Title TEXT, Permissions TEXT NOT NULL DEFAULT '',
+        Status TEXT NOT NULL DEFAULT 'Active', JoinedAt TEXT NOT NULL, UpdatedAt TEXT NOT NULL,
+        FOREIGN KEY (AssociationId) REFERENCES Associations(Id) ON DELETE CASCADE,
+        FOREIGN KEY (MemberId) REFERENCES Members(Id) ON DELETE CASCADE
+    )");
+    context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_AssociationMembers_AssociationId_MemberId ON AssociationMembers(AssociationId, MemberId)");
+    context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_AssociationMembers_MemberId ON AssociationMembers(MemberId)");
+
+    context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS AssociationJoinRequests (
+        Id TEXT NOT NULL PRIMARY KEY, AssociationId TEXT NOT NULL, MemberId TEXT NOT NULL,
+        Message TEXT NOT NULL DEFAULT '', Status TEXT NOT NULL DEFAULT 'Pending', ReviewNotes TEXT,
+        ReviewedByUserId TEXT, CreatedAt TEXT NOT NULL, UpdatedAt TEXT NOT NULL, ReviewedAt TEXT,
+        FOREIGN KEY (AssociationId) REFERENCES Associations(Id) ON DELETE CASCADE,
+        FOREIGN KEY (MemberId) REFERENCES Members(Id) ON DELETE CASCADE,
+        FOREIGN KEY (ReviewedByUserId) REFERENCES Users(Id) ON DELETE SET NULL
+    )");
+    context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_AssociationJoinRequests_AssociationId_MemberId_Status ON AssociationJoinRequests(AssociationId, MemberId, Status)");
+    context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_AssociationJoinRequests_MemberId ON AssociationJoinRequests(MemberId)");
+    context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_AssociationJoinRequests_ReviewedByUserId ON AssociationJoinRequests(ReviewedByUserId)");
+
+    context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS AssociationDocuments (
+        Id TEXT NOT NULL PRIMARY KEY, AssociationId TEXT NOT NULL, Title TEXT NOT NULL, TitleEn TEXT,
+        Description TEXT, DescriptionEn TEXT, FileName TEXT NOT NULL, Url TEXT NOT NULL,
+        ContentType TEXT NOT NULL, SizeBytes INTEGER NOT NULL, Visibility TEXT NOT NULL DEFAULT 'Members',
+        UploadedByUserId TEXT NOT NULL, CreatedAt TEXT NOT NULL,
+        FOREIGN KEY (AssociationId) REFERENCES Associations(Id) ON DELETE CASCADE
+    )");
+    context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_AssociationDocuments_AssociationId_CreatedAt ON AssociationDocuments(AssociationId, CreatedAt)");
+
+    context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS AssociationCalendarItems (
+        Id TEXT NOT NULL PRIMARY KEY, AssociationId TEXT NOT NULL, Title TEXT NOT NULL, TitleEn TEXT,
+        Description TEXT, DescriptionEn TEXT, Location TEXT, LocationEn TEXT,
+        StartsAtUtc TEXT NOT NULL, EndsAtUtc TEXT, CreatedByUserId TEXT NOT NULL,
+        CreatedAt TEXT NOT NULL, UpdatedAt TEXT NOT NULL,
+        FOREIGN KEY (AssociationId) REFERENCES Associations(Id) ON DELETE CASCADE
+    )");
+    context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_AssociationCalendarItems_AssociationId_StartsAtUtc ON AssociationCalendarItems(AssociationId, StartsAtUtc)");
 
     context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS Opportunities (
         Id TEXT NOT NULL PRIMARY KEY, Title TEXT NOT NULL, TitleEn TEXT, Description TEXT NOT NULL, DescriptionEn TEXT,

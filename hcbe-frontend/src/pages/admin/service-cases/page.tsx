@@ -4,7 +4,8 @@ import { AdminPageHeader } from '../../../components/admin/AdminPageHeader';
 import { Button, EmptyState, Field, inputClasses } from '../../../components/ui';
 import { serviceCasesApi } from '../../../lib/api/service-cases';
 import { usersApi } from '../../../lib/api/users';
-import type { AdminUser, ServiceCase } from '../../../lib/api/types';
+import { associationsApi } from '../../../lib/api/associations';
+import type { AdminUser, Association, ServiceCase } from '../../../lib/api/types';
 
 const statuses = ['Submitted', 'InReview', 'AwaitingMember', 'Resolved', 'Closed'];
 const priorities = ['Low', 'Normal', 'High', 'Urgent'];
@@ -16,6 +17,7 @@ export default function AdminServiceCasesPage() {
   const [items, setItems] = useState<ServiceCase[]>([]);
   const [selected, setSelected] = useState<ServiceCase | null>(null);
   const [admins, setAdmins] = useState<AdminUser[]>([]);
+  const [organizations, setOrganizations] = useState<Association[]>([]);
   const [filters, setFilters] = useState({ status: '', category: '', search: '' });
   const [reply, setReply] = useState('');
   const [internal, setInternal] = useState(false);
@@ -34,7 +36,7 @@ export default function AdminServiceCasesPage() {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { usersApi.getAdminUsers().then((response) => response.data && setAdmins(response.data)).catch(() => undefined); }, []);
+  useEffect(() => { Promise.all([usersApi.getAdminUsers(), associationsApi.getAssociationsForAdmin()]).then(([adminResponse, organizationResponse]) => { if (adminResponse.data) setAdmins(adminResponse.data); if (organizationResponse.data) setOrganizations(organizationResponse.data); }).catch(() => undefined); }, []);
   useEffect(() => { const timer = window.setTimeout(() => void load(), 250); return () => window.clearTimeout(timer); }, [filters.status, filters.category, filters.search]);
 
   const update = async (data: Parameters<typeof serviceCasesApi.adminUpdate>[1]) => {
@@ -83,10 +85,11 @@ export default function AdminServiceCasesPage() {
           <main className="p-5 sm:p-7">
             {selected ? <div className="space-y-7">
               <header><p className="text-[10px] font-bold uppercase tracking-[.14em] text-red-link">{selected.ticketNumber} · {selected.category}</p><h2 className="mt-2 font-display text-3xl font-bold text-green-deep">{selected.subject}</h2><p className="mt-2 text-sm text-ink-variant">{selected.memberName} · {selected.memberEmail}</p><p className="mt-5 whitespace-pre-line rounded-2xl bg-canvas p-5 text-sm leading-7 text-ink">{selected.description}</p></header>
-              <section className="grid gap-4 sm:grid-cols-3">
-                <Field label="Status" htmlFor="case-status"><select id="case-status" className={inputClasses} value={selected.status} onChange={(event) => void update({ status: event.target.value })}>{statuses.map((item) => <option key={item}>{item}</option>)}</select></Field>
+              <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <Field label={fr ? 'Statut' : 'Status'} htmlFor="case-status"><select id="case-status" className={inputClasses} value={selected.status} onChange={(event) => void update({ status: event.target.value })}>{statuses.map((item) => <option key={item}>{item}</option>)}</select></Field>
                 <Field label={fr ? 'Priorité' : 'Priority'} htmlFor="case-priority"><select id="case-priority" className={inputClasses} value={selected.priority} onChange={(event) => void update({ priority: event.target.value })}>{priorities.map((item) => <option key={item}>{item}</option>)}</select></Field>
                 <Field label={fr ? 'Responsable' : 'Assignee'} htmlFor="case-assignee"><select id="case-assignee" className={inputClasses} value={selected.assignedToUserId || ''} onChange={(event) => void update(event.target.value ? { assignedToUserId: event.target.value } : { clearAssignee: true })}><option value="">{fr ? 'Non assigné' : 'Unassigned'}</option>{admins.map((admin) => <option key={admin.id} value={admin.id}>{admin.firstName} {admin.lastName}</option>)}</select></Field>
+                <Field label={fr ? 'Organisation responsable' : 'Responsible organization'} htmlFor="case-organization"><select id="case-organization" className={inputClasses} value={selected.assignedAssociationId || ''} onChange={(event) => void update(event.target.value ? { assignedAssociationId: event.target.value } : { clearAssociation: true })}><option value="">{fr ? 'Équipe centrale HCBE' : 'HCBE central team'}</option>{organizations.filter((item) => item.isActive).map((organization) => <option key={organization.id} value={organization.id}>{organization.name}</option>)}</select></Field>
               </section>
               <section><h3 className="font-display text-xl font-bold text-green-deep">{fr ? 'Historique' : 'History'}</h3><div className="mt-4 space-y-3">{selected.messages.map((message) => <div key={message.id} className={`rounded-2xl border p-4 ${message.isInternal ? 'border-gold/30 bg-gold/[.07]' : 'border-line'}`}><div className="flex justify-between text-[9px] font-bold uppercase tracking-[.1em] text-ink-variant"><span>{message.authorName || 'HCBE'} {message.isInternal && '· NOTE INTERNE'}</span><time>{new Date(message.createdAt).toLocaleString()}</time></div><p className="mt-2 whitespace-pre-line text-sm leading-6">{message.body}</p></div>)}</div></section>
               <form onSubmit={send} className="border-t border-line pt-6"><Field label={internal ? (fr ? 'Note interne' : 'Internal note') : (fr ? 'Répondre au membre' : 'Reply to member')} htmlFor="admin-case-reply"><textarea id="admin-case-reply" required rows={4} className={`${inputClasses} resize-y`} value={reply} onChange={(event) => setReply(event.target.value)} /></Field><div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><label className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-ink-variant"><input type="checkbox" checked={internal} onChange={(event) => setInternal(event.target.checked)} className="accent-green" />{fr ? 'Visible uniquement par les admins' : 'Visible to admins only'}</label><Button type="submit" variant="secondary">{fr ? 'Ajouter' : 'Add'}</Button></div></form>

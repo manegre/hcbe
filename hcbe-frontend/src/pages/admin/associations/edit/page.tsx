@@ -15,6 +15,7 @@ export const EditAssociationPage: React.FC = () => {
   const [error, setError] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [formData, setFormData] = useState<AssociationFormValues>({
+    organizationType: 'Association',
     name: '',
     nameEn: '',
     description: '',
@@ -45,6 +46,7 @@ export const EditAssociationPage: React.FC = () => {
           const assoc = response.data;
           setAssociation(assoc);
           setFormData({
+            organizationType: assoc.organizationType || 'Association',
             name: assoc.name,
             nameEn: assoc.nameEn || '',
             description: assoc.description || '',

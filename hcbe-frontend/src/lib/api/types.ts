@@ -237,6 +237,8 @@ export interface ServiceCase {
   assignedToUserId?: string;
   assignedToName?: string;
   internalNotes?: string;
+  assignedAssociationId?: string;
+  assignedAssociationName?: string;
   createdAt: string;
   updatedAt: string;
   lastResponseAt?: string;
@@ -344,6 +346,7 @@ export interface Association {
   website?: string;
   domains: string[];
   domainsEn?: string[];
+  organizationType: 'Association' | 'Committee';
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -365,6 +368,7 @@ export interface CreateAssociationRequest {
   website?: string;
   domains: string[];
   domainsEn?: string[];
+  organizationType?: 'Association' | 'Committee';
 }
 
 export interface UpdateAssociationRequest {
@@ -383,8 +387,19 @@ export interface UpdateAssociationRequest {
   website?: string;
   domains?: string[];
   domainsEn?: string[];
+  organizationType?: 'Association' | 'Committee';
   isActive?: boolean;
 }
+
+export type AssociationPermission = 'workspace.view' | 'profile.manage' | 'members.manage' | 'documents.manage' | 'calendar.manage' | 'service-cases.manage';
+export interface AssociationAccess { role: 'Owner' | 'Manager' | 'Editor' | 'Member'; title?: string; permissions: AssociationPermission[]; }
+export interface AssociationMember { id: string; memberId: string; memberName: string; memberEmail: string; role: AssociationAccess['role']; title?: string; permissions: AssociationPermission[]; status: 'Active' | 'Inactive'; joinedAt: string; updatedAt: string; }
+export interface AssociationJoinRequest { id: string; associationId: string; memberId: string; memberName: string; memberEmail: string; message: string; status: 'Pending' | 'Approved' | 'Rejected'; reviewNotes?: string; createdAt: string; updatedAt: string; reviewedAt?: string; }
+export interface AssociationDocument { id: string; title: string; titleEn?: string; description?: string; descriptionEn?: string; fileName: string; url: string; contentType: string; sizeBytes: number; visibility: 'Members' | 'Managers'; createdAt: string; }
+export interface AssociationCalendarItem { id: string; title: string; titleEn?: string; description?: string; descriptionEn?: string; location?: string; locationEn?: string; startsAtUtc: string; endsAtUtc?: string; createdAt: string; updatedAt: string; }
+export interface AssociationWorkspace { association: Association; access: AssociationAccess; members: AssociationMember[]; joinRequests: AssociationJoinRequest[]; documents: AssociationDocument[]; calendarItems: AssociationCalendarItem[]; serviceCases: ServiceCase[]; }
+export interface AssociationMemberMutation { role: AssociationAccess['role']; title?: string; permissions?: AssociationPermission[]; status?: 'Active' | 'Inactive'; }
+export interface AssociationCalendarMutation { title: string; titleEn?: string; description?: string; descriptionEn?: string; location?: string; locationEn?: string; startsAtUtc: string; endsAtUtc?: string; }
 
 // Project types
 export interface Project {

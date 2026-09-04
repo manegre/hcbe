@@ -18,6 +18,7 @@ interface AdminDetailLayoutProps {
   actions?: ReactNode;
   main: ReactNode;
   aside?: ReactNode;
+  after?: ReactNode;
   icon?: string;
 }
 
@@ -37,6 +38,7 @@ export const AdminDetailLayout = ({
   actions,
   main,
   aside,
+  after,
   icon,
 }: AdminDetailLayoutProps) => {
   const location = useLocation();
@@ -98,6 +100,7 @@ export const AdminDetailLayout = ({
           </aside>
         )}
       </div>
+      {after}
     </div>
   );
 };

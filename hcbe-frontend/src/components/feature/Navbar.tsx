@@ -286,8 +286,8 @@ const Navbar = () => {
           <HcbeLogoMark size="md" />
         </Link>
 
-        <div className="hidden flex-1 justify-center lg:flex">
-          <nav className="flex items-center lg:space-x-7">
+        <div className="hidden flex-1 justify-center xl:flex">
+          <nav className="flex items-center xl:space-x-7">
             {mainLinks.map((link) => {
               const label = link.label || t(link.labelKey);
               const active = isActiveLink(link.path, Boolean(link.dropdown));
@@ -336,7 +336,7 @@ const Navbar = () => {
           </nav>
         </div>
 
-        <div className="hidden shrink-0 items-center lg:flex">
+        <div className="hidden shrink-0 items-center xl:flex">
           <ThemeToggle className="mr-3" />
           <div className="border-l border-line pl-4">
             <LanguageSwitcher compact />
@@ -356,7 +356,7 @@ const Navbar = () => {
           aria-label={t('public.nav.openMenu')}
           aria-expanded={isMobileMenuOpen}
           aria-controls="mobile-navigation"
-          className="flex h-11 w-11 items-center justify-center rounded-full text-ink transition-colors hover:bg-green/8 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green lg:hidden"
+          className="flex h-11 w-11 items-center justify-center rounded-full text-ink transition-colors hover:bg-green/8 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green xl:hidden"
         >
           <i className="ri-menu-line text-2xl" aria-hidden="true"></i>
         </button>

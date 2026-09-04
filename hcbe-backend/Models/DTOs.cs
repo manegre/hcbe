@@ -270,6 +270,7 @@ public record ServiceCaseDto(
     Guid Id, string TicketNumber, Guid MemberId, string MemberName, string MemberEmail,
     string Category, string Subject, string Description, string Status, string Priority,
     Guid? AssignedToUserId, string? AssignedToName, string? InternalNotes,
+    Guid? AssignedAssociationId, string? AssignedAssociationName,
     DateTime CreatedAt, DateTime UpdatedAt, DateTime? LastResponseAt, DateTime? ResolvedAt,
     List<ServiceCaseMessageDto> Messages, List<ServiceCaseAttachmentDto> Attachments);
 public record CreateServiceCaseRequest(
@@ -282,7 +283,9 @@ public record UpdateServiceCaseRequest(
     string? Priority = null,
     Guid? AssignedToUserId = null,
     bool ClearAssignee = false,
-    [MaxLength(4000)] string? InternalNotes = null);
+    [MaxLength(4000)] string? InternalNotes = null,
+    Guid? AssignedAssociationId = null,
+    bool ClearAssociation = false);
 
 public record CreateEventRequest(
     [Required] string Title,
@@ -449,7 +452,8 @@ public record AssociationDto(
     string? Contact, string? Phone, string? President, string? MemberCount,
     int? FoundedYear, string? ImageUrl, string? Website, List<string> Domains,
     bool IsActive, DateTime CreatedAt, DateTime UpdatedAt,
-    string? NameEn = null, string? DescriptionEn = null, List<string>? DomainsEn = null);
+    string? NameEn = null, string? DescriptionEn = null, List<string>? DomainsEn = null,
+    string OrganizationType = "Association");
 
 public record AssociationClaimDto(
     Guid Id, Guid AssociationId, string AssociationName, Guid MemberId, string MemberName,
@@ -457,6 +461,44 @@ public record AssociationClaimDto(
     DateTime CreatedAt, DateTime UpdatedAt, DateTime? ReviewedAt);
 public record CreateAssociationClaimRequest([Required][StringLength(1000, MinimumLength = 20)] string Message);
 public record ReviewAssociationClaimRequest([Required] string Status, string? AdminNotes);
+
+public record AssociationAccessDto(string Role, string? Title, IReadOnlyList<string> Permissions);
+public record AssociationMemberDto(
+    Guid Id, Guid MemberId, string MemberName, string MemberEmail, string Role, string? Title,
+    IReadOnlyList<string> Permissions, string Status, DateTime JoinedAt, DateTime UpdatedAt);
+public record AssociationJoinRequestDto(
+    Guid Id, Guid AssociationId, Guid MemberId, string MemberName, string MemberEmail,
+    string Message, string Status, string? ReviewNotes, DateTime CreatedAt, DateTime UpdatedAt, DateTime? ReviewedAt);
+public record AssociationDocumentDto(
+    Guid Id, string Title, string? TitleEn, string? Description, string? DescriptionEn,
+    string FileName, string Url, string ContentType, long SizeBytes, string Visibility, DateTime CreatedAt);
+public record AssociationCalendarItemDto(
+    Guid Id, string Title, string? TitleEn, string? Description, string? DescriptionEn,
+    string? Location, string? LocationEn, DateTime StartsAtUtc, DateTime? EndsAtUtc, DateTime CreatedAt, DateTime UpdatedAt);
+public record AssociationWorkspaceDto(
+    AssociationDto Association, AssociationAccessDto Access, IReadOnlyList<AssociationMemberDto> Members,
+    IReadOnlyList<AssociationJoinRequestDto> JoinRequests, IReadOnlyList<AssociationDocumentDto> Documents,
+    IReadOnlyList<AssociationCalendarItemDto> CalendarItems, IReadOnlyList<ServiceCaseDto> ServiceCases);
+public record CreateAssociationJoinRequest([Required, MinLength(10), MaxLength(1000)] string Message);
+public record ReviewAssociationJoinRequest(
+    [Required] string Status, [MaxLength(1000)] string? ReviewNotes = null,
+    string Role = "Member", [MaxLength(160)] string? Title = null, IReadOnlyList<string>? Permissions = null);
+public record UpdateAssociationMemberRequest(
+    [Required] string Role, [MaxLength(160)] string? Title = null,
+    IReadOnlyList<string>? Permissions = null, string Status = "Active");
+public record UpsertAssociationMemberRequest(
+    Guid MemberId, [Required] string Role, [MaxLength(160)] string? Title = null,
+    IReadOnlyList<string>? Permissions = null, string Status = "Active");
+public record CreateAssociationDocumentRequest(
+    [Required, MaxLength(180)] string Title, [MaxLength(180)] string? TitleEn = null,
+    [MaxLength(1000)] string? Description = null, [MaxLength(1000)] string? DescriptionEn = null,
+    string Visibility = "Members");
+public record CreateAssociationCalendarItemRequest(
+    [Required, MaxLength(180)] string Title, [MaxLength(180)] string? TitleEn,
+    [MaxLength(3000)] string? Description, [MaxLength(3000)] string? DescriptionEn,
+    [MaxLength(300)] string? Location, [MaxLength(300)] string? LocationEn,
+    DateTime StartsAtUtc, DateTime? EndsAtUtc);
+public record UpdateAssociationServiceCaseRequest([Required] string Status);
 
 public record OpportunityDto(Guid Id, string Title, string? TitleEn, string Description, string? DescriptionEn,
     string Type, string Organization, string? Location, bool IsRemote, string? Skills, string? ApplyUrl,
@@ -495,7 +537,8 @@ public record CreateAssociationRequest(
     List<string> Domains,
     string? NameEn = null,
     string? DescriptionEn = null,
-    List<string>? DomainsEn = null);
+    List<string>? DomainsEn = null,
+    string OrganizationType = "Association");
 
 public record UpdateAssociationRequest(
     string? Name, string? Description, string? Province, string? City,
@@ -504,7 +547,8 @@ public record UpdateAssociationRequest(
     bool? IsActive,
     string? NameEn = null,
     string? DescriptionEn = null,
-    List<string>? DomainsEn = null);
+    List<string>? DomainsEn = null,
+    string? OrganizationType = null);
 
 // Document DTOs
 public record DocumentDto(

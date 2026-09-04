@@ -116,6 +116,7 @@ public class AssociationService : IAssociationService
                 Website = request.Website,
                 Domains = request.Domains ?? new List<string>(),
                 DomainsEn = request.DomainsEn ?? new List<string>(),
+                OrganizationType = NormalizeOrganizationType(request.OrganizationType),
                 IsActive = true
             };
 
@@ -159,6 +160,7 @@ public class AssociationService : IAssociationService
             if (request.Website != null) association.Website = request.Website;
             if (request.Domains != null) association.Domains = request.Domains;
             if (request.DomainsEn != null) association.DomainsEn = request.DomainsEn;
+            if (request.OrganizationType != null) association.OrganizationType = NormalizeOrganizationType(request.OrganizationType);
             if (request.IsActive.HasValue) association.IsActive = request.IsActive.Value;
 
             association.UpdatedAt = DateTime.UtcNow;
@@ -269,12 +271,16 @@ public class AssociationService : IAssociationService
             association.UpdatedAt,
             association.NameEn,
             association.DescriptionEn,
-            association.DomainsEn
+            association.DomainsEn,
+            association.OrganizationType
         );
     }
 
     private static string? NormalizeOptional(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static string NormalizeOrganizationType(string? value) =>
+        string.Equals(value, "Committee", StringComparison.OrdinalIgnoreCase) ? "Committee" : "Association";
 
     private static bool IsOwnedUpload(string? url) =>
         !string.IsNullOrWhiteSpace(url)

@@ -30,8 +30,8 @@ test('public and authentication routes render cleanly in French and English', as
 
   for (const language of ['fr', 'en']) {
     await page.goto('/');
-    await page.evaluate((value) => window.localStorage.setItem('i18nextLng', value), language);
-    await page.reload();
+    await page.getByRole('button', { name: language === 'fr' ? 'Français' : 'English' }).click();
+    await expect(page.locator('html')).toHaveAttribute('lang', language);
     for (const route of routes) {
       await page.goto(route);
       await expect(page.locator('#root')).toBeVisible();
@@ -86,6 +86,9 @@ test('member can register and enter the member portal', async ({ page }) => {
 
   await expect(page.getByRole('navigation', { name: /communauté des membres|member community/i })).toBeVisible();
   await expect(page.getByRole('heading', { name: /votre espace est prêt|your space is ready/i })).toBeVisible();
+  await page.getByRole('tab', { name: /^associations$/i }).click();
+  await expect(page.getByRole('heading', { name: /votre organisation, au même endroit|your organization, all in one place/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /rejoindre ou représenter une organisation|join or represent an organization/i })).toBeVisible();
   await page.getByRole('tab', { name: /^notifications$/i }).click();
   await expect(page.getByRole('heading', { name: /mes notifications|my notifications/i })).toBeVisible();
   await page.getByRole('tab', { name: /mes préférences|my preferences/i }).click();

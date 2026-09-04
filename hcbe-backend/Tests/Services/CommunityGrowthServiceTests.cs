@@ -4,6 +4,7 @@ using HcbeApi.Helpers;
 using HcbeApi.Models;
 using HcbeApi.Services;
 using HcbeApi.Tests.Helpers;
+using Moq;
 using Xunit;
 
 namespace HcbeApi.Tests.Services;
@@ -63,7 +64,7 @@ public sealed class CommunityGrowthServiceTests : IDisposable
         var association = new Association { Name = "Association test", Province = "Québec", City = "Montréal" };
         _context.Add(association);
         await _context.SaveChangesAsync();
-        var service = new AssociationPortalService(_context, _notifications);
+        var service = new AssociationPortalService(_context, _notifications, Mock.Of<IFileStorageService>());
 
         var firstClaim = await service.ClaimAsync(first.Id, association.Id, new("Je représente officiellement cette association communautaire."));
         var secondClaim = await service.ClaimAsync(second.Id, association.Id, new("Je représente aussi cette association communautaire locale."));
@@ -73,6 +74,48 @@ public sealed class CommunityGrowthServiceTests : IDisposable
         association.OwnerMemberId.Should().Be(first.MemberId);
         (await _context.AssociationClaimRequests.FindAsync(secondClaim.Data!.Id))!.Status.Should().Be("Rejected");
         _notifications.Count.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task OrganizationMembership_ApprovalCreatesScopedWorkspaceAccess()
+    {
+        var owner = AddMember("owner@example.com");
+        var applicant = AddMember("applicant@example.com");
+        var association = new Association { Name = "Comité entraide", Province = "Ontario", City = "Toronto", OrganizationType = "Committee", OwnerMemberId = owner.MemberId };
+        _context.Add(association);
+        await _context.SaveChangesAsync();
+        var service = new AssociationPortalService(_context, _notifications, Mock.Of<IFileStorageService>());
+
+        var request = await service.JoinAsync(applicant.Id, association.Id, new("Je souhaite contribuer aux activités du comité."));
+        var approved = await service.ReviewJoinAsync(owner.Id, association.Id, request.Data!.Id, new("Approved", null, "Editor", "Coordination", ["workspace.view", "documents.manage", "invalid.permission"]));
+        var workspace = await service.GetWorkspaceAsync(applicant.Id, association.Id);
+
+        approved.Success.Should().BeTrue();
+        workspace.Success.Should().BeTrue();
+        workspace.Data!.Access.Role.Should().Be("Editor");
+        workspace.Data.Access.Permissions.Should().BeEquivalentTo(["workspace.view", "documents.manage"]);
+        workspace.Data.Association.OrganizationType.Should().Be("Committee");
+        workspace.Data.Members.Should().Contain(item => item.MemberEmail == "applicant@example.com");
+    }
+
+    [Fact]
+    public async Task OrganizationWorkspace_OnlyReturnsCasesAssignedToThatOrganization()
+    {
+        var owner = AddMember("case-owner@example.com");
+        var requester = AddMember("requester@example.com");
+        var assigned = new Association { Name = "Comité juridique", Province = "Québec", City = "Montréal", OwnerMemberId = owner.MemberId };
+        var other = new Association { Name = "Autre comité", Province = "Québec", City = "Québec" };
+        _context.AddRange(assigned, other);
+        _context.ServiceCases.AddRange(
+            new ServiceCase { MemberId = requester.MemberId!.Value, TicketNumber = "HCBE-100", Category = "legal", Subject = "Dossier assigné", Description = "Demande", AssignedAssociation = assigned },
+            new ServiceCase { MemberId = requester.MemberId.Value, TicketNumber = "HCBE-200", Category = "other", Subject = "Autre dossier", Description = "Demande", AssignedAssociation = other });
+        await _context.SaveChangesAsync();
+        var service = new AssociationPortalService(_context, _notifications, Mock.Of<IFileStorageService>());
+
+        var workspace = await service.GetWorkspaceAsync(owner.Id, assigned.Id);
+
+        workspace.Success.Should().BeTrue();
+        workspace.Data!.ServiceCases.Should().ContainSingle(item => item.TicketNumber == "HCBE-100");
     }
 
     [Fact]

@@ -79,5 +79,37 @@ public sealed class ServiceCaseServiceTests : IDisposable
         result.Data.ResolvedAt.Should().NotBeNull();
     }
 
+    [Fact]
+    public async Task AdminCanAssignCaseToActiveOrganization()
+    {
+        var organization = new Association { Name = "Comité emploi", City = "Montréal", Province = "Québec", IsActive = true, OrganizationType = "Committee" };
+        _context.Associations.Add(organization);
+        await _context.SaveChangesAsync();
+        var created = await _service.CreateAsync(_memberUser.Id, new CreateServiceCaseRequest("employment", "Accompagnement professionnel", "Je souhaite être orientée vers un comité spécialisé dans l'emploi."));
+        _context.ChangeTracker.Clear();
+
+        var result = await _service.UpdateForAdminAsync(created.Data!.Id, new UpdateServiceCaseRequest(AssignedAssociationId: organization.Id));
+
+        result.Success.Should().BeTrue();
+        result.Data!.AssignedAssociationId.Should().Be(organization.Id);
+        result.Data.AssignedAssociationName.Should().Be("Comité emploi");
+        result.Data.Status.Should().Be("InReview");
+    }
+
+    [Fact]
+    public async Task AdminCannotAssignCaseToInactiveOrganization()
+    {
+        var organization = new Association { Name = "Comité inactif", City = "Québec", Province = "Québec", IsActive = false };
+        _context.Associations.Add(organization);
+        await _context.SaveChangesAsync();
+        var created = await _service.CreateAsync(_memberUser.Id, new CreateServiceCaseRequest("other", "Demande communautaire", "Je souhaite être orientée vers une organisation de la communauté."));
+        _context.ChangeTracker.Clear();
+
+        var result = await _service.UpdateForAdminAsync(created.Data!.Id, new UpdateServiceCaseRequest(AssignedAssociationId: organization.Id));
+
+        result.Success.Should().BeFalse();
+        result.Message.Should().Be("Assigned organization must be active");
+    }
+
     public void Dispose() => _context.Dispose();
 }
