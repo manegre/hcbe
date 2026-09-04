@@ -9,6 +9,7 @@ import MemberPreferencesPanel from './MemberPreferencesPanel';
 import MemberAssociationsPanel from './MemberAssociationsPanel';
 import MemberOpportunitiesPanel from './MemberOpportunitiesPanel';
 import MentorshipJourneyPanel from './MentorshipJourneyPanel';
+import MemberFinancePanel from './MemberFinancePanel';
 import type {
   ConnectionRequestDto,
   CreateMentorshipApplicationRequest,
@@ -19,7 +20,7 @@ import type {
   UpsertNetworkingProfileRequest,
 } from '../../../lib/api/types';
 
-type Tab = 'overview' | 'services' | 'opportunities' | 'associations' | 'network' | 'mentorship' | 'requests' | 'messages' | 'profile' | 'preferences';
+type Tab = 'overview' | 'membership' | 'services' | 'opportunities' | 'associations' | 'network' | 'mentorship' | 'requests' | 'messages' | 'profile' | 'preferences';
 
 interface MemberCommunityWorkspaceProps {
   member: MemberDto;
@@ -65,7 +66,7 @@ const MemberCommunityWorkspace = ({ member, accountPanel, onLogout }: MemberComm
   const fr = !i18n.language.startsWith('en');
   const [tab, setTab] = useState<Tab>(() => {
     const requested = new URLSearchParams(window.location.search).get('section');
-    return ['overview', 'services', 'opportunities', 'associations', 'network', 'mentorship', 'requests', 'messages', 'profile', 'preferences'].includes(requested ?? '') ? requested as Tab : 'overview';
+    return ['overview', 'membership', 'services', 'opportunities', 'associations', 'network', 'mentorship', 'requests', 'messages', 'profile', 'preferences'].includes(requested ?? '') ? requested as Tab : 'overview';
   });
   const [applications, setApplications] = useState<MentorshipApplicationDto[]>([]);
   const [matches, setMatches] = useState<MentorshipMatchDto[]>([]);
@@ -84,7 +85,7 @@ const MemberCommunityWorkspace = ({ member, accountPanel, onLogout }: MemberComm
   const copy = fr ? {
     eyebrow: 'Espace privé', title: 'Communauté des membres',
     intro: 'Développez des relations utiles dans un cadre confidentiel, volontaire et modéré par le HCBE Canada.',
-    mentorship: 'Mentorat', network: 'Annuaire privé', requests: 'Mises en relation', messages: 'Messages', services: 'Mes demandes', preferences: 'Mes préférences', associations: 'Associations', opportunities: 'Occasions',
+    mentorship: 'Mentorat', network: 'Annuaire privé', requests: 'Mises en relation', messages: 'Messages', services: 'Mes demandes', preferences: 'Mes préférences', associations: 'Associations', opportunities: 'Occasions', membership: 'Mon adhésion',
     apply: 'Proposer mon profil', myApplications: 'Mes candidatures', myMatches: 'Mes jumelages',
     noApplications: 'Aucune candidature de mentorat pour le moment.', noMatches: 'Aucun jumelage proposé.',
     summary: 'Parcours professionnel', expertise: 'Expertise et domaines', objectives: 'Objectifs du mentorat',
@@ -136,7 +137,7 @@ const MemberCommunityWorkspace = ({ member, accountPanel, onLogout }: MemberComm
   } : {
     eyebrow: 'Private workspace', title: 'Member community',
     intro: 'Build useful relationships in a confidential, voluntary environment moderated by HCBE Canada.',
-    mentorship: 'Mentorship', network: 'Private directory', requests: 'Connections', messages: 'Messages', services: 'My requests', preferences: 'My preferences', associations: 'Associations', opportunities: 'Opportunities',
+    mentorship: 'Mentorship', network: 'Private directory', requests: 'Connections', messages: 'Messages', services: 'My requests', preferences: 'My preferences', associations: 'Associations', opportunities: 'Opportunities', membership: 'My membership',
     apply: 'Submit my profile', myApplications: 'My applications', myMatches: 'My matches',
     noApplications: 'No mentorship applications yet.', noMatches: 'No match has been proposed.',
     summary: 'Professional background', expertise: 'Expertise and fields', objectives: 'Mentorship goals',
@@ -278,6 +279,7 @@ const MemberCommunityWorkspace = ({ member, accountPanel, onLogout }: MemberComm
 
   const tabs = [
     ['overview', 'ri-layout-grid-line', copy.overview, 0],
+    ['membership', 'ri-bank-card-line', copy.membership, 0],
     ['services', 'ri-customer-service-2-line', copy.services, 0],
     ['opportunities', 'ri-briefcase-4-line', copy.opportunities, 0],
     ['associations', 'ri-building-2-line', copy.associations, 0],
@@ -695,6 +697,7 @@ const MemberCommunityWorkspace = ({ member, accountPanel, onLogout }: MemberComm
         )}
 
         {!loading && tab === 'messages' && <MemberMessagingPanel onUnreadChange={setUnreadMessages} />}
+        {!loading && tab === 'membership' && <MemberFinancePanel member={member} />}
         {!loading && tab === 'services' && <MemberServiceCasesPanel />}
         {!loading && tab === 'preferences' && <MemberPreferencesPanel />}
         {!loading && tab === 'associations' && <MemberAssociationsPanel />}

@@ -1136,3 +1136,49 @@ export interface CreateNewsRequest {
   isPinned?: boolean;
   status: string;
 }
+
+export interface MembershipPlan {
+  id: string; name: string; nameEn?: string; description: string; descriptionEn?: string;
+  amountCents: number; currency: string; billingMode: 'Annual' | 'Recurring'; benefits: string[];
+  stripePriceId?: string; isActive: boolean; displayOrder: number;
+}
+
+export interface MembershipStanding {
+  status: 'Inactive' | 'Active' | 'GracePeriod' | 'Expired';
+  currentPeriodStartUtc?: string; currentPeriodEndUtc?: string; graceEndsAtUtc?: string;
+  autoRenew: boolean; hasBillingAccount: boolean; hasActiveSubscription: boolean;
+  plan?: MembershipPlan; verificationCode?: string; verificationUrl?: string;
+}
+
+export interface DonationCampaign {
+  id: string; slug: string; title: string; titleEn?: string; description: string; descriptionEn?: string;
+  goalAmountCents: number; raisedAmountCents: number; currency: string; imageUrl?: string;
+  allowRecurring: boolean; isPublished: boolean; startsAtUtc?: string; endsAtUtc?: string; supporterCount: number;
+}
+
+export interface FinancialTransaction {
+  id: string; kind: 'Membership' | 'Donation'; status: string; amountCents: number;
+  refundedAmountCents: number; currency: string; payerEmail: string; payerName?: string;
+  isAnonymous: boolean; allowPublicRecognition: boolean; isRecurring: boolean;
+  receiptNumber: string; receiptUrl?: string; membershipPlanId?: string; donationCampaignId?: string;
+  campaignTitle?: string; createdAtUtc: string; paidAtUtc?: string; refundedAtUtc?: string;
+}
+
+export interface MemberFinanceSummary {
+  membership: MembershipStanding; plans: MembershipPlan[]; transactions: FinancialTransaction[];
+}
+
+export interface CheckoutSession { transactionId: string; checkoutUrl: string; sessionId: string; }
+export interface CheckoutResult { status: string; kind: string; amountCents: number; currency: string; receiptUrl?: string; returnUrl?: string; }
+export interface FinanceDashboard {
+  paidAmountCents: number; refundedAmountCents: number; membershipRevenueCents: number;
+  donationRevenueCents: number; activeMembers: number; expiringMembers: number;
+  paidTransactionCount: number; recentTransactions: FinancialTransaction[];
+}
+export interface AdminMembership {
+  userId: string; memberName: string; email: string; status: 'Inactive' | 'Active' | 'GracePeriod' | 'Expired';
+  planName?: string; currentPeriodEndUtc?: string; graceEndsAtUtc?: string; autoRenew: boolean;
+}
+export interface MembershipVerification {
+  isValid: boolean; status: string; memberName: string; planName?: string; validUntilUtc?: string; verificationCode: string;
+}

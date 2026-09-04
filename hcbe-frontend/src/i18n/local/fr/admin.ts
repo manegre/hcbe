@@ -89,6 +89,7 @@ export default {
   'admin.nav.groups.community': 'Communauté',
   'admin.nav.groups.members': 'Membres',
   'admin.nav.groups.administration': 'Administration',
+  'admin.nav.finance': 'Finances et adhésions',
 
   'admin.nav.dashboard': 'Tableau de bord',
   'admin.nav.monitoring': 'Surveillance',

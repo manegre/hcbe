@@ -379,6 +379,20 @@ builder.Services.AddScoped<IMessagingService, MessagingService>();
 builder.Services.AddScoped<IPartnerService, PartnerService>();
 builder.Services.AddScoped<IPrivacyService, PrivacyService>();
 builder.Services.AddHostedService<PrivacyRetentionWorker>();
+var financeConfiguration = builder.Configuration.GetSection(FinanceOptions.SectionName).Get<FinanceOptions>() ?? new FinanceOptions();
+if (financeConfiguration.Enabled && !financeConfiguration.Provider.Equals("Stripe", StringComparison.OrdinalIgnoreCase))
+{
+    throw new InvalidOperationException("Finance:Provider must be Stripe when online payments are enabled.");
+}
+if (financeConfiguration.Enabled &&
+    (string.IsNullOrWhiteSpace(financeConfiguration.SecretKey) || string.IsNullOrWhiteSpace(financeConfiguration.WebhookSecret)))
+{
+    throw new InvalidOperationException("Finance:SecretKey and Finance:WebhookSecret are required when online payments are enabled.");
+}
+builder.Services.Configure<FinanceOptions>(builder.Configuration.GetSection(FinanceOptions.SectionName));
+builder.Services.AddSingleton<IPaymentGateway, StripePaymentGateway>();
+builder.Services.AddScoped<IFinanceService, FinanceService>();
+builder.Services.AddHostedService<MembershipReminderWorker>();
 
 // Enable static file serving for uploads
 builder.Services.Configure<IISServerOptions>(options =>
@@ -1245,6 +1259,7 @@ app.MapErrorIncidentEndpoints();
 app.MapHub<MessagingHub>("/hubs/messaging");
 app.MapHub<CmsHub>("/hubs/cms");
 app.MapPrivacyEndpoints();
+app.MapFinanceEndpoints();
 
 // Direct test route for team members
 app.MapGet("/api/team-members-test", () => Results.Ok("Direct test route works"));
@@ -1506,6 +1521,66 @@ static void EnsureSqliteSecuritySchema(ApplicationDbContext context)
     )");
     context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_PrivacyRequests_Status_ExecuteAfterUtc ON PrivacyRequests(Status, ExecuteAfterUtc)");
     context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_PrivacyRequests_UserId ON PrivacyRequests(UserId)");
+
+    context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS DonationCampaigns (
+        Id TEXT NOT NULL PRIMARY KEY, Slug TEXT NOT NULL, Title TEXT NOT NULL, TitleEn TEXT,
+        Description TEXT NOT NULL, DescriptionEn TEXT, GoalAmountCents INTEGER NOT NULL,
+        Currency TEXT NOT NULL, ImageUrl TEXT, AllowRecurring INTEGER NOT NULL DEFAULT 1,
+        IsPublished INTEGER NOT NULL DEFAULT 0, StartsAtUtc TEXT, EndsAtUtc TEXT,
+        CreatedAtUtc TEXT NOT NULL, UpdatedAtUtc TEXT NOT NULL
+    )");
+    context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_DonationCampaigns_Slug ON DonationCampaigns(Slug)");
+    context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_DonationCampaigns_IsPublished_StartsAtUtc_EndsAtUtc ON DonationCampaigns(IsPublished, StartsAtUtc, EndsAtUtc)");
+
+    context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS MembershipPlans (
+        Id TEXT NOT NULL PRIMARY KEY, Name TEXT NOT NULL, NameEn TEXT, Description TEXT NOT NULL,
+        DescriptionEn TEXT, AmountCents INTEGER NOT NULL, Currency TEXT NOT NULL,
+        BillingMode TEXT NOT NULL, StripePriceId TEXT, BenefitsJson TEXT NOT NULL DEFAULT '[]',
+        IsActive INTEGER NOT NULL DEFAULT 1, DisplayOrder INTEGER NOT NULL DEFAULT 0,
+        CreatedAtUtc TEXT NOT NULL, UpdatedAtUtc TEXT NOT NULL
+    )");
+    context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_MembershipPlans_IsActive_DisplayOrder ON MembershipPlans(IsActive, DisplayOrder)");
+
+    context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS PaymentWebhookEvents (
+        Id TEXT NOT NULL PRIMARY KEY, ProviderEventId TEXT NOT NULL, EventType TEXT NOT NULL,
+        Status TEXT NOT NULL, Error TEXT, ReceivedAtUtc TEXT NOT NULL, ProcessedAtUtc TEXT
+    )");
+    context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_PaymentWebhookEvents_ProviderEventId ON PaymentWebhookEvents(ProviderEventId)");
+    context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_PaymentWebhookEvents_Status_ReceivedAtUtc ON PaymentWebhookEvents(Status, ReceivedAtUtc)");
+
+    context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS FinancialTransactions (
+        Id TEXT NOT NULL PRIMARY KEY, UserId TEXT, MembershipPlanId TEXT, DonationCampaignId TEXT,
+        Kind TEXT NOT NULL, Status TEXT NOT NULL, AmountCents INTEGER NOT NULL,
+        RefundedAmountCents INTEGER NOT NULL DEFAULT 0, Currency TEXT NOT NULL, PayerEmail TEXT NOT NULL,
+        PayerName TEXT, IsAnonymous INTEGER NOT NULL DEFAULT 0, AllowPublicRecognition INTEGER NOT NULL DEFAULT 0,
+        DonorMessage TEXT, IsRecurring INTEGER NOT NULL DEFAULT 0, StripeCheckoutSessionId TEXT,
+        StripePaymentIntentId TEXT, StripeCustomerId TEXT, StripeSubscriptionId TEXT, StripeInvoiceId TEXT,
+        ReceiptNumber TEXT NOT NULL, ReceiptToken TEXT NOT NULL, FailureReason TEXT,
+        CreatedAtUtc TEXT NOT NULL, UpdatedAtUtc TEXT NOT NULL, PaidAtUtc TEXT, RefundedAtUtc TEXT,
+        FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE SET NULL,
+        FOREIGN KEY (MembershipPlanId) REFERENCES MembershipPlans(Id) ON DELETE SET NULL,
+        FOREIGN KEY (DonationCampaignId) REFERENCES DonationCampaigns(Id) ON DELETE SET NULL
+    )");
+    context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_FinancialTransactions_ReceiptNumber ON FinancialTransactions(ReceiptNumber)");
+    context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_FinancialTransactions_ReceiptToken ON FinancialTransactions(ReceiptToken)");
+    context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_FinancialTransactions_StripeCheckoutSessionId ON FinancialTransactions(StripeCheckoutSessionId)");
+    context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_FinancialTransactions_StripeInvoiceId ON FinancialTransactions(StripeInvoiceId)");
+    context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_FinancialTransactions_Status_CreatedAtUtc ON FinancialTransactions(Status, CreatedAtUtc)");
+    context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_FinancialTransactions_UserId_CreatedAtUtc ON FinancialTransactions(UserId, CreatedAtUtc)");
+    context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_FinancialTransactions_MembershipPlanId ON FinancialTransactions(MembershipPlanId)");
+    context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_FinancialTransactions_DonationCampaignId ON FinancialTransactions(DonationCampaignId)");
+
+    context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS MembershipStandings (
+        Id TEXT NOT NULL PRIMARY KEY, UserId TEXT NOT NULL, PlanId TEXT, Status TEXT NOT NULL,
+        CurrentPeriodStartUtc TEXT, CurrentPeriodEndUtc TEXT, GraceEndsAtUtc TEXT,
+        AutoRenew INTEGER NOT NULL DEFAULT 0, StripeCustomerId TEXT, StripeSubscriptionId TEXT,
+        LastTransactionId TEXT, LastReminderKey TEXT, LastReminderAtUtc TEXT, UpdatedAtUtc TEXT NOT NULL,
+        FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE RESTRICT,
+        FOREIGN KEY (PlanId) REFERENCES MembershipPlans(Id) ON DELETE SET NULL
+    )");
+    context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_MembershipStandings_UserId ON MembershipStandings(UserId)");
+    context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_MembershipStandings_PlanId ON MembershipStandings(PlanId)");
+    context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_MembershipStandings_Status_CurrentPeriodEndUtc ON MembershipStandings(Status, CurrentPeriodEndUtc)");
 
     // Local SQLite databases predate the versioned PostgreSQL CMS migration.
     // Keep development data intact while adding the same draft/publish schema.

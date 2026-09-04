@@ -14,4 +14,6 @@ public interface IEmailTemplateRenderer
     RenderedEmail Newsletter(string subject, string body, string unsubscribeUrl, bool useEnglish);
     RenderedEmail EventRegistrationUpdate(string? firstName, string eventTitle, DateTime eventDate, string status, string confirmationCode, string eventUrl);
     RenderedEmail ServiceCaseUpdate(string? firstName, string ticketNumber, string subject, string status, string? message, string caseUrl);
+    RenderedEmail PaymentReceipt(string? name, string kind, long amountCents, string currency, string receiptNumber, string receiptUrl);
+    RenderedEmail MembershipReminder(string? firstName, DateTime expiresAtUtc, string renewalUrl, bool expired);
 }

@@ -161,6 +161,7 @@ export const AdminLayout = () => {
     {
       headingKey: 'admin.nav.groups.administration',
       items: [
+        { nameKey: 'admin.nav.finance', href: '/admin/finance', icon: 'ri-secure-payment-line', permission: 'finance.manage' },
         ...(features.adminTeamMembersEnabled
           ? [{ nameKey: 'admin.nav.teamMembers', href: '/admin/team-members', icon: 'ri-team-line', permission: 'content.manage' }]
           : []),

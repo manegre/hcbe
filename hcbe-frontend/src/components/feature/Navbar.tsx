@@ -15,6 +15,7 @@ const mobileNavIcons: Record<string, string> = {
   '/actualites': 'ri-newspaper-line',
   '/engagement': 'ri-hand-heart-line',
   '/contact': 'ri-mail-send-line',
+  '/contribuer': 'ri-hand-coin-line',
 };
 
 const Navbar = () => {
@@ -54,6 +55,7 @@ const Navbar = () => {
           { path: '/engagement/annuaire', labelKey: 'public.nav.associations' },
           { path: '/engagement/projets', labelKey: 'public.nav.projects' },
           { path: '/engagement/consultations', labelKey: 'public.nav.consultations' },
+          { path: '/contribuer', labelKey: 'public.nav.contribute' },
         ],
       },
       { path: '/espace-membre', labelKey: 'public.nav.members' },

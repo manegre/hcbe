@@ -70,6 +70,21 @@ Email__FromName=HCBE Canada
 Operations__AlertEmail=<operations-team-address>
 ```
 
+Payments, memberships, recurring contributions, receipts, refunds, and reconciliation require:
+
+```text
+Finance__Enabled=true
+Finance__Provider=Stripe
+Finance__SecretKey=<sealed-restricted-stripe-key>
+Finance__WebhookSecret=<sealed-whsec-signing-secret>
+Finance__AutomaticTaxEnabled=false
+Finance__MembershipGracePeriodDays=30
+Finance__MinimumDonationCents=500
+Finance__Currency=cad
+```
+
+Create the Stripe webhook at `https://api.hcbe.ca/api/finance/webhooks/stripe` and configure the Customer Portal before enabling payments. See [payments-membership.md](payments-membership.md) for the exact webhook events, first transaction/refund check, tax guardrails, and secret rotation procedure.
+
 `DataProtection__KeyEncryptionKeys` protects the ASP.NET Data Protection key ring. In production the key ring is shared through the private Redis service, so restarts and multiple API replicas keep cookies and protected payloads valid. Generate this value with a cryptographically secure random source and seal it in Railway. For rotation, prepend the new Base64 key and retain the old one after a comma until every Data Protection key encrypted with it has expired.
 
 ## 3. Frontend variables
@@ -116,4 +131,4 @@ The `/ops/postgres-backup` Railway cron service creates a daily custom-format du
 
 Never test restoration over the production database. Quarterly, perform this procedure in an isolated Railway environment in addition to the automated daily container restore.
 
-Last verified production drill: 2026-09-03. The isolated PostgreSQL 18 restore validated 12 EF Core migrations plus the `Users`, `Members`, and `Events` tables, and the private bucket received the encrypted dump, SHA-256 checksum, and restore-verification report.
+Last verified production drill: 2026-09-03. That isolated PostgreSQL 18 restore validated 12 EF Core migrations plus the `Users`, `Members`, and `Events` tables, and the private bucket received the encrypted dump, SHA-256 checksum, and restore-verification report. Run a new isolated restore drill after deploying `AddCommunityFinance` and verify the five finance tables before considering this release recovery-tested.

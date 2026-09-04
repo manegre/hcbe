@@ -190,13 +190,39 @@ public sealed class PrivacyServiceTests
         newsletter.IsActive.Should().BeFalse();
     }
 
-    private static PrivacyService CreateService(HcbeApi.Data.ApplicationDbContext context, IFileStorageService? fileStorage = null)
+    [Fact]
+    public async Task ProcessDueDeletionsAsync_CancelsRecurringBillingBeforeRemovingProviderIdentifiers()
+    {
+        await using var context = TestDbContextFactory.CreateInMemoryContext();
+        var user = new User { Email = "subscriber@example.com", PasswordHash = "hash", IsActive = true };
+        var standing = new MembershipStanding { UserId = user.Id, User = user, Status = MembershipStatuses.Active, AutoRenew = true, StripeCustomerId = "cus_delete", StripeSubscriptionId = "sub_delete", CurrentPeriodEndUtc = DateTime.UtcNow.AddMonths(6) };
+        var transaction = new FinancialTransaction { UserId = user.Id, Kind = FinanceKinds.Membership, Status = FinanceStatuses.Paid, AmountCents = 5000, PayerEmail = user.Email, PayerName = "Subscriber", ReceiptNumber = "HCBE-TEST-DELETE", ReceiptToken = "receipt-delete", PaidAtUtc = DateTime.UtcNow };
+        context.AddRange(user, standing, transaction, new PrivacyRequest { UserId = user.Id, ExecuteAfterUtc = DateTime.UtcNow.AddMinutes(-1) });
+        await context.SaveChangesAsync();
+        var gateway = new Mock<IPaymentGateway>();
+        gateway.SetupGet(item => item.IsEnabled).Returns(true);
+        gateway.Setup(item => item.CancelSubscriptionAsync("sub_delete", It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+        var processed = await CreateService(context, paymentGateway: gateway.Object).ProcessDueDeletionsAsync(CancellationToken.None);
+
+        processed.Should().Be(1);
+        gateway.Verify(item => item.CancelSubscriptionAsync("sub_delete", It.IsAny<CancellationToken>()), Times.Once);
+        standing.Status.Should().Be(MembershipStatuses.Inactive);
+        standing.AutoRenew.Should().BeFalse();
+        standing.StripeCustomerId.Should().BeNull();
+        standing.StripeSubscriptionId.Should().BeNull();
+        transaction.UserId.Should().BeNull();
+        transaction.IsAnonymous.Should().BeTrue();
+        transaction.PayerEmail.Should().EndWith("@invalid.local");
+    }
+
+    private static PrivacyService CreateService(HcbeApi.Data.ApplicationDbContext context, IFileStorageService? fileStorage = null, IPaymentGateway? paymentGateway = null)
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Privacy:DeletionDelayDays"] = "30",
             ["Privacy:AuditRetentionDays"] = "730"
         }).Build();
-        return new PrivacyService(context, configuration, fileStorage ?? Mock.Of<IFileStorageService>(), NullLogger<PrivacyService>.Instance);
+        return new PrivacyService(context, configuration, fileStorage ?? Mock.Of<IFileStorageService>(), paymentGateway ?? Mock.Of<IPaymentGateway>(), NullLogger<PrivacyService>.Instance);
     }
 }

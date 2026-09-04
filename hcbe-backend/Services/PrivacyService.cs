@@ -12,6 +12,7 @@ public sealed class PrivacyService(
     ApplicationDbContext context,
     IConfiguration configuration,
     IFileStorageService fileStorage,
+    IPaymentGateway paymentGateway,
     ILogger<PrivacyService> logger) : IPrivacyService
 {
     public async Task<byte[]?> ExportAsync(Guid userId, CancellationToken cancellationToken)
@@ -76,6 +77,17 @@ public sealed class PrivacyService(
             {
                 item.Id, item.Email, item.FullName, item.PreferredLanguage, item.ConsentAcceptedAt,
                 item.IsActive, item.Source, item.CreatedAt, item.UpdatedAt
+            }).ToListAsync(cancellationToken),
+            membershipStanding = await context.MembershipStandings.AsNoTracking().Where(item => item.UserId == userId).Select(item => new
+            {
+                item.Status, item.PlanId, item.CurrentPeriodStartUtc, item.CurrentPeriodEndUtc,
+                item.GraceEndsAtUtc, item.AutoRenew, item.UpdatedAtUtc
+            }).SingleOrDefaultAsync(cancellationToken),
+            financialTransactions = await context.FinancialTransactions.AsNoTracking().Where(item => item.UserId == userId || item.PayerEmail == user.Email).Select(item => new
+            {
+                item.Id, item.Kind, item.Status, item.AmountCents, item.RefundedAmountCents, item.Currency,
+                item.ReceiptNumber, item.MembershipPlanId, item.DonationCampaignId, item.IsRecurring,
+                item.IsAnonymous, item.AllowPublicRecognition, item.CreatedAtUtc, item.PaidAtUtc, item.RefundedAtUtc
             }).ToListAsync(cancellationToken)
         };
 
@@ -239,6 +251,13 @@ public sealed class PrivacyService(
         var memberId = user.MemberId;
         var subjectReference = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"{user.Id:N}:hcbe-privacy")));
         var anonymousEmail = $"deleted+{user.Id:N}@invalid.local";
+        var membershipStanding = await context.MembershipStandings.SingleOrDefaultAsync(item => item.UserId == user.Id, cancellationToken);
+        if (membershipStanding?.StripeSubscriptionId is string subscriptionId && paymentGateway.IsEnabled)
+        {
+            // Do not remove the provider reference until cancellation succeeds; otherwise
+            // an anonymized account could continue to renew without a recovery path.
+            await paymentGateway.CancelSubscriptionAsync(subscriptionId, cancellationToken);
+        }
 
         context.RemoveRange(await context.RefreshTokens.Where(item => item.UserId == user.Id).ToListAsync(cancellationToken));
         context.RemoveRange(await context.PasswordResetTokens.Where(item => item.UserId == user.Id).ToListAsync(cancellationToken));
@@ -344,6 +363,29 @@ public sealed class PrivacyService(
         {
             item.Recipient = anonymousEmail;
             if (item.Status is "Pending" or "Failed") { item.Status = "Cancelled"; item.LastError = "Cancelled by privacy request"; }
+        }
+        if (membershipStanding != null)
+        {
+            membershipStanding.Status = MembershipStatuses.Inactive;
+            membershipStanding.AutoRenew = false;
+            membershipStanding.StripeCustomerId = null;
+            membershipStanding.StripeSubscriptionId = null;
+            membershipStanding.LastReminderKey = null;
+            membershipStanding.LastReminderAtUtc = null;
+            membershipStanding.UpdatedAtUtc = DateTime.UtcNow;
+        }
+        // Accounting records are retained for legal and reconciliation obligations,
+        // but their direct identifiers and public-recognition choices are removed.
+        foreach (var item in await context.FinancialTransactions.Where(item => item.UserId == user.Id || item.PayerEmail == originalEmail).ToListAsync(cancellationToken))
+        {
+            item.UserId = null;
+            item.PayerEmail = anonymousEmail;
+            item.PayerName = "Deleted member";
+            item.DonorMessage = null;
+            item.IsAnonymous = true;
+            item.AllowPublicRecognition = false;
+            item.ReceiptToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
+            item.UpdatedAtUtc = DateTime.UtcNow;
         }
         foreach (var item in await context.AuditLogs.Where(item => item.UserId == user.Id || item.UserEmail == originalEmail).ToListAsync(cancellationToken))
         {

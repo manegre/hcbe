@@ -37,6 +37,7 @@ test('admin login page exposes an accessible sign-in form', async ({ page }) => 
 });
 
 test('administrator can authenticate and reach the protected dashboard', async ({ page }) => {
+  test.skip(!process.env.E2E_ADMIN_EMAIL || !process.env.E2E_ADMIN_PASSWORD, 'Admin E2E credentials are not configured');
   await page.goto('/admin/login');
   await page.locator('input[name="email"]').fill(process.env.E2E_ADMIN_EMAIL!);
   await page.locator('input[name="password"]').fill(process.env.E2E_ADMIN_PASSWORD!);
@@ -66,4 +67,46 @@ test('member can register and enter the member portal', async ({ page }) => {
   await expect(page.getByRole('heading', { name: /confidentialité et données personnelles|privacy and personal data/i })).toBeVisible();
   await expect(page.getByRole('button', { name: /^télécharger$|^download$/i })).toBeEnabled();
   await expect(page.getByRole('button', { name: /demander la suppression|request deletion/i })).toBeEnabled();
+});
+
+test('visitor can prepare a contribution and reach the confirmed payment page', async ({ page }) => {
+  await page.route('**/api/finance/campaigns', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ success: true, data: [{
+      id: '11111111-1111-1111-1111-111111111111', slug: 'entraide', title: "Fonds d'entraide",
+      titleEn: 'Community support fund', description: 'Soutenir les initiatives communautaires.',
+      descriptionEn: 'Support community initiatives.', goalAmountCents: 100000, raisedAmountCents: 25000,
+      currency: 'cad', allowRecurring: true, isPublished: true, supporterCount: 8,
+    }] }),
+  }));
+  await page.route('**/api/finance/donations/checkout', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ success: true, data: { transactionId: '22222222-2222-2222-2222-222222222222', sessionId: 'cs_e2e', checkoutUrl: 'http://127.0.0.1:4173/paiement/merci?session_id=cs_e2e' } }),
+  }));
+  await page.route('**/api/finance/checkout/cs_e2e', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ success: true, data: { status: 'Paid', kind: 'Donation', amountCents: 5000, currency: 'cad', receiptUrl: 'http://127.0.0.1:8080/api/finance/receipts/e2e' } }),
+  }));
+
+  await page.goto('/contribuer');
+  await expect(page.getByRole('heading', { name: /chaque contribution|every contribution/i })).toBeVisible();
+  await page.getByRole('textbox', { name: /^(courriel|email) \*$/i }).fill('donateur@hcbe.invalid');
+  await page.getByRole('button', { name: /continuer vers le paiement|continue to secure payment/i }).click();
+
+  await expect(page).toHaveURL(/paiement\/merci\?session_id=cs_e2e/);
+  await expect(page.getByRole('heading', { name: /merci pour votre engagement|thank you for your commitment/i })).toBeVisible();
+  await expect(page.getByRole('link', { name: /télécharger le reçu|download receipt/i })).toBeVisible();
+});
+
+test('cancelled contribution checkout explains that no charge was made', async ({ page }) => {
+  await page.route('**/api/finance/campaigns', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ success: true, data: [] }),
+  }));
+  await page.goto('/contribuer?payment=cancelled');
+  await expect(page.getByRole('status')).toContainText(/aucun montant n’a été débité|nothing was charged/i);
 });

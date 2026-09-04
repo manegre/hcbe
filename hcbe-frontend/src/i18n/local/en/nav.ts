@@ -19,6 +19,7 @@ export default {
   'public.nav.associations': 'Associations',
   'public.nav.projects': 'Projects',
   'public.nav.consultations': 'Consultations',
+  'public.nav.contribute': 'Contribute',
   'public.nav.openMenu': 'Open menu',
   'public.nav.closeMenu': 'Close menu',
   'public.nav.openSubmenu': 'Open {{label}} submenu',

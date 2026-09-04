@@ -72,6 +72,11 @@ public class ApplicationDbContext : DbContext
     public DbSet<ServiceCaseMessage> ServiceCaseMessages { get; set; }
     public DbSet<ServiceCaseAttachment> ServiceCaseAttachments { get; set; }
     public DbSet<ErrorIncident> ErrorIncidents { get; set; }
+    public DbSet<MembershipPlan> MembershipPlans { get; set; }
+    public DbSet<MembershipStanding> MembershipStandings { get; set; }
+    public DbSet<DonationCampaign> DonationCampaigns { get; set; }
+    public DbSet<FinancialTransaction> FinancialTransactions { get; set; }
+    public DbSet<PaymentWebhookEvent> PaymentWebhookEvents { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -153,6 +158,47 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<PrivacyRequest>()
             .HasIndex(request => request.UserId);
+
+        modelBuilder.Entity<MembershipPlan>().Property(item => item.Name).HasMaxLength(160);
+        modelBuilder.Entity<MembershipPlan>().Property(item => item.Currency).HasMaxLength(3);
+        modelBuilder.Entity<MembershipPlan>().Property(item => item.BillingMode).HasMaxLength(20);
+        modelBuilder.Entity<MembershipPlan>().Property(item => item.StripePriceId).HasMaxLength(255);
+        modelBuilder.Entity<MembershipPlan>().HasIndex(item => new { item.IsActive, item.DisplayOrder });
+
+        modelBuilder.Entity<MembershipStanding>()
+            .HasOne(item => item.User).WithOne().HasForeignKey<MembershipStanding>(item => item.UserId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<MembershipStanding>()
+            .HasOne(item => item.Plan).WithMany().HasForeignKey(item => item.PlanId).OnDelete(DeleteBehavior.SetNull);
+        modelBuilder.Entity<MembershipStanding>().HasIndex(item => item.UserId).IsUnique();
+        modelBuilder.Entity<MembershipStanding>().HasIndex(item => new { item.Status, item.CurrentPeriodEndUtc });
+        modelBuilder.Entity<MembershipStanding>().Property(item => item.Status).HasMaxLength(30);
+
+        modelBuilder.Entity<DonationCampaign>().HasIndex(item => item.Slug).IsUnique();
+        modelBuilder.Entity<DonationCampaign>().HasIndex(item => new { item.IsPublished, item.StartsAtUtc, item.EndsAtUtc });
+        modelBuilder.Entity<DonationCampaign>().Property(item => item.Currency).HasMaxLength(3);
+
+        modelBuilder.Entity<FinancialTransaction>()
+            .HasOne(item => item.User).WithMany().HasForeignKey(item => item.UserId).OnDelete(DeleteBehavior.SetNull);
+        modelBuilder.Entity<FinancialTransaction>()
+            .HasOne(item => item.MembershipPlan).WithMany().HasForeignKey(item => item.MembershipPlanId).OnDelete(DeleteBehavior.SetNull);
+        modelBuilder.Entity<FinancialTransaction>()
+            .HasOne(item => item.DonationCampaign).WithMany().HasForeignKey(item => item.DonationCampaignId).OnDelete(DeleteBehavior.SetNull);
+        modelBuilder.Entity<FinancialTransaction>().HasIndex(item => item.StripeCheckoutSessionId).IsUnique();
+        modelBuilder.Entity<FinancialTransaction>().HasIndex(item => item.StripeInvoiceId).IsUnique();
+        modelBuilder.Entity<FinancialTransaction>().HasIndex(item => item.ReceiptNumber).IsUnique();
+        modelBuilder.Entity<FinancialTransaction>().HasIndex(item => item.ReceiptToken).IsUnique();
+        modelBuilder.Entity<FinancialTransaction>().HasIndex(item => new { item.Status, item.CreatedAtUtc });
+        modelBuilder.Entity<FinancialTransaction>().HasIndex(item => new { item.UserId, item.CreatedAtUtc });
+        modelBuilder.Entity<FinancialTransaction>().Property(item => item.Kind).HasMaxLength(30);
+        modelBuilder.Entity<FinancialTransaction>().Property(item => item.Status).HasMaxLength(30);
+        modelBuilder.Entity<FinancialTransaction>().Property(item => item.Currency).HasMaxLength(3);
+        modelBuilder.Entity<FinancialTransaction>().Property(item => item.ReceiptNumber).HasMaxLength(40);
+        modelBuilder.Entity<FinancialTransaction>().Property(item => item.ReceiptToken).HasMaxLength(96);
+
+        modelBuilder.Entity<PaymentWebhookEvent>().HasIndex(item => item.ProviderEventId).IsUnique();
+        modelBuilder.Entity<PaymentWebhookEvent>().HasIndex(item => new { item.Status, item.ReceivedAtUtc });
+        modelBuilder.Entity<PaymentWebhookEvent>().Property(item => item.ProviderEventId).HasMaxLength(255);
+        modelBuilder.Entity<PaymentWebhookEvent>().Property(item => item.EventType).HasMaxLength(120);
 
         modelBuilder.Entity<PasswordResetToken>()
             .HasOne(token => token.User)

@@ -42,6 +42,8 @@ Railway uses this single repository for both application services. Configure the
 
 See [the Railway deployment guide](hcbe-backend/docs/railway-deployment.md) for resources, variables, health checks, database migrations and first-administrator setup.
 
+See [the payment and membership runbook](hcbe-backend/docs/payments-membership.md) before enabling Stripe, publishing membership plans, or accepting contributions.
+
 ## Repository history
 
 The public monorepo starts from a clean consolidated snapshot so credentials from legacy deployment history cannot be published accidentally. The former backend and frontend histories, plus migration patches, remain available locally in the ignored `.repo-backups/` recovery directory; they are not committed or pushed.

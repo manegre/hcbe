@@ -188,6 +188,30 @@ public sealed class EmailTemplateRenderer(IConfiguration configuration) : IEmail
         return new RenderedEmail($"[HCBE Canada] {ticketNumber} — mise à jour", Layout("Mise à jour de votre demande de service.", "Services aux membres", "Votre demande évolue.", body, "Consulter ma demande", caseUrl));
     }
 
+    public RenderedEmail PaymentReceipt(string? name, string kind, long amountCents, string currency, string receiptNumber, string receiptUrl)
+    {
+        var contribution = kind == "Membership" ? "adhésion" : "contribution";
+        var amount = $"{amountCents / 100m:0.00} {currency.ToUpperInvariant()}";
+        var body = $"""
+            <p style="margin:0 0 18px;font-size:16px;line-height:1.75;color:{Ink};">Bonjour {GreetingName(name)}, nous avons bien reçu votre {contribution}.</p>
+            {Callout("Paiement confirmé", $"Montant : {amount} · Reçu : {receiptNumber}")}
+            <p style="margin:22px 0 0;font-size:13px;line-height:1.65;color:{Muted};">Ce document confirme un paiement reçu par HCBE Canada. Il ne constitue pas un reçu fiscal.</p>
+            <p style="margin:8px 0 0;font-size:13px;line-height:1.65;color:{Muted};">This document confirms a payment received by HCBE Canada. It is not a charitable tax receipt.</p>
+            """;
+        return new RenderedEmail($"[HCBE Canada] Reçu {receiptNumber}", Layout("Votre paiement a été confirmé.", "Merci pour votre engagement", "Votre reçu HCBE Canada", body, "Télécharger mon reçu", receiptUrl));
+    }
+
+    public RenderedEmail MembershipReminder(string? firstName, DateTime expiresAtUtc, string renewalUrl, bool expired)
+    {
+        var date = expiresAtUtc.ToString("yyyy-MM-dd");
+        var body = $"""
+            <p style="margin:0 0 18px;font-size:16px;line-height:1.75;color:{Ink};">Bonjour {GreetingName(firstName)}, { (expired ? "votre période d’adhésion est arrivée à échéance" : "votre adhésion arrive bientôt à échéance") }.</p>
+            {Callout(expired ? "Renouvellement requis" : "Échéance à venir", $"Date d’échéance : {date}. Votre compte communautaire reste accessible; renouvelez votre adhésion pour conserver votre statut de membre en règle.")}
+            <p style="margin:22px 0 0;font-size:13px;line-height:1.65;color:{Muted};">Manage your membership and billing securely from your HCBE Canada member space.</p>
+            """;
+        return new RenderedEmail("[HCBE Canada] Renouvellement de votre adhésion", Layout("Votre adhésion HCBE Canada doit être renouvelée.", "Adhésion", expired ? "Renouvelez votre adhésion" : "Votre échéance approche", body, "Gérer mon adhésion", renewalUrl));
+    }
+
     private string Layout(
         string preheader,
         string eyebrow,
@@ -270,7 +294,7 @@ public sealed class EmailTemplateRenderer(IConfiguration configuration) : IEmail
         </tr></table>
         """;
 
-    private static string GreetingName(string? firstName) => string.IsNullOrWhiteSpace(firstName) ? string.Empty : Encode(firstName.Trim());
+    private static string GreetingName(string? firstName) => string.IsNullOrWhiteSpace(firstName) ? "membre" : Encode(firstName.Trim());
     private static string Encode(string? value) => WebUtility.HtmlEncode(value ?? string.Empty);
     private static string SafeUrl(string value) => Uri.TryCreate(value, UriKind.Absolute, out var uri) && uri.Scheme is "https" or "http" ? Encode(uri.AbsoluteUri) : "#";
 }

@@ -1,0 +1,20 @@
+import { useEffect, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import Navbar from '../../../components/feature/Navbar';
+import Footer from '../../../components/feature/Footer';
+import { financeApi } from '../../../lib/api/finance';
+import type { CheckoutResult } from '../../../lib/api/types';
+
+export default function PaymentThankYouPage() {
+  const { i18n } = useTranslation(); const fr = !i18n.language.startsWith('en');
+  const [params] = useSearchParams(); const sessionId = params.get('session_id'); const [result, setResult] = useState<CheckoutResult | null>(null); const [attempt, setAttempt] = useState(0);
+  useEffect(() => { if (!sessionId) return; const timer = window.setTimeout(() => financeApi.getCheckoutResult(sessionId).then((response) => { if (response.data) { setResult(response.data); if (response.data.status === 'Pending' && attempt < 6) setAttempt((value) => value + 1); } }).catch(() => undefined), attempt === 0 ? 0 : 1500); return () => window.clearTimeout(timer); }, [sessionId, attempt]);
+  const paid = result?.status === 'Paid';
+  const failed = Boolean(result && result.status !== 'Paid' && result.status !== 'Pending');
+  const delayed = result?.status === 'Pending' && attempt >= 6;
+  const icon = paid ? 'ri-check-line' : failed ? 'ri-close-line' : delayed ? 'ri-time-line' : 'ri-loader-4-line animate-spin';
+  const title = paid ? (fr ? 'Merci pour votre engagement.' : 'Thank you for your commitment.') : failed ? (fr ? 'Le paiement n’a pas été complété.' : 'The payment was not completed.') : delayed ? (fr ? 'La confirmation prend un peu plus de temps.' : 'Confirmation is taking a little longer.') : (fr ? 'Confirmation en cours…' : 'Confirmation in progress…');
+  const message = paid ? (fr ? 'Votre paiement est confirmé. Un courriel contenant votre reçu est en route.' : 'Your payment is confirmed. An email containing your receipt is on its way.') : failed ? (fr ? 'Aucun reçu n’a été émis. Vous pouvez reprendre le paiement en toute sécurité.' : 'No receipt was issued. You can safely try the payment again.') : delayed ? (fr ? 'Vous pouvez fermer cette page. Nous vous enverrons le reçu dès que Stripe aura confirmé le paiement.' : 'You may close this page. We will email your receipt as soon as Stripe confirms payment.') : (fr ? 'Stripe confirme votre paiement. Cette page se mettra à jour automatiquement.' : 'Stripe is confirming your payment. This page will update automatically.');
+  return <div className="min-h-screen bg-canvas"><Navbar /><main className="container-page py-20"><section className="mx-auto max-w-3xl overflow-hidden rounded-[32px] border border-line bg-surface text-center shadow-[0_28px_80px_rgba(0,45,22,.12)]"><div className="bg-green-deep p-12 text-white"><span className={`mx-auto flex h-20 w-20 items-center justify-center rounded-full ${paid ? 'bg-gold text-green-deep' : failed ? 'bg-red-link text-white' : 'bg-white/10 text-gold'}`}><i className={`${icon} text-4xl`} /></span><p className="mt-6 text-[10px] font-bold uppercase tracking-[.2em] text-gold">{fr ? 'Paiement sécurisé' : 'Secure payment'}</p><h1 className="mt-3 font-display text-4xl font-bold text-white">{title}</h1><p className="mx-auto mt-4 max-w-xl text-sm leading-6 text-green-dim">{message}</p></div><div className="flex flex-col justify-center gap-3 p-8 sm:flex-row">{result?.receiptUrl && <a href={result.receiptUrl} className="rounded-xl bg-gold px-6 py-3 text-[10px] font-bold uppercase tracking-[.13em] text-green-deep"><i className="ri-download-line mr-2" />{fr ? 'Télécharger le reçu' : 'Download receipt'}</a>}<Link to={result?.kind === 'Membership' ? '/espace-membre?section=membership' : failed ? '/contribuer' : '/'} className="rounded-xl border border-green px-6 py-3 text-[10px] font-bold uppercase tracking-[.13em] text-green">{failed ? (fr ? 'Réessayer' : 'Try again') : (fr ? 'Continuer' : 'Continue')}</Link></div></section></main><Footer /></div>;
+}

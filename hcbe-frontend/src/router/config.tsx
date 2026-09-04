@@ -10,6 +10,9 @@ const EngagementPage = lazy(() => import('../pages/engagement/page'));
 const EspaceMembrePage = lazy(() => import('../pages/espace-membre/page'));
 const ContactPage = lazy(() => import('../pages/contact/page'));
 const PrivacyPage = lazy(() => import('../pages/confidentialite/page'));
+const ContributionPage = lazy(() => import('../pages/contribuer/page'));
+const PaymentThankYouPage = lazy(() => import('../pages/paiement/merci/page'));
+const MembershipVerificationPage = lazy(() => import('../pages/adhesion/verifier/page'));
 const NotFound = lazy(() => import('../pages/NotFound'));
 
 // Engagement sub-pages
@@ -78,6 +81,7 @@ const AdminAssociationRequestsPage = lazy(() => import('../pages/admin/associati
 const AdminOpportunitiesPage = lazy(() => import('../pages/admin/opportunities/page'));
 const AdminImpactPage = lazy(() => import('../pages/admin/impact/page'));
 const AdminMonitoringPage = lazy(() => import('../pages/admin/monitoring/page'));
+const AdminFinancePage = lazy(() => import('../pages/admin/finance/page'));
 
 // Admin Grants Pages
 const AdminGrantsList = lazy(() => import('../pages/admin/grants/page').then(module => ({ default: module.default })));
@@ -184,6 +188,18 @@ const routes: RouteObject[] = [
   {
     path: '/confidentialite',
     element: <PrivacyPage />,
+  },
+  {
+    path: '/contribuer',
+    element: <ContributionPage />,
+  },
+  {
+    path: '/paiement/merci',
+    element: <PaymentThankYouPage />,
+  },
+  {
+    path: '/adhesion/verifier/:code',
+    element: <MembershipVerificationPage />,
   },
   {
     path: '/admin/login',
@@ -348,6 +364,10 @@ const routes: RouteObject[] = [
       {
         path: 'monitoring',
         element: <AdminMonitoringPage />,
+      },
+      {
+        path: 'finance',
+        element: <AdminFinancePage />,
       },
       {
         path: 'site-content',

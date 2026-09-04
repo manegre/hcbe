@@ -46,7 +46,7 @@ migration_count="$(psql --host="$socket_directory" --port=55432 --username=postg
   --tuples-only --no-align --command='SELECT COUNT(*) FROM "__EFMigrationsHistory";')"
 test "$migration_count" -gt 0
 schema_status="$(psql --host="$socket_directory" --port=55432 --username=postgres --dbname=hcbe_restore_verify \
-  --tuples-only --no-align --command="SELECT CASE WHEN to_regclass('public.\"Users\"') IS NOT NULL AND to_regclass('public.\"Members\"') IS NOT NULL AND to_regclass('public.\"Events\"') IS NOT NULL THEN 'verified' ELSE 'invalid' END;")"
+  --tuples-only --no-align --command="SELECT CASE WHEN to_regclass('public.\"Users\"') IS NOT NULL AND to_regclass('public.\"Members\"') IS NOT NULL AND to_regclass('public.\"Events\"') IS NOT NULL AND to_regclass('public.\"MembershipPlans\"') IS NOT NULL AND to_regclass('public.\"MembershipStandings\"') IS NOT NULL AND to_regclass('public.\"DonationCampaigns\"') IS NOT NULL AND to_regclass('public.\"FinancialTransactions\"') IS NOT NULL AND to_regclass('public.\"PaymentWebhookEvents\"') IS NOT NULL THEN 'verified' ELSE 'invalid' END;")"
 test "$schema_status" = "verified"
 printf 'verified_at_utc=%s\nmigrations=%s\npostgres_major=18\n' \
   "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" "$migration_count" > "$verification_file"
