@@ -59,14 +59,11 @@ Seal the JWT value and any manually entered credentials. Railway's Postgres, Red
 Production email delivery also requires:
 
 ```text
-Email__Mode=Smtp
-Email__Smtp__Host=<provider-host>
-Email__Smtp__Port=587
-Email__Smtp__EnableSsl=true
-Email__Smtp__Username=<provider-username>
-Email__Smtp__Password=<sealed-provider-password>
-Email__FromAddress=<verified-sender-address>
+Email__Mode=BrevoApi
+Email__Brevo__ApiKey=<sealed-brevo-api-key>
+Email__FromAddress=noreply@hcbe.ca
 Email__FromName=HCBE Canada
+Email__ReplyToAddress=contact@hcbe.ca
 Operations__AlertEmail=<operations-team-address>
 ```
 

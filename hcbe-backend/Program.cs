@@ -312,6 +312,11 @@ builder.Services.AddHttpClient("AssetProxy", client =>
     client.Timeout = TimeSpan.FromSeconds(10);
     client.MaxResponseContentBufferSize = 5 * 1024 * 1024;
 });
+builder.Services.AddHttpClient("BrevoTransactional", client =>
+{
+    client.BaseAddress = new Uri("https://api.brevo.com/v3/");
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
 builder.Services.AddHttpContextAccessor();
 
 // Register application services
