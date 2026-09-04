@@ -3,6 +3,7 @@
 .tmp/
 .repo-backups/
 node_modules/
+output/
 *.log
 
 # Local databases and runtime state

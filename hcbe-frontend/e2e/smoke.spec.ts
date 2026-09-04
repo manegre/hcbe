@@ -98,7 +98,9 @@ test('visitor can prepare a contribution and reach the confirmed payment page', 
 
   await expect(page).toHaveURL(/paiement\/merci\?session_id=cs_e2e/);
   await expect(page.getByRole('heading', { name: /merci pour votre engagement|thank you for your commitment/i })).toBeVisible();
-  await expect(page.getByRole('link', { name: /télécharger le reçu|download receipt/i })).toBeVisible();
+  const receiptLink = page.getByRole('link', { name: /télécharger le reçu pdf|download pdf receipt/i });
+  await expect(receiptLink).toBeVisible();
+  await expect(receiptLink).toHaveAttribute('download', '');
 });
 
 test('cancelled contribution checkout explains that no charge was made', async ({ page }) => {
