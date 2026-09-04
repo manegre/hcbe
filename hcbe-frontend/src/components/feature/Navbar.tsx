@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import PublicLanguageSwitcher from './PublicLanguageSwitcher';
+import { LanguageSwitcher } from './LanguageSwitcher';
 import { HcbeLogoMark } from '../brand/HcbeLogo';
 import ThemeToggle from './ThemeToggle';
 import { useAuth } from '../../contexts/AuthContext';
@@ -124,8 +124,6 @@ const Navbar = () => {
   const mainLinks = navLinks.filter((link) => link.path !== '/espace-membre');
   const hasMemberSession = Boolean(user?.memberId);
   const memberCtaLabel = hasMemberSession ? t('public.nav.memberSpace') : t('public.nav.memberAccess');
-  const activeLanguage = i18n.language.startsWith('en') ? 'en' : 'fr';
-
   const openMobileMenu = () => {
     const activeParent = mainLinks.find((link) => link.dropdown && location.pathname.startsWith(link.path));
     setOpenDropdown(activeParent?.path || null);
@@ -262,9 +260,7 @@ const Navbar = () => {
                 <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/45">
                   {t('public.nav.language', { defaultValue: 'Langue' })}
                 </span>
-                <div className="flex rounded-full border border-white/15 bg-white/[.05] p-1">
-                  {(['fr', 'en'] as const).map((language) => <button key={language} type="button" onClick={() => void i18n.changeLanguage(language)} aria-pressed={activeLanguage === language} className={`flex h-8 min-w-11 items-center justify-center rounded-full text-[10px] font-bold uppercase tracking-[.1em] transition-all ${activeLanguage === language ? 'bg-white text-green-deep shadow-sm' : 'text-white/55 hover:text-white'}`}>{language}</button>)}
-                </div>
+                <LanguageSwitcher variant="onDark" compact />
               </div>
               <Link
                 to="/espace-membre"
@@ -343,7 +339,7 @@ const Navbar = () => {
         <div className="hidden shrink-0 items-center lg:flex">
           <ThemeToggle className="mr-3" />
           <div className="border-l border-line pl-4">
-            <PublicLanguageSwitcher />
+            <LanguageSwitcher compact />
           </div>
           <Link
             to="/espace-membre"

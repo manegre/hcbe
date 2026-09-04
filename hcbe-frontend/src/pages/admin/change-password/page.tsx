@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { HcbeLogoMark } from '../../../components/brand/HcbeLogo';
-import { LanguageSwitcher } from '../../../components/admin/LanguageSwitcher';
+import { LanguageSwitcher } from '../../../components/feature/LanguageSwitcher';
 import ThemeToggle from '../../../components/feature/ThemeToggle';
 import { Button, Field } from '../../../components/ui';
 import { useAuth } from '../../../contexts/AuthContext';

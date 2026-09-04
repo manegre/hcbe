@@ -1,5 +1,5 @@
 import { useAuth } from '../../../contexts/AuthContext';
-import { LanguageSwitcher } from '../../../components/admin/LanguageSwitcher';
+import { LanguageSwitcher } from '../../../components/feature/LanguageSwitcher';
 import { HcbeLogoMark } from '../../../components/brand/HcbeLogo';
 import { Button, Field } from '../../../components/ui';
 import ThemeToggle from '../../../components/feature/ThemeToggle';
