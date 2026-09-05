@@ -1430,6 +1430,24 @@ static void EnsureSqliteSecuritySchema(ApplicationDbContext context)
     )");
     try { context.Database.ExecuteSqlRaw("ALTER TABLE MemberPreferences ADD COLUMN DigestFrequency TEXT NOT NULL DEFAULT 'Off'"); } catch { }
     try { context.Database.ExecuteSqlRaw("ALTER TABLE MemberPreferences ADD COLUMN LastDigestSentAtUtc TEXT"); } catch { }
+    context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS NewsletterDeliveries (
+        Id TEXT NOT NULL PRIMARY KEY, CampaignId TEXT NOT NULL, Recipient TEXT NOT NULL, TrackingToken TEXT NOT NULL,
+        QueuedAtUtc TEXT NOT NULL, FirstOpenedAtUtc TEXT, LastOpenedAtUtc TEXT, OpenCount INTEGER NOT NULL DEFAULT 0,
+        UnsubscribedAtUtc TEXT, FOREIGN KEY (CampaignId) REFERENCES NewsletterCampaigns(Id) ON DELETE CASCADE
+    )");
+    context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_NewsletterDeliveries_TrackingToken ON NewsletterDeliveries(TrackingToken)");
+    context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_NewsletterDeliveries_CampaignId_Recipient ON NewsletterDeliveries(CampaignId, Recipient)");
+    context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS CommunicationConsentEvents (
+        Id TEXT NOT NULL PRIMARY KEY, UserId TEXT, Email TEXT NOT NULL, Category TEXT NOT NULL,
+        Action TEXT NOT NULL, Source TEXT NOT NULL, OccurredAtUtc TEXT NOT NULL
+    )");
+    context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_CommunicationConsentEvents_Email_OccurredAtUtc ON CommunicationConsentEvents(Email, OccurredAtUtc)");
+    context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_CommunicationConsentEvents_Category_OccurredAtUtc ON CommunicationConsentEvents(Category, OccurredAtUtc)");
+    context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS CommunityJourneyStates (
+        Id TEXT NOT NULL PRIMARY KEY, UserId TEXT NOT NULL, JourneyType TEXT NOT NULL,
+        LastTriggeredAtUtc TEXT NOT NULL, TriggerCount INTEGER NOT NULL DEFAULT 1
+    )");
+    context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_CommunityJourneyStates_UserId_JourneyType ON CommunityJourneyStates(UserId, JourneyType)");
     context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS SavedMemberItems (
         Id TEXT NOT NULL PRIMARY KEY, UserId TEXT NOT NULL, EntityType TEXT NOT NULL, EntityId TEXT NOT NULL,
         CreatedAtUtc TEXT NOT NULL, FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE CASCADE

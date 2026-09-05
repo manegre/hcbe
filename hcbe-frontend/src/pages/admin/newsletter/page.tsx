@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { newsletterApi } from '../../../lib/api/newsletter';
-import type { CreateNewsletterCampaignRequest, NewsletterCampaignDto, NewsletterSubscriptionDto } from '../../../lib/api/types';
+import type { CommunicationConsentEventDto, CreateNewsletterCampaignRequest, NewsletterCampaignDto, NewsletterSubscriptionDto } from '../../../lib/api/types';
 import { Button, DataTable, EmptyState, Field, StatusChip, Td, inputClasses } from '../../../components/ui';
 import { AdminPageHeader } from '../../../components/admin/AdminPageHeader';
 import { AdminStatCard } from '../../../components/admin/AdminStatCard';
@@ -20,6 +20,7 @@ const NewsletterAdminPage: React.FC = () => {
   const [exporting, setExporting] = useState(false);
   const [campaigns, setCampaigns] = useState<NewsletterCampaignDto[]>([]);
   const [campaignBusy, setCampaignBusy] = useState(false);
+  const [consentHistory, setConsentHistory] = useState<CommunicationConsentEventDto[]>([]);
   const emptyCampaign: CreateNewsletterCampaignRequest = { subject: '', subjectEn: '', body: '', bodyEn: '', audience: 'Newsletter', preferenceCategory: 'newsletter' };
   const [campaignForm, setCampaignForm] = useState<CreateNewsletterCampaignRequest>(emptyCampaign);
   const [search, setSearch] = useState('');
@@ -65,6 +66,7 @@ const NewsletterAdminPage: React.FC = () => {
 
   useEffect(() => {
     loadCampaigns().catch((err) => console.error('Error loading campaigns:', err));
+    newsletterApi.getConsentHistory(30).then((response) => { if (response.success && response.data) setConsentHistory(response.data); }).catch(() => undefined);
   }, []);
 
   const handleCreateCampaign = async (event: React.FormEvent) => {
@@ -161,6 +163,10 @@ const NewsletterAdminPage: React.FC = () => {
   const activeCount = subscriptions.filter((item) => item.isActive).length;
   const inactiveCount = subscriptions.length - activeCount;
   const frenchCount = subscriptions.filter((item) => item.preferredLanguage?.toLowerCase() === 'fr').length;
+  const sentCampaigns = campaigns.filter((item) => item.sentCount > 0);
+  const deliveredTotal = sentCampaigns.reduce((sum, item) => sum + item.sentCount, 0);
+  const openedTotal = sentCampaigns.reduce((sum, item) => sum + item.openedCount, 0);
+  const averageOpenRate = deliveredTotal ? Math.round(openedTotal * 1000 / deliveredTotal) / 10 : 0;
 
   const toolbar = (
     <>
@@ -227,6 +233,13 @@ const NewsletterAdminPage: React.FC = () => {
         <AdminStatCard value={activeCount} label={t('admin.newsletter.statsActive')} icon="ri-checkbox-circle-line" tone="green" />
         <AdminStatCard value={inactiveCount} label={t('admin.newsletter.statsInactive')} icon="ri-pause-circle-line" tone="neutral" />
         <AdminStatCard value={frenchCount} label={t('admin.newsletter.statsFrench')} icon="ri-translate-2" tone="gold" />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <AdminStatCard value={campaigns.length} label={t('admin.newsletter.campaignsCount')} icon="ri-megaphone-line" />
+        <AdminStatCard value={deliveredTotal} label={t('admin.newsletter.delivered')} icon="ri-mail-check-line" tone="green" />
+        <AdminStatCard value={`${averageOpenRate}%`} label={t('admin.newsletter.openRate')} icon="ri-eye-line" tone="gold" />
+        <AdminStatCard value={campaigns.reduce((sum, item) => sum + item.unsubscribedCount, 0)} label={t('admin.newsletter.attributedOptOuts')} icon="ri-user-unfollow-line" tone="neutral" />
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
@@ -307,18 +320,18 @@ const NewsletterAdminPage: React.FC = () => {
             <h2 className="font-display text-headline-sm text-green-deep">{t('admin.newsletter.composeTitle')}</h2>
             <div className="mt-4 space-y-3">
               <div className="grid gap-3 sm:grid-cols-2">
-                <Field label={i18n.language.startsWith('fr') ? 'Audience' : 'Audience'} htmlFor="campaign-audience">
+                <Field label={t('admin.newsletter.audienceLabel')} htmlFor="campaign-audience">
                   <select id="campaign-audience" className={inputClasses} value={campaignForm.audience} onChange={(e) => setCampaignForm({ ...campaignForm, audience: e.target.value as CreateNewsletterCampaignRequest['audience'] })}>
                     <option value="Newsletter">{t('admin.newsletter.audienceNewsletter')}</option><option value="Members">{t('admin.newsletter.audienceMembers')}</option><option value="All">{t('admin.newsletter.audienceAll')}</option>
                   </select>
                 </Field>
-                <Field label={i18n.language.startsWith('fr') ? 'Type de communication' : 'Communication type'} htmlFor="campaign-category">
+                <Field label={t('admin.newsletter.categoryLabel')} htmlFor="campaign-category">
                   <select id="campaign-category" className={inputClasses} value={campaignForm.preferenceCategory} onChange={(e) => setCampaignForm({ ...campaignForm, preferenceCategory: e.target.value as CreateNewsletterCampaignRequest['preferenceCategory'] })}>
-                    <option value="newsletter">Infolettre</option><option value="events">Événements</option><option value="opportunities">Occasions</option><option value="mentorship">Mentorat</option><option value="service">Services</option>
+                    {['newsletter', 'events', 'opportunities', 'mentorship', 'service'].map((category) => <option key={category} value={category}>{t(`admin.newsletter.category.${category}`)}</option>)}
                   </select>
                 </Field>
               </div>
-              {campaignForm.audience !== 'Newsletter' && <div className="rounded-xl border border-line bg-canvas/45 p-3"><p className="mb-3 text-[9px] font-bold uppercase tracking-[.14em] text-green">{t('admin.newsletter.segmentation')}</p><div className="grid gap-3 sm:grid-cols-2"><input aria-label={t('admin.members.province')} placeholder={t('admin.members.province')} className={inputClasses} value={campaignForm.targetProvince ?? ''} onChange={(e) => setCampaignForm({ ...campaignForm, targetProvince: e.target.value })} /><input aria-label={t('admin.common.zone')} placeholder={t('admin.newsletter.zonePlaceholder')} className={inputClasses} value={campaignForm.targetZone ?? ''} onChange={(e) => setCampaignForm({ ...campaignForm, targetZone: e.target.value })} /><select aria-label={t('admin.common.language')} className={inputClasses} value={campaignForm.targetLanguage ?? ''} onChange={(e) => setCampaignForm({ ...campaignForm, targetLanguage: e.target.value })}><option value="">FR + EN</option><option value="fr">{t('admin.newsletter.filterLanguageFr')}</option><option value="en">{t('admin.newsletter.filterLanguageEn')}</option></select><input aria-label={t('admin.newsletter.interest')} placeholder={t('admin.newsletter.interestPlaceholder')} className={inputClasses} value={campaignForm.targetInterest ?? ''} onChange={(e) => setCampaignForm({ ...campaignForm, targetInterest: e.target.value })} /></div></div>}
+              {campaignForm.audience !== 'Newsletter' && <div className="rounded-xl border border-line bg-canvas/45 p-3"><p className="mb-3 text-[9px] font-bold uppercase tracking-[.14em] text-green">{t('admin.newsletter.segmentation')}</p><div className="grid gap-3 sm:grid-cols-2"><input aria-label={t('admin.members.province')} placeholder={t('admin.members.province')} className={inputClasses} value={campaignForm.targetProvince ?? ''} onChange={(e) => setCampaignForm({ ...campaignForm, targetProvince: e.target.value })} /><input aria-label={t('admin.common.zone')} placeholder={t('admin.newsletter.zonePlaceholder')} className={inputClasses} value={campaignForm.targetZone ?? ''} onChange={(e) => setCampaignForm({ ...campaignForm, targetZone: e.target.value })} /><select aria-label={t('admin.common.language')} className={inputClasses} value={campaignForm.targetLanguage ?? ''} onChange={(e) => setCampaignForm({ ...campaignForm, targetLanguage: e.target.value })}><option value="">{t('admin.newsletter.bothLanguages')}</option><option value="fr">{t('admin.newsletter.filterLanguageFr')}</option><option value="en">{t('admin.newsletter.filterLanguageEn')}</option></select><input aria-label={t('admin.newsletter.interest')} placeholder={t('admin.newsletter.interestPlaceholder')} className={inputClasses} value={campaignForm.targetInterest ?? ''} onChange={(e) => setCampaignForm({ ...campaignForm, targetInterest: e.target.value })} /></div></div>}
               <Field label={t('admin.newsletter.subjectFr')} htmlFor="campaign-subject" required>
                 <input id="campaign-subject" className={inputClasses} required value={campaignForm.subject} onChange={(e) => setCampaignForm({ ...campaignForm, subject: e.target.value })} />
               </Field>
@@ -331,7 +344,7 @@ const NewsletterAdminPage: React.FC = () => {
               <Field label={t('admin.newsletter.bodyEn')} htmlFor="campaign-body-en">
                 <textarea id="campaign-body-en" className={`${inputClasses} min-h-24 resize-y`} value={campaignForm.bodyEn} onChange={(e) => setCampaignForm({ ...campaignForm, bodyEn: e.target.value })} />
               </Field>
-              <Field label={i18n.language.startsWith('fr') ? 'Programmer l’envoi (facultatif)' : 'Schedule send (optional)'} htmlFor="campaign-schedule">
+              <Field label={t('admin.newsletter.schedule')} htmlFor="campaign-schedule">
                 <input id="campaign-schedule" type="datetime-local" className={inputClasses} value={campaignForm.scheduledAtUtc ? new Date(campaignForm.scheduledAtUtc).toISOString().slice(0, 16) : ''} onChange={(e) => setCampaignForm({ ...campaignForm, scheduledAtUtc: e.target.value ? new Date(e.target.value).toISOString() : undefined })} />
               </Field>
               <Button type="submit" variant="primary" className="w-full" disabled={campaignBusy}>
@@ -348,9 +361,10 @@ const NewsletterAdminPage: React.FC = () => {
                 <div key={campaign.id} className="rounded-xl border border-line/60 p-3">
                   <div className="flex items-start justify-between gap-3">
                     <p className="font-medium text-ink">{campaign.subject}</p>
-                    <span className="text-[10px] font-bold uppercase tracking-wide text-ink-variant">{campaign.status}</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wide text-ink-variant">{t(`admin.newsletter.status.${campaign.status}`, { defaultValue: campaign.status })}</span>
                   </div>
-                  <p className="mt-1 text-xs text-ink-variant">{campaign.audience} · {campaign.preferenceCategory} · {campaign.sentCount}/{campaign.recipientCount} · {campaign.failedCount} {t('admin.newsletter.failed')}</p>
+                  <p className="mt-1 text-xs text-ink-variant">{t(`admin.newsletter.audience${campaign.audience}`)} · {t(`admin.newsletter.category.${campaign.preferenceCategory}`, { defaultValue: campaign.preferenceCategory })} · {campaign.sentCount}/{campaign.recipientCount} · {campaign.failedCount} {t('admin.newsletter.failed')}</p>
+                  <div className="mt-3 grid grid-cols-3 divide-x divide-line rounded-lg bg-canvas/60 py-2 text-center"><div><strong className="block text-sm text-green-deep">{campaign.openedCount}</strong><span className="text-[8px] uppercase text-ink-variant">{t('admin.newsletter.opened')}</span></div><div><strong className="block text-sm text-green-deep">{campaign.openRate}%</strong><span className="text-[8px] uppercase text-ink-variant">{t('admin.newsletter.rate')}</span></div><div><strong className="block text-sm text-green-deep">{campaign.unsubscribedCount}</strong><span className="text-[8px] uppercase text-ink-variant">{t('admin.newsletter.optOuts')}</span></div></div>
                   {campaign.status === 'Draft' && (
                     <button type="button" className="mt-3 text-label-md uppercase text-green" disabled={campaignBusy} onClick={() => handleSendCampaign(campaign.id)}>
                       {t('admin.newsletter.sendNow')}
@@ -359,6 +373,10 @@ const NewsletterAdminPage: React.FC = () => {
                 </div>
               ))}
             </div>
+          </div>
+          <div className="admin-panel p-5">
+            <div className="flex items-center justify-between gap-3"><div><p className="text-[9px] font-bold uppercase tracking-[.14em] text-red-link">{t('admin.newsletter.law25')}</p><h2 className="mt-1 font-display text-headline-sm text-green-deep">{t('admin.newsletter.consentHistory')}</h2></div><i className="ri-shield-check-line text-2xl text-green/50" /></div>
+            <div className="mt-4 max-h-80 space-y-2 overflow-y-auto pr-1">{consentHistory.length === 0 ? <p className="text-sm text-ink-variant">{t('admin.newsletter.consentEmpty')}</p> : consentHistory.map((item) => <div key={item.id} className="rounded-xl border border-line/60 p-3"><div className="flex items-center justify-between gap-3"><strong className="truncate text-xs text-ink">{item.email}</strong><span className={`rounded-full px-2 py-1 text-[8px] font-bold uppercase ${item.action === 'OptIn' ? 'bg-green/10 text-green' : 'bg-error/10 text-error'}`}>{t(`admin.newsletter.action.${item.action}`, { defaultValue: item.action })}</span></div><p className="mt-1 text-[10px] text-ink-variant">{t(`admin.newsletter.category.${item.category}`, { defaultValue: item.category })} · {t(`admin.newsletter.source.${item.source}`, { defaultValue: item.source })} · {formatDate(item.occurredAtUtc)}</p></div>)}</div>
           </div>
         </div>
       </div>

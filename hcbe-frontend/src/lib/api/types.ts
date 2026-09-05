@@ -726,7 +726,7 @@ export interface NewsletterCampaignDto {
   subjectEn?: string;
   body: string;
   bodyEn?: string;
-  status: 'Draft' | 'Sending' | 'Sent' | 'PartiallySent' | 'Failed';
+  status: 'Draft' | 'Scheduled' | 'Queued' | 'Sending' | 'Sent' | 'PartiallySent' | 'Failed';
   recipientCount: number;
   sentCount: number;
   failedCount: number;
@@ -740,6 +740,13 @@ export interface NewsletterCampaignDto {
   targetLanguage?: string;
   targetInterest?: string;
   scheduledAtUtc?: string;
+  openedCount: number;
+  unsubscribedCount: number;
+  openRate: number;
+}
+
+export interface CommunicationConsentEventDto {
+  id: string; userId?: string; email: string; category: string; action: 'OptIn' | 'OptOut'; source: string; occurredAtUtc: string;
 }
 
 export interface CreateNewsletterCampaignRequest {

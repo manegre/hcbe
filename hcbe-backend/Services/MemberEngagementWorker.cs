@@ -12,7 +12,8 @@ public sealed class MemberEngagementWorker(IServiceScopeFactory scopeFactory, IL
                 var service = scope.ServiceProvider.GetRequiredService<IMemberEngagementService>();
                 var reminders = await service.ProcessEventRemindersAsync(stoppingToken);
                 var digests = await service.ProcessWeeklyDigestsAsync(stoppingToken);
-                if (reminders + digests > 0) logger.LogInformation("Processed {Reminders} event reminders and {Digests} weekly digests", reminders, digests);
+                var journeys = await service.ProcessLifecycleJourneysAsync(stoppingToken);
+                if (reminders + digests + journeys > 0) logger.LogInformation("Processed {Reminders} event reminders, {Digests} weekly digests and {Journeys} lifecycle journeys", reminders, digests, journeys);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }
             catch (Exception exception) { logger.LogError(exception, "Member engagement worker failed"); }

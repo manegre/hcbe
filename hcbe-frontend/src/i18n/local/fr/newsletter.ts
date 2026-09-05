@@ -19,14 +19,14 @@ export default {
 
   'public.privacy.title': 'Politique de confidentialité',
   'public.privacy.subtitle': 'Comment le HCBE Canada traite vos données personnelles.',
-  'public.privacy.updated': 'Dernière mise à jour : 3 septembre 2026',
+  'public.privacy.updated': 'Dernière mise à jour : 5 septembre 2026',
   'public.privacy.toc': 'Sommaire',
   'public.privacy.accountTitle': 'Compte membre et finalités',
   'public.privacy.accountBody':
     'Pour créer et exploiter votre compte, nous recueillons les coordonnées et renseignements de profil que vous fournissez, ainsi que des données limitées de connexion et de sécurité. Ils servent à authentifier votre compte, vous offrir les services communautaires demandés, gérer vos inscriptions et demandes, assurer la sécurité et respecter nos obligations. Nous limitons la collecte aux renseignements nécessaires à ces finalités.',
   'public.privacy.newsletterTitle': 'Newsletter',
   'public.privacy.newsletterBody':
-    'Lorsque vous vous inscrivez à la newsletter, nous collectons votre nom et votre prénom, votre adresse courriel et votre préférence linguistique afin de vous envoyer des communications liées aux activités du HCBE Canada. Votre consentement est enregistré avec la date d’acceptation.',
+    'Lorsque vous vous inscrivez à la newsletter, nous collectons votre nom et votre prénom, votre adresse courriel et votre préférence linguistique afin de vous envoyer des communications liées aux activités du HCBE Canada. Votre consentement et son retrait sont consignés avec leur date. Les campagnes peuvent inclure une image invisible qui nous indique si un courriel a été ouvert; cette mesure ne sert ni à la publicité ni au suivi entre sites. Vous pouvez vous désabonner en tout temps.',
   'public.privacy.analyticsTitle': 'Données techniques',
   'public.privacy.analyticsBody':
     'Nous ne déposons pas de cookies publicitaires et aucun outil tiers de mesure d’audience n’est actuellement actif. Des journaux techniques limités peuvent être conservés pour assurer la sécurité et la fiabilité du service.',

@@ -28,7 +28,7 @@ public class NewsletterCampaignService : INewsletterCampaignService
 
     public async Task<ApiResponse<List<NewsletterCampaignDto>>> GetAllAsync()
     {
-        var campaigns = await _context.NewsletterCampaigns.AsNoTracking()
+        var campaigns = await _context.NewsletterCampaigns.AsNoTracking().Include(item => item.Deliveries)
             .OrderByDescending(item => item.CreatedAt).ToListAsync();
         return ApiResponse<List<NewsletterCampaignDto>>.SuccessResponse(campaigns.Select(Map).ToList());
     }
@@ -101,7 +101,7 @@ public class NewsletterCampaignService : INewsletterCampaignService
                 if (string.IsNullOrWhiteSpace(subscriber.UnsubscribeToken))
                     subscriber.UnsubscribeToken = Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(24));
                 recipients[subscriber.Email] = new(subscriber.Email, subscriber.PreferredLanguage,
-                    $"{publicApiUrl}/api/newsletter/unsubscribe?token={Uri.EscapeDataString(subscriber.UnsubscribeToken)}");
+                    $"{publicApiUrl}/api/newsletter/unsubscribe?token={Uri.EscapeDataString(subscriber.UnsubscribeToken)}&campaignId={campaign.Id}");
             }
         }
 
@@ -140,17 +140,42 @@ public class NewsletterCampaignService : INewsletterCampaignService
             var subject = useEnglish && !string.IsNullOrWhiteSpace(campaign.SubjectEn) ? campaign.SubjectEn : campaign.Subject;
             var body = useEnglish && !string.IsNullOrWhiteSpace(campaign.BodyEn) ? campaign.BodyEn : campaign.Body;
             var email = _emailTemplates.Newsletter(subject!, body!, recipient.PreferencesUrl, useEnglish);
-            _emailOutbox.Enqueue(recipient.Email, email.Subject, email.HtmlBody, nameof(NewsletterCampaign), campaign.Id);
+            var delivery = new NewsletterDelivery
+            {
+                CampaignId = campaign.Id, Recipient = recipient.Email,
+                TrackingToken = Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(24))
+            };
+            _context.NewsletterDeliveries.Add(delivery);
+            var pixel = $"<img src=\"{publicApiUrl}/api/newsletter/track/open/{delivery.TrackingToken}.gif\" width=\"1\" height=\"1\" alt=\"\" style=\"display:block;border:0;width:1px;height:1px\" />";
+            _emailOutbox.Enqueue(recipient.Email, email.Subject, email.HtmlBody + pixel, nameof(NewsletterCampaign), campaign.Id);
         }
 
         await _context.SaveChangesAsync(cancellationToken);
     }
 
-    private static NewsletterCampaignDto Map(NewsletterCampaign item) => new(
+    public async Task TrackOpenAsync(string token, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(token)) return;
+        var delivery = await _context.NewsletterDeliveries.FirstOrDefaultAsync(item => item.TrackingToken == token, cancellationToken);
+        if (delivery is null) return;
+        var now = DateTime.UtcNow;
+        delivery.FirstOpenedAtUtc ??= now;
+        delivery.LastOpenedAtUtc = now;
+        delivery.OpenCount++;
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    private static NewsletterCampaignDto Map(NewsletterCampaign item)
+    {
+        var opened = item.Deliveries.Count(delivery => delivery.FirstOpenedAtUtc.HasValue);
+        var unsubscribed = item.Deliveries.Count(delivery => delivery.UnsubscribedAtUtc.HasValue);
+        var openRate = item.SentCount == 0 ? 0 : Math.Round(opened * 100d / item.SentCount, 1);
+        return new(
         item.Id, item.Subject, item.SubjectEn, item.Body, item.BodyEn, item.Status,
         item.RecipientCount, item.SentCount, item.FailedCount, item.LastError, item.CreatedAt, item.SentAt,
         item.Audience, item.PreferenceCategory, item.TargetProvince, item.TargetZone,
-        item.TargetLanguage, item.TargetInterest, item.ScheduledAtUtc);
+        item.TargetLanguage, item.TargetInterest, item.ScheduledAtUtc, opened, unsubscribed, openRate);
+    }
 
     private static bool Allows(MemberPreference? preference, string category) => preference is { HasCompletedPreferences: true } && category switch
     {

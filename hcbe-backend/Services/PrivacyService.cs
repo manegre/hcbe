@@ -78,6 +78,17 @@ public sealed class PrivacyService(
                 item.Id, item.Email, item.FullName, item.PreferredLanguage, item.ConsentAcceptedAt,
                 item.IsActive, item.Source, item.CreatedAt, item.UpdatedAt
             }).ToListAsync(cancellationToken),
+            communicationConsents = await context.CommunicationConsentEvents.AsNoTracking()
+                .Where(item => item.UserId == userId || item.Email == user.Email)
+                .Select(item => new { item.Category, item.Action, item.Source, item.OccurredAtUtc })
+                .ToListAsync(cancellationToken),
+            campaignActivity = await context.NewsletterDeliveries.AsNoTracking()
+                .Where(item => item.Recipient == user.Email)
+                .Select(item => new
+                {
+                    item.CampaignId, item.QueuedAtUtc, item.FirstOpenedAtUtc,
+                    item.LastOpenedAtUtc, item.OpenCount, item.UnsubscribedAtUtc
+                }).ToListAsync(cancellationToken),
             membershipStanding = await context.MembershipStandings.AsNoTracking().Where(item => item.UserId == userId).Select(item => new
             {
                 item.Status, item.PlanId, item.CurrentPeriodStartUtc, item.CurrentPeriodEndUtc,
@@ -125,6 +136,25 @@ public sealed class PrivacyService(
             context.MemberPreferences.Add(preferences);
         }
 
+        var preferenceWithdrawals = new (string Category, bool Enabled)[]
+        {
+            ("events", preferences.EmailEvents),
+            ("opportunities", preferences.EmailOpportunities),
+            ("mentorship", preferences.EmailMentorship),
+            ("service", preferences.EmailServiceUpdates),
+            ("newsletter", preferences.EmailNewsletter),
+            ("push", preferences.PushNotifications)
+        };
+        foreach (var (category, enabled) in preferenceWithdrawals.Where(item => item.Enabled))
+            context.CommunicationConsentEvents.Add(new CommunicationConsentEvent
+            {
+                UserId = userId,
+                Email = user.Email,
+                Category = category,
+                Action = "OptOut",
+                Source = "account-deletion-request"
+            });
+
         preferences.EmailEvents = false;
         preferences.EmailOpportunities = false;
         preferences.EmailMentorship = false;
@@ -155,6 +185,14 @@ public sealed class PrivacyService(
         {
             subscription.IsActive = false;
             subscription.UpdatedAt = DateTime.UtcNow;
+            context.CommunicationConsentEvents.Add(new CommunicationConsentEvent
+            {
+                UserId = userId,
+                Email = user.Email,
+                Category = "newsletter",
+                Action = "OptOut",
+                Source = "account-deletion-request"
+            });
         }
 
         await context.SaveChangesAsync(cancellationToken);
@@ -215,6 +253,8 @@ public sealed class PrivacyService(
         var auditDays = Math.Clamp(configuration.GetValue("Privacy:AuditRetentionDays", 730), 90, 2555);
         var auditLogs = await context.AuditLogs.Where(item => item.CreatedAtUtc < now.AddDays(-auditDays)).ToListAsync(cancellationToken);
         var notifications = await context.Notifications.Where(item => item.CreatedAt < now.AddDays(-365)).ToListAsync(cancellationToken);
+        var communicationConsents = await context.CommunicationConsentEvents.Where(item => item.OccurredAtUtc < now.AddDays(-auditDays)).ToListAsync(cancellationToken);
+        var campaignDeliveries = await context.NewsletterDeliveries.Where(item => item.QueuedAtUtc < now.AddDays(-auditDays)).ToListAsync(cancellationToken);
 
         context.RemoveRange(passwordTokens);
         context.RemoveRange(refreshTokens);
@@ -222,7 +262,9 @@ public sealed class PrivacyService(
         context.RemoveRange(deadOutbox);
         context.RemoveRange(auditLogs);
         context.RemoveRange(notifications);
-        var total = passwordTokens.Count + refreshTokens.Count + sentOutbox.Count + deadOutbox.Count + auditLogs.Count + notifications.Count;
+        context.RemoveRange(communicationConsents);
+        context.RemoveRange(campaignDeliveries);
+        var total = passwordTokens.Count + refreshTokens.Count + sentOutbox.Count + deadOutbox.Count + auditLogs.Count + notifications.Count + communicationConsents.Count + campaignDeliveries.Count;
         if (total > 0) await context.SaveChangesAsync(cancellationToken);
         return total;
     }
@@ -364,6 +406,17 @@ public sealed class PrivacyService(
             item.Recipient = anonymousEmail;
             if (item.Status is "Pending" or "Failed") { item.Status = "Cancelled"; item.LastError = "Cancelled by privacy request"; }
         }
+        foreach (var item in await context.NewsletterDeliveries.Where(item => item.Recipient == originalEmail).ToListAsync(cancellationToken))
+        {
+            item.Recipient = anonymousEmail;
+            item.TrackingToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(24));
+        }
+        foreach (var item in await context.CommunicationConsentEvents.Where(item => item.UserId == user.Id || item.Email == originalEmail).ToListAsync(cancellationToken))
+        {
+            item.UserId = null;
+            item.Email = anonymousEmail;
+        }
+        context.RemoveRange(await context.CommunityJourneyStates.Where(item => item.UserId == user.Id).ToListAsync(cancellationToken));
         if (membershipStanding != null)
         {
             membershipStanding.Status = MembershipStatuses.Inactive;

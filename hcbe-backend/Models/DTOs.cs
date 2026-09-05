@@ -919,7 +919,11 @@ public record NewsletterCampaignDto(
     string Status, int RecipientCount, int SentCount, int FailedCount,
     string? LastError, DateTime CreatedAt, DateTime? SentAt,
     string Audience, string PreferenceCategory, string? TargetProvince,
-    string? TargetZone, string? TargetLanguage, string? TargetInterest, DateTime? ScheduledAtUtc);
+    string? TargetZone, string? TargetLanguage, string? TargetInterest, DateTime? ScheduledAtUtc,
+    int OpenedCount = 0, int UnsubscribedCount = 0, double OpenRate = 0);
+
+public record CommunicationConsentEventDto(
+    Guid Id, Guid? UserId, string Email, string Category, string Action, string Source, DateTime OccurredAtUtc);
 
 public record CreateNewsletterCampaignRequest(
     [Required] [MaxLength(200)] string Subject,

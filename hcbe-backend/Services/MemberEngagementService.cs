@@ -177,6 +177,60 @@ public sealed class MemberEngagementService(
         return preferences.Count;
     }
 
+    public async Task<int> ProcessLifecycleJourneysAsync(CancellationToken cancellationToken = default)
+    {
+        var now = DateTime.UtcNow;
+        var users = await context.Users.Include(item => item.Member).Where(item => item.IsActive && item.MemberId != null).ToListAsync(cancellationToken);
+        var userIds = users.Select(item => item.Id).ToList();
+        var preferences = await context.MemberPreferences.Where(item => userIds.Contains(item.UserId)).ToDictionaryAsync(item => item.UserId, cancellationToken);
+        var states = await context.CommunityJourneyStates.Where(item => userIds.Contains(item.UserId)).ToListAsync(cancellationToken);
+        var processed = 0;
+
+        foreach (var user in users)
+        {
+            preferences.TryGetValue(user.Id, out var preference);
+            var english = preference?.PreferredLanguage == "en";
+            var name = user.Member?.FirstName;
+
+            if (user.CreatedAt <= now.AddDays(-3) && preference?.HasCompletedPreferences != true &&
+                !states.Any(item => item.UserId == user.Id && item.JourneyType == "OnboardingPreferences"))
+            {
+                var body = english
+                    ? "Choose the updates you want to receive and your preferred language. You remain in control and can change these choices at any time."
+                    : "Choisissez les nouvelles que vous souhaitez recevoir et votre langue préférée. Vous gardez le contrôle et pouvez modifier vos choix en tout temps.";
+                var email = emailTemplates.Newsletter(english ? "Complete your HCBE communication preferences" : "Complétez vos préférences de communication HCBE", body, $"{PublicAppUrl()}/espace-membre?section=preferences", english);
+                emailOutbox.Enqueue(user.Email, email.Subject, email.HtmlBody, "CommunityJourney", user.Id);
+                states.Add(AddJourney(user.Id, "OnboardingPreferences", now));
+                processed++;
+            }
+
+            var lastActivity = user.LastLoginAtUtc ?? user.CreatedAt;
+            var lastReactivation = states.FirstOrDefault(item => item.UserId == user.Id && item.JourneyType == "Reactivation");
+            if (preference?.EmailNewsletter == true && lastActivity <= now.AddDays(-60) &&
+                (lastReactivation is null || lastReactivation.LastTriggeredAtUtc <= now.AddDays(-90)))
+            {
+                var body = english
+                    ? $"Hello {name}, discover the latest events, opportunities and community services waiting for you in your member space."
+                    : $"Bonjour {name}, découvrez les nouveaux événements, occasions et services communautaires disponibles dans votre espace membre.";
+                var email = emailTemplates.Newsletter(english ? "Your HCBE community is waiting for you" : "Votre communauté HCBE vous attend", body, $"{PublicAppUrl()}/espace-membre", english);
+                emailOutbox.Enqueue(user.Email, email.Subject, email.HtmlBody, "CommunityJourney", user.Id);
+                if (lastReactivation is null) states.Add(AddJourney(user.Id, "Reactivation", now));
+                else { lastReactivation.LastTriggeredAtUtc = now; lastReactivation.TriggerCount++; }
+                processed++;
+            }
+        }
+
+        await context.SaveChangesAsync(cancellationToken);
+        return processed;
+    }
+
+    private CommunityJourneyState AddJourney(Guid userId, string type, DateTime now)
+    {
+        var state = new CommunityJourneyState { UserId = userId, JourneyType = type, LastTriggeredAtUtc = now };
+        context.CommunityJourneyStates.Add(state);
+        return state;
+    }
+
     private async Task<List<SavedMemberItemDto>> ResolveSavedAsync(Guid userId)
     {
         var saved = await context.SavedMemberItems.AsNoTracking().Where(item => item.UserId == userId).OrderByDescending(item => item.CreatedAtUtc).ToListAsync();

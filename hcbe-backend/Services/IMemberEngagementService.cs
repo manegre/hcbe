@@ -14,4 +14,5 @@ public interface IMemberEngagementService
     Task<ApiResponse> UnblockAsync(Guid userId, Guid blockedMemberId);
     Task<int> ProcessEventRemindersAsync(CancellationToken cancellationToken = default);
     Task<int> ProcessWeeklyDigestsAsync(CancellationToken cancellationToken = default);
+    Task<int> ProcessLifecycleJourneysAsync(CancellationToken cancellationToken = default);
 }

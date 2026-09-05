@@ -33,6 +33,8 @@ public class NewsletterServiceTests : IDisposable
         stored.IsActive.Should().BeTrue();
         stored.Source.Should().Be("home");
         stored.UnsubscribeToken.Should().NotBeNullOrWhiteSpace();
+        _context.CommunicationConsentEvents.Should().ContainSingle(item =>
+            item.Email == "ada@example.com" && item.Action == "OptIn" && item.Source == "home");
     }
 
     [Fact]
@@ -45,6 +47,7 @@ public class NewsletterServiceTests : IDisposable
         result.Message.Should().Be("Subscription successful");
         _context.NewsletterSubscriptions.Should().HaveCount(1);
         _context.NewsletterSubscriptions.Single().FullName.Should().Be("Ada Lovelace");
+        _context.CommunicationConsentEvents.Should().ContainSingle();
     }
 
     [Fact]
@@ -68,6 +71,7 @@ public class NewsletterServiceTests : IDisposable
         stored.FullName.Should().Be("Ada Updated");
         stored.PreferredLanguage.Should().Be("en");
         stored.Source.Should().Be("footer");
+        _context.CommunicationConsentEvents.Should().HaveCount(2);
     }
 
     [Fact]
@@ -106,6 +110,42 @@ public class NewsletterServiceTests : IDisposable
 
         result.Success.Should().BeTrue();
         _context.NewsletterSubscriptions.Single().IsActive.Should().BeFalse();
+        _context.CommunicationConsentEvents.Should().Contain(item => item.Action == "OptOut");
+    }
+
+    [Fact]
+    public async Task UnsubscribeAsync_WithCampaign_ShouldAttributeWithdrawalToDelivery()
+    {
+        await _service.SubscribeAsync(ValidRequest());
+        var stored = _context.NewsletterSubscriptions.Single();
+        var campaign = new NewsletterCampaign { Subject = "Info", Body = "Body" };
+        _context.NewsletterCampaigns.Add(campaign);
+        _context.NewsletterDeliveries.Add(new NewsletterDelivery
+        {
+            Campaign = campaign,
+            CampaignId = campaign.Id,
+            Recipient = stored.Email,
+            TrackingToken = "tracking-token"
+        });
+        await _context.SaveChangesAsync();
+
+        var result = await _service.UnsubscribeAsync(stored.UnsubscribeToken, campaign.Id);
+
+        result.Success.Should().BeTrue();
+        _context.NewsletterDeliveries.Single().UnsubscribedAtUtc.Should().NotBeNull();
+        _context.CommunicationConsentEvents.Should().Contain(item =>
+            item.Action == "OptOut" && item.Source == "campaign");
+    }
+
+    [Fact]
+    public async Task UpdateActiveAsync_WithSameState_ShouldNotDuplicateConsentHistory()
+    {
+        await _service.SubscribeAsync(ValidRequest());
+        var stored = _context.NewsletterSubscriptions.Single();
+
+        await _service.UpdateActiveAsync(stored.Id, new UpdateNewsletterSubscriptionRequest(true));
+
+        _context.CommunicationConsentEvents.Should().ContainSingle();
     }
 
     private static SubscribeNewsletterRequest ValidRequest() =>

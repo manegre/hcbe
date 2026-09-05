@@ -22,4 +22,5 @@ public class NewsletterCampaign
     public Guid CreatedByUserId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? SentAt { get; set; }
+    public ICollection<NewsletterDelivery> Deliveries { get; set; } = new List<NewsletterDelivery>();
 }

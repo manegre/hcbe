@@ -10,5 +10,6 @@ public interface INewsletterService
     Task<ApiResponse<PagedResult<NewsletterSubscriptionDto>>> SearchAsync(int page, int pageSize, string? search, string? sort, string? language = null, bool? isActive = null);
     Task<ApiResponse<NewsletterSubscriptionDto>> UpdateActiveAsync(Guid id, UpdateNewsletterSubscriptionRequest request);
     Task<ApiResponse<string>> ExportActiveCsvAsync();
-    Task<ApiResponse> UnsubscribeAsync(string token);
+    Task<ApiResponse> UnsubscribeAsync(string token, Guid? campaignId = null);
+    Task<ApiResponse<List<CommunicationConsentEventDto>>> GetConsentHistoryAsync(int limit = 100);
 }

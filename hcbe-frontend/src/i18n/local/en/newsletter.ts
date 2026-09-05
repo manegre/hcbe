@@ -19,14 +19,14 @@ export default {
 
   'public.privacy.title': 'Privacy policy',
   'public.privacy.subtitle': 'How HCBE Canada handles your personal data.',
-  'public.privacy.updated': 'Last updated: September 3, 2026',
+  'public.privacy.updated': 'Last updated: September 5, 2026',
   'public.privacy.toc': 'Contents',
   'public.privacy.accountTitle': 'Member account and purposes',
   'public.privacy.accountBody':
     'To create and operate your account, we collect the contact and profile information you provide, along with limited sign-in and security data. We use it to authenticate your account, provide the community services you request, manage registrations and requests, keep the service secure, and meet our obligations. We limit collection to information necessary for those purposes.',
   'public.privacy.newsletterTitle': 'Newsletter',
   'public.privacy.newsletterBody':
-    'When you subscribe to the newsletter, we collect your first name, email address and language preference to send communications about HCBE Canada activities. Your consent is stored with the acceptance timestamp.',
+    'When you subscribe to the newsletter, we collect your first name, email address and language preference to send communications about HCBE Canada activities. Your consent and any withdrawal are recorded with their date. Campaigns may include an invisible image that tells us whether an email was opened; this measurement is not used for advertising or cross-site tracking. You can unsubscribe at any time.',
   'public.privacy.analyticsTitle': 'Technical data',
   'public.privacy.analyticsBody':
     'We do not use advertising cookies, and no third-party audience analytics tool is currently active. Limited technical logs may be retained to keep the service secure and reliable.',

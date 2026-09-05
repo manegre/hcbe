@@ -66,6 +66,7 @@ public class NewsletterService : INewsletterService
                     CreatedAt = now,
                     UpdatedAt = now
                 });
+                LogConsent(email, "newsletter", "OptIn", source);
                 await _context.SaveChangesAsync();
                 return ApiResponse<object>.SuccessResponse(new { }, GenericSuccessMessage);
             }
@@ -78,6 +79,7 @@ public class NewsletterService : INewsletterService
                 existing.Source = source;
                 existing.ConsentAcceptedAt = now;
                 existing.UpdatedAt = now;
+                LogConsent(email, "newsletter", "OptIn", source);
                 await _context.SaveChangesAsync();
             }
 
@@ -91,14 +93,21 @@ public class NewsletterService : INewsletterService
         }
     }
 
-    public async Task<ApiResponse> UnsubscribeAsync(string token)
+    public async Task<ApiResponse> UnsubscribeAsync(string token, Guid? campaignId = null)
     {
         if (string.IsNullOrWhiteSpace(token)) return ApiResponse.CreateError("Invalid unsubscribe token");
         var subscription = await _context.NewsletterSubscriptions
             .FirstOrDefaultAsync(item => item.UnsubscribeToken == token);
         if (subscription is null) return ApiResponse.CreateError("Subscription not found");
+        var now = DateTime.UtcNow;
+        if (subscription.IsActive) LogConsent(subscription.Email, "newsletter", "OptOut", campaignId.HasValue ? "campaign" : "unsubscribe-link");
         subscription.IsActive = false;
-        subscription.UpdatedAt = DateTime.UtcNow;
+        subscription.UpdatedAt = now;
+        if (campaignId.HasValue)
+        {
+            var delivery = await _context.NewsletterDeliveries.FirstOrDefaultAsync(item => item.CampaignId == campaignId && item.Recipient == subscription.Email);
+            if (delivery is not null) delivery.UnsubscribedAtUtc ??= now;
+        }
         await _context.SaveChangesAsync();
         return ApiResponse.CreateSuccess("You have been unsubscribed");
     }
@@ -191,8 +200,12 @@ public class NewsletterService : INewsletterService
                 return ApiResponse<NewsletterSubscriptionDto>.ErrorResponse("Subscription not found");
             }
 
-            subscription.IsActive = request.IsActive;
-            subscription.UpdatedAt = DateTime.UtcNow;
+            if (subscription.IsActive != request.IsActive)
+            {
+                subscription.IsActive = request.IsActive;
+                subscription.UpdatedAt = DateTime.UtcNow;
+                LogConsent(subscription.Email, "newsletter", request.IsActive ? "OptIn" : "OptOut", "admin");
+            }
             await _context.SaveChangesAsync();
 
             return ApiResponse<NewsletterSubscriptionDto>.SuccessResponse(MapToDto(subscription));
@@ -236,6 +249,21 @@ public class NewsletterService : INewsletterService
                 new List<string> { ex.Message });
         }
     }
+
+    public async Task<ApiResponse<List<CommunicationConsentEventDto>>> GetConsentHistoryAsync(int limit = 100)
+    {
+        limit = Math.Clamp(limit, 1, 500);
+        var items = await _context.CommunicationConsentEvents.AsNoTracking()
+            .OrderByDescending(item => item.OccurredAtUtc).Take(limit).ToListAsync();
+        return ApiResponse<List<CommunicationConsentEventDto>>.SuccessResponse(items.Select(item => new CommunicationConsentEventDto(
+            item.Id, item.UserId, item.Email, item.Category, item.Action, item.Source, item.OccurredAtUtc)).ToList());
+    }
+
+    private void LogConsent(string email, string category, string action, string source) =>
+        _context.CommunicationConsentEvents.Add(new CommunicationConsentEvent
+        {
+            Email = email, Category = category, Action = action, Source = source
+        });
 
     private static NewsletterSubscriptionDto MapToDto(NewsletterSubscription subscription) =>
         new(

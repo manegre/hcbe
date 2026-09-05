@@ -23,9 +23,18 @@ public static class NewsletterEndpoints
         .Produces<ApiResponse<object>>()
         .Produces(400);
 
-        group.MapGet("/unsubscribe", async (string token, INewsletterService service) =>
-            (await service.UnsubscribeAsync(token)).HandleServiceResponse())
+        group.MapGet("/unsubscribe", async (string token, Guid? campaignId, INewsletterService service) =>
+            (await service.UnsubscribeAsync(token, campaignId)).HandleServiceResponse())
             .AllowAnonymous();
+
+        group.MapGet("/track/open/{token}.gif", async (string token, HttpContext context, INewsletterCampaignService service, CancellationToken cancellationToken) =>
+        {
+            await service.TrackOpenAsync(token, cancellationToken);
+            context.Response.Headers.CacheControl = "no-store, max-age=0";
+            context.Response.Headers.Pragma = "no-cache";
+            var pixel = Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
+            return Results.File(pixel, "image/gif", enableRangeProcessing: false);
+        }).AllowAnonymous().ExcludeFromDescription();
 
         group.MapGet("/campaigns", async (HttpContext context, INewsletterCampaignService service) =>
         {
@@ -137,5 +146,13 @@ public static class NewsletterEndpoints
         .Produces(200)
         .Produces(403)
         .Produces(400);
+
+        group.MapGet("/consents", async (int? limit, HttpContext context, INewsletterService service) =>
+        {
+            if (!context.HasPermission(AdminPermissions.CommunicationsManage)) return Results.Forbid();
+            return (await service.GetConsentHistoryAsync(limit ?? 100)).HandleServiceResponse();
+        })
+        .WithName("GetCommunicationConsentHistory")
+        .RequireAuthorization();
     }
 }

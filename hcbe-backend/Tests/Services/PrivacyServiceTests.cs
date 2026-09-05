@@ -76,6 +76,28 @@ public sealed class PrivacyServiceTests
             LastName = "Me",
             Details = "Personal contact request"
         });
+        var campaign = new NewsletterCampaign { Subject = "Update", Body = "Body" };
+        context.NewsletterCampaigns.Add(campaign);
+        context.NewsletterDeliveries.Add(new NewsletterDelivery
+        {
+            Campaign = campaign,
+            CampaignId = campaign.Id,
+            Recipient = user.Email,
+            TrackingToken = "personally-linked-token"
+        });
+        context.CommunicationConsentEvents.Add(new CommunicationConsentEvent
+        {
+            UserId = user.Id,
+            Email = user.Email,
+            Category = "newsletter",
+            Action = "OptIn",
+            Source = "member-preferences"
+        });
+        context.CommunityJourneyStates.Add(new CommunityJourneyState
+        {
+            UserId = user.Id,
+            JourneyType = "Reactivation"
+        });
         await context.SaveChangesAsync();
         var files = new Mock<IFileStorageService>();
         files.Setup(item => item.DeleteAsync("/uploads/service-cases/identity.pdf")).ReturnsAsync(true);
@@ -97,6 +119,13 @@ public sealed class PrivacyServiceTests
         var submission = await context.PublicSubmissions.SingleAsync();
         submission.Email.Should().EndWith("@invalid.local");
         submission.Details.Should().Be("[redacted]");
+        var delivery = await context.NewsletterDeliveries.SingleAsync();
+        delivery.Recipient.Should().EndWith("@invalid.local");
+        delivery.TrackingToken.Should().NotBe("personally-linked-token");
+        var consent = await context.CommunicationConsentEvents.SingleAsync();
+        consent.UserId.Should().BeNull();
+        consent.Email.Should().EndWith("@invalid.local");
+        (await context.CommunityJourneyStates.CountAsync()).Should().Be(0);
     }
 
     [Fact]
@@ -188,6 +217,9 @@ public sealed class PrivacyServiceTests
         profile.AllowContactRequests.Should().BeFalse();
         mentorship.ConsentToShare.Should().BeFalse();
         newsletter.IsActive.Should().BeFalse();
+        context.CommunicationConsentEvents.Should().HaveCount(7);
+        context.CommunicationConsentEvents.Should().OnlyContain(item =>
+            item.Action == "OptOut" && item.Source == "account-deletion-request");
     }
 
     [Fact]

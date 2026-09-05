@@ -9,4 +9,5 @@ public interface INewsletterCampaignService
     Task<ApiResponse<NewsletterCampaignDto>> CreateAsync(CreateNewsletterCampaignRequest request, Guid userId);
     Task<ApiResponse<NewsletterCampaignDto>> SendAsync(Guid id, CancellationToken cancellationToken);
     Task<int> ProcessDueAsync(CancellationToken cancellationToken);
+    Task TrackOpenAsync(string token, CancellationToken cancellationToken);
 }

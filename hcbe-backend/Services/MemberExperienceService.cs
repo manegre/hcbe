@@ -38,6 +38,21 @@ public sealed class MemberExperienceService(ApplicationDbContext context) : IMem
         var user = await context.Users.AsNoTracking().SingleOrDefaultAsync(item => item.Id == userId && item.IsActive && item.MemberId != null);
         if (user is null) return ApiResponse<MemberPreferenceDto>.ErrorResponse("Member account not found");
         var item = await GetOrCreateAsync(userId);
+        void Track(string category, bool previous, bool next)
+        {
+            if (previous == next) return;
+            context.CommunicationConsentEvents.Add(new CommunicationConsentEvent
+            {
+                UserId = userId, Email = user.Email, Category = category,
+                Action = next ? "OptIn" : "OptOut", Source = "member-preferences"
+            });
+        }
+        Track("events", item.EmailEvents, request.EmailEvents);
+        Track("opportunities", item.EmailOpportunities, request.EmailOpportunities);
+        Track("mentorship", item.EmailMentorship, request.EmailMentorship);
+        Track("service", item.EmailServiceUpdates, request.EmailServiceUpdates);
+        Track("newsletter", item.EmailNewsletter, request.EmailNewsletter);
+        Track("push", item.PushNotifications, request.PushNotifications);
         item.PreferredLanguage = request.PreferredLanguage;
         item.TimeZone = request.TimeZone.Trim();
         item.EmailEvents = request.EmailEvents;

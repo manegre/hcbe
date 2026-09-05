@@ -62,6 +62,9 @@ public class ApplicationDbContext : DbContext
     public DbSet<Consultation> Consultations { get; set; }
     public DbSet<PublicSubmission> PublicSubmissions { get; set; }
     public DbSet<NewsletterCampaign> NewsletterCampaigns { get; set; }
+    public DbSet<NewsletterDelivery> NewsletterDeliveries { get; set; }
+    public DbSet<CommunicationConsentEvent> CommunicationConsentEvents { get; set; }
+    public DbSet<CommunityJourneyState> CommunityJourneyStates { get; set; }
     public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
     public DbSet<MentorshipApplication> MentorshipApplications { get; set; }
     public DbSet<MentorshipMatch> MentorshipMatches { get; set; }
@@ -550,6 +553,14 @@ public class ApplicationDbContext : DbContext
             .HasIndex(c => c.CreatedAt);
         modelBuilder.Entity<NewsletterCampaign>()
             .HasIndex(c => new { c.Status, c.ScheduledAtUtc });
+        modelBuilder.Entity<NewsletterDelivery>()
+            .HasOne(item => item.Campaign).WithMany(item => item.Deliveries)
+            .HasForeignKey(item => item.CampaignId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<NewsletterDelivery>().HasIndex(item => item.TrackingToken).IsUnique();
+        modelBuilder.Entity<NewsletterDelivery>().HasIndex(item => new { item.CampaignId, item.Recipient }).IsUnique();
+        modelBuilder.Entity<CommunicationConsentEvent>().HasIndex(item => new { item.Email, item.OccurredAtUtc });
+        modelBuilder.Entity<CommunicationConsentEvent>().HasIndex(item => new { item.Category, item.OccurredAtUtc });
+        modelBuilder.Entity<CommunityJourneyState>().HasIndex(item => new { item.UserId, item.JourneyType }).IsUnique();
 
         // Store type is string? so SQLite NULL (legacy rows after ALTER) maps cleanly
         // before conversion, instead of throwing on GetString.

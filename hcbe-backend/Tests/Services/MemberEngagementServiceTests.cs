@@ -63,5 +63,39 @@ public sealed class MemberEngagementServiceTests : IDisposable
         _context.EmailOutboxMessages.Should().BeEmpty();
     }
 
+    [Fact]
+    public async Task LifecycleJourneys_SendsOnePreferencesNudgeAfterThreeDays()
+    {
+        _user.CreatedAt = DateTime.UtcNow.AddDays(-4);
+        await _context.SaveChangesAsync();
+
+        (await _service.ProcessLifecycleJourneysAsync()).Should().Be(1);
+        (await _service.ProcessLifecycleJourneysAsync()).Should().Be(0);
+
+        _context.CommunityJourneyStates.Should().ContainSingle(item => item.JourneyType == "OnboardingPreferences");
+        _context.EmailOutboxMessages.Should().ContainSingle(item => item.RelatedEntityType == "CommunityJourney");
+    }
+
+    [Fact]
+    public async Task LifecycleJourneys_ReactivatesOnlyOptedInInactiveMembers()
+    {
+        _user.CreatedAt = DateTime.UtcNow.AddDays(-100);
+        _user.LastLoginAtUtc = DateTime.UtcNow.AddDays(-61);
+        _context.MemberPreferences.Add(new MemberPreference
+        {
+            UserId = _user.Id,
+            HasCompletedPreferences = true,
+            EmailNewsletter = true,
+            PreferredLanguage = "fr"
+        });
+        await _context.SaveChangesAsync();
+
+        (await _service.ProcessLifecycleJourneysAsync()).Should().Be(1);
+        (await _service.ProcessLifecycleJourneysAsync()).Should().Be(0);
+
+        _context.CommunityJourneyStates.Should().ContainSingle(item => item.JourneyType == "Reactivation");
+        _context.EmailOutboxMessages.Should().ContainSingle(item => item.Subject.Contains("communauté HCBE"));
+    }
+
     public void Dispose() => _context.Dispose();
 }

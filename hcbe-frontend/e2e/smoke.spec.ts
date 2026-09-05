@@ -47,6 +47,8 @@ test('privacy policy publishes account rights and the privacy contact', async ({
 
   await expect(page.getByRole('heading', { name: /compte membre et finalités|member account and purposes/i })).toBeVisible();
   await expect(page.getByRole('heading', { name: /vos droits|your rights/i })).toBeVisible();
+  await expect(page.getByRole('main')).toContainText(/image invisible|invisible image/i);
+  await expect(page.getByRole('main')).toContainText(/désabonner en tout temps|unsubscribe at any time/i);
   await expect(page.getByRole('main').getByRole('link', { name: 'contact@hcbe.ca' })).toHaveAttribute('href', /^mailto:contact@hcbe\.ca/);
 });
 
