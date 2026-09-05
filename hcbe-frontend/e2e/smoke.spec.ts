@@ -213,6 +213,47 @@ test('administrator can authenticate and reach the protected dashboard', async (
   }
 });
 
+test('every administrator workspace remains usable on mobile and tablet in dark mode', async ({ page }) => {
+  test.setTimeout(240_000);
+  test.skip(!process.env.E2E_ADMIN_EMAIL || !process.env.E2E_ADMIN_PASSWORD, 'Admin E2E credentials are not configured');
+  await page.goto('/admin/login', { waitUntil: 'domcontentloaded' });
+  await page.locator('input[name="email"]').fill(process.env.E2E_ADMIN_EMAIL!);
+  await page.locator('input[name="password"]').fill(process.env.E2E_ADMIN_PASSWORD!);
+  await page.locator('button[type="submit"]').click();
+  await expect(page).toHaveURL(/\/admin\/dashboard$/);
+  await page.evaluate(() => localStorage.setItem('hcbe-theme', 'dark'));
+
+  const routes = [
+    '/admin/dashboard', '/admin/events', '/admin/news', '/admin/documents', '/admin/associations',
+    '/admin/association-requests', '/admin/projects', '/admin/opportunities', '/admin/grants',
+    '/admin/consultations', '/admin/members', '/admin/membership-applications', '/admin/newsletter',
+    '/admin/mentorship', '/admin/message-reports', '/admin/submissions', '/admin/service-cases',
+    '/admin/impact', '/admin/monitoring', '/admin/security', '/admin/finance', '/admin/users',
+    '/admin/partners', '/admin/site-content', '/admin/team-members',
+  ];
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  for (const route of routes) {
+    await page.goto(route, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('main').first()).toBeVisible();
+    await expect(page.locator('html')).toHaveClass(/dark/);
+    await expect(page.locator('body')).not.toHaveText(/unexpected application error/i);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
+    const table = page.locator('.admin-data-table').first();
+    if (await table.count()) await expect.poll(() => table.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBeTruthy();
+    if (process.env.E2E_CAPTURE_VISUALS && route === '/admin/grants') {
+      await page.screenshot({ path: 'test-results/admin-table-mobile-dark.png', fullPage: true });
+    }
+  }
+
+  await page.setViewportSize({ width: 768, height: 1024 });
+  for (const route of ['/admin/dashboard', '/admin/events', '/admin/newsletter', '/admin/security', '/admin/site-content']) {
+    await page.goto(route, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('main').first()).toBeVisible();
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
+  }
+});
+
 test('member can register and enter the member portal', async ({ page }) => {
   const memberEmail = `awa.e2e.${Date.now()}@hcbe.invalid`;
   await page.setViewportSize({ width: 390, height: 844 });

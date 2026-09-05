@@ -961,6 +961,7 @@ export default {
   'admin.newsletter.status.Sent': 'Envoyé',
   'admin.newsletter.status.Failed': 'Échec',
   'admin.newsletter.status.PartiallySent': 'Envoi partiel',
+  'admin.list.mobileCards': 'Vue adaptée',
 
   'admin.login.notAdmin': 'Ce compte n\'a pas les droits d\'accès à l\'administration.',
 
