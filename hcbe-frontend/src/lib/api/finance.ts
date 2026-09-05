@@ -9,6 +9,7 @@ export const financeApi = {
   getCampaigns: (): Promise<ApiResponse<DonationCampaign[]>> => apiClient.get('/api/finance/campaigns'),
   getMemberSummary: (): Promise<ApiResponse<MemberFinanceSummary>> => apiClient.get('/api/finance/member/summary'),
   createMembershipCheckout: (planId: string): Promise<ApiResponse<CheckoutSession>> => apiClient.post('/api/finance/member/membership/checkout', { planId }),
+  renewCommunityMembership: (): Promise<ApiResponse<MembershipStanding>> => apiClient.post('/api/finance/member/membership/renew'),
   createDonationCheckout: (data: { campaignId?: string; amountCents: number; currency: string; email: string; name?: string; isAnonymous: boolean; allowPublicRecognition: boolean; message?: string; isRecurring: boolean }): Promise<ApiResponse<CheckoutSession>> => apiClient.post('/api/finance/donations/checkout', data),
   getCheckoutResult: (sessionId: string): Promise<ApiResponse<CheckoutResult>> => apiClient.get(`/api/finance/checkout/${encodeURIComponent(sessionId)}`),
   createBillingPortal: (): Promise<ApiResponse<{ url: string }>> => apiClient.post('/api/finance/member/billing-portal'),

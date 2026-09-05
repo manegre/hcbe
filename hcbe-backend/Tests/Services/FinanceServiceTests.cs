@@ -17,6 +17,62 @@ public sealed class FinanceServiceTests : IDisposable
     private readonly RecordingOutbox outbox = new();
 
     [Fact]
+    public async Task MemberSummary_ActivatesFreeCommunityMembershipWithoutPayment()
+    {
+        var member = new Member { FirstName = "Awa", LastName = "Sawadogo", Email = "free@example.com" };
+        var user = new User { Email = member.Email, Member = member, MemberId = member.Id, IsActive = true };
+        var plan = FreeCommunityPlan();
+        context.AddRange(user, plan);
+        await context.SaveChangesAsync();
+
+        var result = await CreateService().GetMemberSummaryAsync(user.Id, default);
+
+        result.Success.Should().BeTrue();
+        result.Data!.Membership.Status.Should().Be(MembershipStatuses.Active);
+        result.Data.Membership.Plan!.Id.Should().Be(CommunityMembership.PlanId);
+        result.Data.Membership.Plan.AmountCents.Should().Be(0);
+        result.Data.Transactions.Should().BeEmpty();
+        context.MembershipStandings.Should().ContainSingle(item =>
+            item.UserId == user.Id && item.PlanId == CommunityMembership.PlanId && item.CurrentPeriodEndUtc > DateTime.UtcNow.AddMonths(11));
+    }
+
+    [Fact]
+    public async Task FreeCommunityMembership_DoesNotCreateStripeCheckout()
+    {
+        var member = new Member { FirstName = "Awa", LastName = "Sawadogo", Email = "free-checkout@example.com" };
+        var user = new User { Email = member.Email, Member = member, MemberId = member.Id, IsActive = true };
+        var plan = FreeCommunityPlan();
+        context.AddRange(user, plan);
+        await context.SaveChangesAsync();
+
+        var result = await CreateService().CreateMembershipCheckoutAsync(user.Id, new(plan.Id), default);
+
+        result.Success.Should().BeFalse();
+        result.Message.Should().Contain("free");
+        gateway.LastCheckout.Should().BeNull();
+        context.FinancialTransactions.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ExpiredCommunityMembership_CanBeRenewedForFree()
+    {
+        var member = new Member { FirstName = "Awa", LastName = "Sawadogo", Email = "renew@example.com" };
+        var user = new User { Email = member.Email, Member = member, MemberId = member.Id, IsActive = true };
+        var plan = FreeCommunityPlan();
+        var standing = CommunityMembership.CreateStanding(user.Id, DateTime.UtcNow.AddYears(-1).AddDays(-2));
+        context.AddRange(user, plan, standing);
+        await context.SaveChangesAsync();
+
+        var result = await CreateService().RenewCommunityMembershipAsync(user.Id, default);
+
+        result.Success.Should().BeTrue();
+        result.Data!.Status.Should().Be(MembershipStatuses.Active);
+        result.Data.CurrentPeriodEndUtc.Should().BeAfter(DateTime.UtcNow.AddMonths(11));
+        context.FinancialTransactions.Should().BeEmpty();
+        context.Notifications.Should().ContainSingle(item => item.UserId == user.Id && item.Type == "membership");
+    }
+
+    [Fact]
     public async Task MembershipCheckout_CreatesPendingLedgerEntry_AndUsesHostedCheckout()
     {
         var (user, plan) = await AddMemberAndPlanAsync();
@@ -98,7 +154,7 @@ public sealed class FinanceServiceTests : IDisposable
 
         (await service.ProcessWebhookAsync("payload", "signature", default)).Success.Should().BeTrue();
         transaction.Status.Should().Be(FinanceStatuses.Pending);
-        context.MembershipStandings.Should().ContainSingle(item => item.UserId == user.Id && item.Status == MembershipStatuses.Inactive);
+        context.MembershipStandings.Should().ContainSingle(item => item.UserId == user.Id && item.Status == MembershipStatuses.Active);
         outbox.Count.Should().Be(0);
 
         gateway.NextEvent = new("evt_delayed_success", "checkout.session.async_payment_succeeded", $$$"""
@@ -148,7 +204,7 @@ public sealed class FinanceServiceTests : IDisposable
         gateway.LastRefundIdempotencyKey.Should().Be($"hcbe-refund-{transaction.Id:N}-0-{plan.AmountCents}");
         gateway.CancelledSubscriptionId.Should().Be("sub_refund");
         context.MembershipStandings.Should().ContainSingle(item =>
-            item.UserId == user.Id && item.Status == MembershipStatuses.Inactive && !item.AutoRenew && item.StripeSubscriptionId == null);
+            item.UserId == user.Id && item.PlanId == CommunityMembership.PlanId && item.Status == MembershipStatuses.Active && !item.AutoRenew && item.StripeSubscriptionId == null);
     }
 
     [Fact]
@@ -249,6 +305,19 @@ public sealed class FinanceServiceTests : IDisposable
         await context.SaveChangesAsync();
         return (user, plan);
     }
+
+    private static MembershipPlan FreeCommunityPlan() => new()
+    {
+        Id = CommunityMembership.PlanId,
+        Name = "Membre communautaire — Gratuit",
+        NameEn = "Community member — Free",
+        Description = "Adhésion gratuite",
+        DescriptionEn = "Free membership",
+        AmountCents = 0,
+        Currency = "cad",
+        BillingMode = CommunityMembership.BillingMode,
+        IsActive = true
+    };
 
     private FinanceService CreateService()
     {

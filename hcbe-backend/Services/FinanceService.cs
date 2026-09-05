@@ -24,7 +24,7 @@ public sealed class FinanceService(
     public async Task<ApiResponse<IReadOnlyList<MembershipPlanDto>>> GetPlansAsync(bool admin, CancellationToken cancellationToken)
     {
         var query = context.MembershipPlans.AsNoTracking();
-        if (!admin) query = query.Where(item => item.IsActive);
+        if (!admin) query = query.Where(item => item.IsActive && item.Id == CommunityMembership.PlanId);
         var items = await query.OrderBy(item => item.DisplayOrder).ThenBy(item => item.AmountCents).ToListAsync(cancellationToken);
         return ApiResponse<IReadOnlyList<MembershipPlanDto>>.SuccessResponse(items.Select(MapPlan).ToList());
     }
@@ -33,7 +33,11 @@ public sealed class FinanceService(
     {
         var validation = ValidatePlan(request);
         if (validation != null) return ApiResponse<MembershipPlanDto>.ErrorResponse(validation);
-        var item = new MembershipPlan();
+        var item = request.BillingMode == CommunityMembership.BillingMode
+            ? new MembershipPlan { Id = CommunityMembership.PlanId }
+            : new MembershipPlan();
+        if (await context.MembershipPlans.AnyAsync(value => value.Id == item.Id, cancellationToken))
+            return ApiResponse<MembershipPlanDto>.ErrorResponse("The community membership plan already exists");
         ApplyPlan(item, request);
         context.MembershipPlans.Add(item);
         await context.SaveChangesAsync(cancellationToken);
@@ -106,11 +110,55 @@ public sealed class FinanceService(
             MapStanding(standing, user, standing.Plan), plans.Select(MapPlan).ToList(), transactions.Select(MapTransaction).ToList()));
     }
 
+    public async Task<ApiResponse<MembershipStandingDto>> RenewCommunityMembershipAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var user = await context.Users.Include(item => item.Member)
+            .SingleOrDefaultAsync(item => item.Id == userId && item.IsActive && item.MemberId != null, cancellationToken);
+        if (user == null) return ApiResponse<MembershipStandingDto>.ErrorResponse("Member account not found");
+
+        var existing = await context.MembershipStandings.Include(item => item.Plan)
+            .SingleOrDefaultAsync(item => item.UserId == userId, cancellationToken);
+        if (existing?.Status == MembershipStatuses.Inactive)
+            return ApiResponse<MembershipStandingDto>.ErrorResponse("This membership is suspended. Please contact HCBE Canada.");
+
+        var standing = existing ?? CommunityMembership.CreateStanding(userId, DateTime.UtcNow);
+        if (existing == null) context.MembershipStandings.Add(standing);
+
+        var now = DateTime.UtcNow;
+        if (standing.CurrentPeriodEndUtc <= now.AddDays(CommunityMembership.RenewalWindowDays))
+        {
+            var renewalStart = standing.CurrentPeriodEndUtc > now ? standing.CurrentPeriodEndUtc.Value : now;
+            standing.PlanId = CommunityMembership.PlanId;
+            standing.Status = MembershipStatuses.Active;
+            standing.CurrentPeriodStartUtc = now;
+            standing.CurrentPeriodEndUtc = renewalStart.AddYears(1);
+            standing.GraceEndsAtUtc = standing.CurrentPeriodEndUtc.Value.AddDays(options.MembershipGracePeriodDays);
+            standing.AutoRenew = false;
+            standing.LastReminderKey = null;
+            standing.UpdatedAtUtc = now;
+            context.Notifications.Add(new Notification
+            {
+                UserId = userId,
+                Type = "membership",
+                Title = "Adhésion renouvelée",
+                Message = "Votre adhésion communautaire gratuite a été renouvelée pour un an.",
+                Link = "/espace-membre?section=membership",
+                RelatedEntityId = standing.Id
+            });
+        }
+
+        await context.SaveChangesAsync(cancellationToken);
+        await context.Entry(standing).Reference(item => item.Plan).LoadAsync(cancellationToken);
+        return ApiResponse<MembershipStandingDto>.SuccessResponse(MapStanding(standing, user, standing.Plan));
+    }
+
     public async Task<ApiResponse<CheckoutSessionDto>> CreateMembershipCheckoutAsync(Guid userId, CreateMembershipCheckoutRequest request, CancellationToken cancellationToken)
     {
         var user = await context.Users.Include(item => item.Member).SingleOrDefaultAsync(item => item.Id == userId && item.IsActive, cancellationToken);
         var plan = await context.MembershipPlans.SingleOrDefaultAsync(item => item.Id == request.PlanId && item.IsActive, cancellationToken);
         if (user == null || plan == null) return ApiResponse<CheckoutSessionDto>.ErrorResponse("Account or membership plan not found");
+        if (plan.Id == CommunityMembership.PlanId || plan.BillingMode == CommunityMembership.BillingMode || plan.AmountCents == 0)
+            return ApiResponse<CheckoutSessionDto>.ErrorResponse("The community membership is free and does not require payment");
         var standing = await GetOrCreateStandingAsync(userId, cancellationToken);
         if (!string.IsNullOrWhiteSpace(standing.StripeSubscriptionId))
             return ApiResponse<CheckoutSessionDto>.ErrorResponse("An existing recurring membership must be managed from the billing portal");
@@ -346,7 +394,6 @@ public sealed class FinanceService(
             var standing = await context.MembershipStandings.SingleOrDefaultAsync(value => value.UserId == refundedUserId && value.LastTransactionId == item.Id, cancellationToken);
             if (standing != null)
             {
-                standing.Status = MembershipStatuses.Inactive;
                 if (!string.IsNullOrWhiteSpace(standing.StripeSubscriptionId))
                 {
                     try
@@ -372,7 +419,7 @@ public sealed class FinanceService(
                 {
                     standing.AutoRenew = false;
                 }
-                standing.UpdatedAtUtc = DateTime.UtcNow;
+                ResetToCommunityMembership(standing);
             }
         }
         await context.SaveChangesAsync(cancellationToken);
@@ -568,7 +615,7 @@ public sealed class FinanceService(
                 if (transaction.Status == FinanceStatuses.Refunded && transaction.Kind == FinanceKinds.Membership && transaction.UserId is Guid refundedUserId)
                 {
                     var standing = await context.MembershipStandings.SingleOrDefaultAsync(item => item.UserId == refundedUserId && item.LastTransactionId == transaction.Id, cancellationToken);
-                    if (standing != null) { standing.Status = MembershipStatuses.Inactive; standing.AutoRenew = false; standing.UpdatedAtUtc = DateTime.UtcNow; }
+                    if (standing != null) ResetToCommunityMembership(standing);
                 }
             }
             transaction.UpdatedAtUtc = DateTime.UtcNow;
@@ -603,8 +650,9 @@ public sealed class FinanceService(
     {
         var standing = await context.MembershipStandings.Include(item => item.Plan).SingleOrDefaultAsync(item => item.UserId == userId, cancellationToken);
         if (standing != null) return standing;
-        standing = new MembershipStanding { UserId = userId };
+        standing = CommunityMembership.CreateStanding(userId, DateTime.UtcNow);
         context.MembershipStandings.Add(standing);
+        standing.Plan = await context.MembershipPlans.SingleOrDefaultAsync(item => item.Id == CommunityMembership.PlanId, cancellationToken);
         return standing;
     }
 
@@ -621,6 +669,20 @@ public sealed class FinanceService(
         if (standing.CurrentPeriodEndUtc > now) return MembershipStatuses.Active;
         if (standing.GraceEndsAtUtc > now) return MembershipStatuses.GracePeriod;
         return MembershipStatuses.Expired;
+    }
+
+    private void ResetToCommunityMembership(MembershipStanding standing)
+    {
+        var now = DateTime.UtcNow;
+        standing.PlanId = CommunityMembership.PlanId;
+        standing.Status = MembershipStatuses.Active;
+        standing.CurrentPeriodStartUtc = now;
+        standing.CurrentPeriodEndUtc = now.AddYears(1);
+        standing.GraceEndsAtUtc = now.AddYears(1).AddDays(options.MembershipGracePeriodDays);
+        standing.AutoRenew = false;
+        standing.StripeSubscriptionId = null;
+        standing.LastReminderKey = null;
+        standing.UpdatedAtUtc = now;
     }
 
     private MembershipStandingDto MapStanding(MembershipStanding item, User user, MembershipPlan? plan)
@@ -661,9 +723,11 @@ public sealed class FinanceService(
     {
         if (string.IsNullOrWhiteSpace(request.Name) || request.Name.Length > 160) return "A valid plan name is required";
         if (string.IsNullOrWhiteSpace(request.Description) || request.Description.Length > 4000) return "A valid plan description is required";
-        if (request.AmountCents < 100 || request.AmountCents > 1_000_000) return "Plan amount is outside the accepted range";
+        if (request.BillingMode == CommunityMembership.BillingMode && request.AmountCents != 0) return "The community membership must remain free";
+        if (request.BillingMode != CommunityMembership.BillingMode && (request.AmountCents < 100 || request.AmountCents > 1_000_000)) return "Plan amount is outside the accepted range";
         if (NormalizeCurrency(request.Currency) != "cad") return "Only CAD membership plans are supported";
-        if (request.BillingMode is not ("Annual" or "Recurring")) return "Billing mode must be Annual or Recurring";
+        if (request.BillingMode is not ("Free" or "Annual" or "Recurring")) return "Billing mode must be Free, Annual or Recurring";
+        if (request.BillingMode == CommunityMembership.BillingMode && !string.IsNullOrWhiteSpace(request.StripePriceId)) return "The free community membership cannot have a Stripe price";
         if (!string.IsNullOrWhiteSpace(request.StripePriceId) &&
             (request.StripePriceId.Length > 255 || !request.StripePriceId.StartsWith("price_", StringComparison.Ordinal)))
             return "Stripe price ID must start with price_";

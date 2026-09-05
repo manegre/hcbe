@@ -355,6 +355,8 @@ public class AuthServiceTests : IDisposable
         member.FirstName.Should().Be("New");
         member.LastName.Should().Be("Member");
         session.User.MemberId.Should().Be(member.Id);
+        _context.MembershipStandings.Should().ContainSingle(item =>
+            item.UserId == session.User.Id && item.PlanId == CommunityMembership.PlanId && item.Status == MembershipStatuses.Active);
     }
 
     [Fact]

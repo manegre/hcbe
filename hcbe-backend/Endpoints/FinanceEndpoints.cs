@@ -41,6 +41,7 @@ public static class FinanceEndpoints
         var member = app.MapGroup("/api/finance/member").WithTags("Member finance").RequireAuthorization("Authenticated").WithOpenApi();
         member.MapGet("/summary", async (HttpContext http, IFinanceService service, CancellationToken ct) => http.GetUserId() is Guid userId ? (await service.GetMemberSummaryAsync(userId, ct)).HandleServiceResponse() : Results.Unauthorized());
         member.MapPost("/membership/checkout", async (CreateMembershipCheckoutRequest request, HttpContext http, IFinanceService service, CancellationToken ct) => http.GetUserId() is Guid userId ? (await service.CreateMembershipCheckoutAsync(userId, request, ct)).HandleServiceResponse() : Results.Unauthorized());
+        member.MapPost("/membership/renew", async (HttpContext http, IFinanceService service, CancellationToken ct) => http.GetUserId() is Guid userId ? (await service.RenewCommunityMembershipAsync(userId, ct)).HandleServiceResponse() : Results.Unauthorized());
         member.MapPost("/billing-portal", async (HttpContext http, IFinanceService service, CancellationToken ct) => http.GetUserId() is Guid userId ? (await service.CreateBillingPortalAsync(userId, ct)).HandleServiceResponse() : Results.Unauthorized());
 
         var admin = app.MapGroup("/api/admin/finance").WithTags("Finance administration").RequireAuthorization().WithOpenApi();

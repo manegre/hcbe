@@ -1286,7 +1286,7 @@ export interface CreateNewsRequest {
 
 export interface MembershipPlan {
   id: string; name: string; nameEn?: string; description: string; descriptionEn?: string;
-  amountCents: number; currency: string; billingMode: 'Annual' | 'Recurring'; benefits: string[];
+  amountCents: number; currency: string; billingMode: 'Free' | 'Annual' | 'Recurring'; benefits: string[];
   stripePriceId?: string; isActive: boolean; displayOrder: number;
 }
 

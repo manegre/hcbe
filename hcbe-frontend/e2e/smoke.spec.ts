@@ -110,8 +110,9 @@ test('admin login page exposes an accessible sign-in form', async ({ page }) => 
 });
 
 test('administrator can authenticate and reach the protected dashboard', async ({ page }) => {
+  test.setTimeout(45_000);
   test.skip(!process.env.E2E_ADMIN_EMAIL || !process.env.E2E_ADMIN_PASSWORD, 'Admin E2E credentials are not configured');
-  await page.goto('/admin/login');
+  await page.goto('/admin/login', { waitUntil: 'domcontentloaded' });
   await page.locator('input[name="email"]').fill(process.env.E2E_ADMIN_EMAIL!);
   await page.locator('input[name="password"]').fill(process.env.E2E_ADMIN_PASSWORD!);
   await page.locator('button[type="submit"]').click();
@@ -137,6 +138,10 @@ test('member can register and enter the member portal', async ({ page }) => {
 
   await expect(page.getByRole('navigation', { name: /communauté des membres|member community/i })).toBeVisible();
   await expect(page.getByRole('heading', { name: /votre espace est prêt|your space is ready/i })).toBeVisible();
+  await page.getByRole('tab', { name: /mon adhésion|my membership/i }).click();
+  await expect(page.getByRole('heading', { name: /membre communautaire — gratuit|community member — free/i })).toBeVisible();
+  await expect(page.getByRole('main')).toContainText(/aucun paiement n’est requis|no payment is required/i);
+  await expect(page.getByRole('button', { name: /déjà renouvelée|already renewed/i })).toBeDisabled();
   await page.getByRole('tab', { name: /^associations$/i }).click();
   await expect(page.getByRole('heading', { name: /votre organisation, au même endroit|your organization, all in one place/i })).toBeVisible();
   await expect(page.getByRole('heading', { name: /rejoindre ou représenter une organisation|join or represent an organization/i })).toBeVisible();

@@ -111,6 +111,7 @@ public class MembershipApplicationService : IMembershipApplicationService
 
             _context.Members.Add(member);
             _context.Users.Add(user);
+            _context.MembershipStandings.Add(CommunityMembership.CreateStanding(user.Id, now));
             if (pendingApplication is null) _context.MembershipApplications.Add(application);
             QueueWelcome(member);
             await _context.SaveChangesAsync();
@@ -261,6 +262,7 @@ public class MembershipApplicationService : IMembershipApplicationService
                 application.MemberId = existingMember.Id;
                 application.PasswordHash = null;
                 application.ReviewedAt = DateTime.UtcNow;
+                await EnsureCommunityMembershipAsync(user);
                 QueueMembershipDecision(application, approved: true);
                 await _context.SaveChangesAsync();
 
@@ -307,6 +309,7 @@ public class MembershipApplicationService : IMembershipApplicationService
             application.PasswordHash = null;
             application.ReviewedAt = DateTime.UtcNow;
 
+            await EnsureCommunityMembershipAsync(user);
             QueueMembershipDecision(application, approved: true);
             await _context.SaveChangesAsync();
 
@@ -411,6 +414,12 @@ public class MembershipApplicationService : IMembershipApplicationService
 
     private string PublicAppUrl() =>
         (_configuration?["PublicAppUrl"] ?? "http://localhost:3000").TrimEnd('/');
+
+    private async Task EnsureCommunityMembershipAsync(User user)
+    {
+        if (await _context.MembershipStandings.AnyAsync(item => item.UserId == user.Id)) return;
+        _context.MembershipStandings.Add(CommunityMembership.CreateStanding(user.Id, DateTime.UtcNow));
+    }
 
     private static MemberDto MapMemberToDto(Member member)
     {

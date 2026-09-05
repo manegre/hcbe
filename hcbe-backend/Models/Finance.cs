@@ -24,6 +24,25 @@ public static class MembershipStatuses
     public const string Expired = "Expired";
 }
 
+public static class CommunityMembership
+{
+    public static readonly Guid PlanId = Guid.Parse("8f0c48d3-0c24-4c39-9f7e-4c8ec4034f11");
+    public const string BillingMode = "Free";
+    public const int RenewalWindowDays = 30;
+
+    public static MembershipStanding CreateStanding(Guid userId, DateTime now) => new()
+    {
+        UserId = userId,
+        PlanId = PlanId,
+        Status = MembershipStatuses.Active,
+        CurrentPeriodStartUtc = now,
+        CurrentPeriodEndUtc = now.AddYears(1),
+        GraceEndsAtUtc = now.AddYears(1).AddDays(30),
+        AutoRenew = false,
+        UpdatedAtUtc = now
+    };
+}
+
 public sealed class MembershipPlan
 {
     public Guid Id { get; set; } = Guid.NewGuid();

@@ -211,6 +211,11 @@ public class AuthService : IAuthService
         user.LastLoginAtUtc = DateTime.UtcNow;
         member.IsAdmin = user.IsAdmin;
 
+        if (!await _context.MembershipStandings.AnyAsync(item => item.UserId == user.Id))
+        {
+            _context.MembershipStandings.Add(CommunityMembership.CreateStanding(user.Id, DateTime.UtcNow));
+        }
+
         if (createdUser && _emailOutbox is not null && _emailTemplates is not null)
         {
             var memberSpaceUrl = $"{PublicAppUrl()}/espace-membre";

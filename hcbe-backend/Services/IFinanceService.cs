@@ -22,6 +22,7 @@ public interface IFinanceService
     Task<ApiResponse<IReadOnlyList<FinancialTransactionDto>>> GetTransactionsAsync(string? status, string? kind, string? search, CancellationToken cancellationToken);
     Task<ApiResponse<FinancialTransactionDto>> RefundAsync(Guid transactionId, RefundTransactionRequest request, CancellationToken cancellationToken);
     Task<ApiResponse<MembershipStandingDto>> UpdateMembershipAsync(Guid userId, UpdateMembershipStandingRequest request, CancellationToken cancellationToken);
+    Task<ApiResponse<MembershipStandingDto>> RenewCommunityMembershipAsync(Guid userId, CancellationToken cancellationToken);
     Task<ApiResponse<MembershipVerificationDto>> VerifyMembershipAsync(string code, CancellationToken cancellationToken);
     Task<FinancialTransaction?> FindReceiptAsync(string token, CancellationToken cancellationToken);
     Task<int> ProcessMembershipRemindersAsync(CancellationToken cancellationToken);

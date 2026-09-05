@@ -36,6 +36,12 @@ public sealed class MembershipApplicationServiceTests : IDisposable
         user.IsActive.Should().BeTrue();
         BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash).Should().BeTrue();
 
+        var standing = await _context.MembershipStandings.SingleAsync();
+        standing.UserId.Should().Be(user.Id);
+        standing.PlanId.Should().Be(CommunityMembership.PlanId);
+        standing.Status.Should().Be(MembershipStatuses.Active);
+        standing.CurrentPeriodEndUtc.Should().BeAfter(DateTime.UtcNow.AddMonths(11));
+
         var application = await _context.MembershipApplications.SingleAsync();
         application.PasswordHash.Should().BeNull();
         application.MemberId.Should().Be(member.Id);

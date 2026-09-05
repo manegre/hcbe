@@ -6,6 +6,40 @@ namespace HcbeApi.Helpers;
 
 public static class DbSeeder
 {
+    public static void SeedCommunityMemberships(ApplicationDbContext context)
+    {
+        var now = DateTime.UtcNow;
+        var plan = context.MembershipPlans.SingleOrDefault(item => item.Id == CommunityMembership.PlanId);
+        if (plan == null)
+        {
+            plan = new MembershipPlan
+            {
+                Id = CommunityMembership.PlanId,
+                Name = "Membre communautaire — Gratuit",
+                NameEn = "Community member — Free",
+                Description = "Accès gratuit à la communauté, aux services, aux événements et aux ressources du HCBE Canada.",
+                DescriptionEn = "Free access to the HCBE Canada community, services, events and resources.",
+                AmountCents = 0,
+                Currency = "cad",
+                BillingMode = CommunityMembership.BillingMode,
+                BenefitsJson = "[\"Accès à l’espace membre\",\"Carte de membre numérique\",\"Services et ressources communautaires\",\"Renouvellement annuel gratuit\"]",
+                IsActive = true,
+                DisplayOrder = 0,
+                CreatedAtUtc = now,
+                UpdatedAtUtc = now
+            };
+            context.MembershipPlans.Add(plan);
+        }
+
+        var existingUserIds = context.MembershipStandings.Select(item => item.UserId).ToHashSet();
+        var userIds = context.Users
+            .Where(item => item.IsActive && item.MemberId != null && !existingUserIds.Contains(item.Id))
+            .Select(item => item.Id)
+            .ToList();
+        context.MembershipStandings.AddRange(userIds.Select(userId => CommunityMembership.CreateStanding(userId, now)));
+        context.SaveChanges();
+    }
+
     public static void SeedPartnersIfEmpty(ApplicationDbContext context)
     {
         if (context.Partners.Any()) return;

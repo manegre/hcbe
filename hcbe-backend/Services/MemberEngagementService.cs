@@ -46,7 +46,7 @@ public sealed class MemberEngagementService(
         var openCases = await context.ServiceCases.AsNoTracking()
             .CountAsync(item => item.MemberId == user.MemberId && item.Status != "Resolved" && item.Status != "Closed");
         var standing = await context.MembershipStandings.AsNoTracking().Where(item => item.UserId == userId)
-            .Select(item => item.Status).FirstOrDefaultAsync() ?? MembershipStatuses.Inactive;
+            .Select(item => item.Status).FirstOrDefaultAsync() ?? MembershipStatuses.Active;
         var name = $"{user.Member.FirstName} {user.Member.LastName}".Trim();
         return ApiResponse<MemberEngagementDashboardDto>.SuccessResponse(new(name, standing, unreadNotifications,
             unreadMessages, openCases, events, opportunities, saved, notifications));
