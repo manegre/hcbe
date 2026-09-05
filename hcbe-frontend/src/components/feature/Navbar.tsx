@@ -25,6 +25,8 @@ const Navbar = () => {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const [cmsNavigation, setCmsNavigation] = useState<NavigationItemDto[]>([]);
+  const [isInstalledApp, setIsInstalledApp] = useState(() => window.matchMedia('(display-mode: standalone)').matches
+    || Boolean((navigator as Navigator & { standalone?: boolean }).standalone));
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   const defaultNavLinks = useMemo(
@@ -63,6 +65,12 @@ const Navbar = () => {
     ],
     [],
   );
+
+  useEffect(() => {
+    const onInstalled = () => setIsInstalledApp(true);
+    window.addEventListener('appinstalled', onInstalled);
+    return () => window.removeEventListener('appinstalled', onInstalled);
+  }, []);
 
   useEffect(() => {
     const loadNavigation = () => siteContentApi.getNavigation().then((response) => {
@@ -262,6 +270,18 @@ const Navbar = () => {
                 </span>
                 <LanguageSwitcher variant="onDark" compact />
               </div>
+              {!isInstalledApp && <button
+                type="button"
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  window.dispatchEvent(new Event('hcbe:open-install-guide'));
+                }}
+                className="mt-3 flex min-h-[46px] w-full items-center gap-3 rounded-xl border border-white/15 bg-white/[.045] px-4 text-left transition hover:border-gold/45 hover:bg-white/[.08] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+              >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gold text-green-deep"><i className="ri-smartphone-line text-base" aria-hidden="true" /></span>
+                <span className="min-w-0 flex-1"><strong className="block text-[10px] font-bold uppercase tracking-[.11em] text-white">{i18n.language.startsWith('en') ? 'Install the app' : 'Installer l’application'}</strong><span className="mt-0.5 block text-[9px] text-white/45">iPhone · Android</span></span>
+                <i className="ri-arrow-right-s-line text-lg text-gold" aria-hidden="true" />
+              </button>}
               <Link
                 to="/espace-membre"
                 onClick={() => setIsMobileMenuOpen(false)}

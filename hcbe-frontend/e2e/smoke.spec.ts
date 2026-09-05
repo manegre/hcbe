@@ -27,6 +27,41 @@ test('PWA manifest, offline fallback and service worker are production-ready', a
   await expect.poll(() => page.evaluate(() => navigator.serviceWorker.getRegistration().then(Boolean))).toBeTruthy();
 });
 
+test('iPhone and Android visitors can open platform-specific installation guidance', async ({ browser }) => {
+  const devices = [
+    {
+      name: 'iPhone · iPad',
+      language: 'fr',
+      userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1',
+      install: /installer l.application/i,
+      heading: /installez l.application/i,
+      instruction: /sur l’écran d’accueil/i,
+    },
+    {
+      name: 'Android',
+      language: 'en',
+      userAgent: 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/139.0 Mobile Safari/537.36',
+      install: /install the app/i,
+      heading: /install the app/i,
+      instruction: /add to home screen/i,
+    },
+  ];
+
+  for (const device of devices) {
+    const context = await browser.newContext({ userAgent: device.userAgent, viewport: { width: 390, height: 844 } });
+    await context.addInitScript((language) => localStorage.setItem('i18nextLng', language), device.language);
+    const page = await context.newPage();
+    await page.goto('/');
+    await page.getByRole('button', { name: /ouvrir le menu|open menu/i }).click();
+    await page.getByRole('button', { name: device.install }).click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByRole('heading', { name: device.heading })).toBeVisible();
+    await expect(dialog).toContainText(device.name);
+    await expect(dialog).toContainText(device.instruction);
+    await context.close();
+  }
+});
+
 test('representative public routes meet automated WCAG 2.2 AA checks', async ({ page }) => {
   test.setTimeout(90_000);
   await page.emulateMedia({ reducedMotion: 'reduce' });
