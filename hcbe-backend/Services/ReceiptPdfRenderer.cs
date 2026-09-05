@@ -158,6 +158,103 @@ public static class ReceiptPdfRenderer
         return BuildPdf(content.ToString(), $"HCBE membership card - {card.MemberName}");
     }
 
+    public static byte[] RenderImpactReport(ImpactDashboardDto report)
+    {
+        ArgumentNullException.ThrowIfNull(report);
+        var content = new StringBuilder();
+        Fill(content, "0.969 0.976 0.957", 0, 0, PageWidth, PageHeight);
+        RoundedFill(content, "0.043 0.231 0.129", 34, 650, 527, 158, 22);
+        Fill(content, "0.961 0.773 0.094", 50, 671, 4, 116);
+        CircleStroke(content, "0.149 0.365 0.235", 535, 796, 68, 22);
+        DrawLogo(content, 72, 772);
+        Text(content, "RAPPORT D'IMPACT ORGANISATIONNEL", 72, 721, 15, true, "1 1 1", 0.35);
+        Text(content, "ORGANIZATIONAL IMPACT REPORT", 72, 699, 8, true, "0.788 0.851 0.808", 0.9);
+        Text(content, $"PÉRIODE / PERIOD  ·  {report.PeriodStartUtc:yyyy-MM} — {report.GeneratedAtUtc:yyyy-MM}", 72, 674, 7.5, true, "0.788 0.851 0.808", 0.45);
+        Text(content, $"GÉNÉRÉ / GENERATED  ·  {report.GeneratedAtUtc:yyyy-MM-dd HH:mm} UTC", 342, 674, 7, false, "0.788 0.851 0.808");
+
+        Text(content, "INDICATEURS CLÉS  /  KEY INDICATORS", 44, 616, 8, true, "0.043 0.231 0.129", 0.8);
+        var metricKeys = new[] { "members", "event-attendance", "service-cases", "resolution-time", "volunteer-hours", "mentorship-completed" };
+        for (var index = 0; index < metricKeys.Length; index++)
+        {
+            var metric = report.Metrics.FirstOrDefault(item => item.Key == metricKeys[index]);
+            if (metric is null) continue;
+            var column = index % 3;
+            var row = index / 3;
+            var x = 44 + column * 173;
+            var y = 515 - row * 96;
+            RoundedFill(content, "1 1 1", x, y, 161, 78, 12);
+            RoundedStroke(content, "0.827 0.859 0.820", x, y, 161, 78, 12, 0.7);
+            Text(content, FormatImpactValue(metric), x + 14, y + 39, 20, true, "0.043 0.231 0.129");
+            var label = BilingualImpactLabel(metric.Key, metric.Label);
+            var lines = Wrap(label, 29);
+            for (var line = 0; line < Math.Min(2, lines.Count); line++)
+                Text(content, lines[line], x + 14, y + 17 - line * 10, 6.5, true, "0.310 0.353 0.318", 0.25);
+        }
+
+        Text(content, "PARCOURS D'ACTIVATION  /  MEMBER ACTIVATION", 44, 384, 8, true, "0.043 0.231 0.129", 0.8);
+        for (var index = 0; index < report.ActivationFunnel.Count && index < 5; index++)
+        {
+            var stage = report.ActivationFunnel[index];
+            var x = 44 + index * 103;
+            RoundedFill(content, index == report.ActivationFunnel.Count - 1 ? "0.925 0.945 0.918" : "1 1 1", x, 286, 94, 76, 10);
+            RoundedStroke(content, "0.827 0.859 0.820", x, 286, 94, 76, 10, 0.65);
+            Text(content, $"0{index + 1}", x + 11, 341, 6.5, true, "0.788 0.098 0.122", 0.5);
+            Text(content, $"{stage.Percentage:0.#}%", x + 11, 315, 15, true, "0.043 0.231 0.129");
+            Text(content, $"{stage.Count} membres / members", x + 11, 298, 5.8, false, "0.310 0.353 0.318");
+        }
+
+        RoundedFill(content, "1 1 1", 44, 128, 248, 130, 12);
+        RoundedStroke(content, "0.827 0.859 0.820", 44, 128, 248, 130, 12, 0.7);
+        Text(content, "ACTIVITÉ DES MEMBRES / MEMBER ACTIVITY", 58, 235, 6.8, true, "0.043 0.231 0.129", 0.45);
+        for (var index = 0; index < Math.Min(4, report.ActivitySegments.Count); index++)
+        {
+            var item = report.ActivitySegments[index];
+            Text(content, ActivityLabel(item.Key, item.Label), 58, 208 - index * 23, 7.2, false, "0.310 0.353 0.318");
+            Text(content, $"{item.Count}  ·  {item.Percentage:0.#}%", 225, 208 - index * 23, 7.2, true, "0.043 0.231 0.129");
+        }
+
+        RoundedFill(content, "1 1 1", 303, 128, 248, 130, 12);
+        RoundedStroke(content, "0.827 0.859 0.820", 303, 128, 248, 130, 12, 0.7);
+        Text(content, "PRÉSENCE NATIONALE / NATIONAL PRESENCE", 317, 235, 6.8, true, "0.043 0.231 0.129", 0.45);
+        for (var index = 0; index < Math.Min(4, report.ProvinceBreakdown.Count); index++)
+        {
+            var item = report.ProvinceBreakdown[index];
+            Text(content, item.Key == "other" ? "Autres régions / Other regions" : item.Label, 317, 208 - index * 23, 7.2, false, "0.310 0.353 0.318");
+            Text(content, $"{item.Count}  ·  {item.Percentage:0.#}%", 484, 208 - index * 23, 7.2, true, "0.043 0.231 0.129");
+        }
+
+        Line(content, "0.961 0.773 0.094", 44, 95, 551, 95, 2);
+        Text(content, "HCBE Canada  ·  Haut Conseil des Burkinabè du Canada", 44, 72, 8, true, "0.043 0.231 0.129");
+        Text(content, "Données agrégées conformément aux principes de minimisation de la Loi 25.", 44, 54, 6.7, false, "0.310 0.353 0.318");
+        Text(content, "Aggregated data produced in accordance with Law 25 data-minimization principles.", 303, 54, 6.7, false, "0.310 0.353 0.318");
+        return BuildPdf(content.ToString(), $"HCBE impact report {report.GeneratedAtUtc:yyyyMMdd}");
+    }
+
+    private static string FormatImpactValue(ImpactMetricDto metric) => metric.Unit == "%"
+        ? $"{metric.Value:0.#}%"
+        : $"{metric.Value:0.#} {ImpactUnit(metric.Unit)}";
+
+    private static string ImpactUnit(string unit) => unit switch { "heures" => "h", _ => string.Empty };
+    private static string BilingualImpactLabel(string key, string fallback) => key switch
+    {
+        "members" => "Membres / Members",
+        "event-attendance" => "Présence événements / Event attendance",
+        "service-cases" => "Demandes ouvertes / Open requests",
+        "resolution-time" => "Délai de résolution / Resolution time",
+        "volunteer-hours" => "Bénévolat confirmé / Confirmed volunteering",
+        "mentorship-completed" => "Jumelages complétés / Completed matches",
+        _ => fallback
+    };
+
+    private static string ActivityLabel(string key, string fallback) => key switch
+    {
+        "active" => "Actifs — 30 j / Active — 30 d",
+        "warm" => "À réengager / Re-engage",
+        "dormant" => "Dormants / Dormant",
+        "never" => "Jamais connectés / Never signed in",
+        _ => fallback
+    };
+
     private static string TypeLabel(string? type) => type switch
     {
         "Job" => "Emploi / Employment",

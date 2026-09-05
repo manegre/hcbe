@@ -268,7 +268,7 @@ export const AdminDashboard = () => {
             className={`group relative min-h-[154px] overflow-hidden rounded-[18px] border border-green/10 bg-surface p-4 shadow-[0_10px_30px_rgba(0,59,27,.055)] transition-all duration-300 hover:-translate-y-1 hover:border-green/25 hover:shadow-[0_20px_45px_rgba(0,59,27,.10)] sm:min-h-[164px] sm:p-5 xl:min-h-[108px] xl:p-3.5 ${index === statCards.length - 1 ? 'col-span-2 sm:col-span-1' : ''}`}
           >
             <div className="flex items-start justify-between gap-3">
-              <span className="text-[10px] font-bold tabular-nums text-green/35">{String(index + 1).padStart(2, '0')}</span>
+              <span className="text-[10px] font-bold tabular-nums text-green">{String(index + 1).padStart(2, '0')}</span>
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green/7 text-lg text-green transition-all group-hover:bg-green group-hover:text-gold xl:h-8 xl:w-8 xl:text-base">
                 <i className={statIcons[stat.key]} aria-hidden="true" />
               </span>

@@ -68,6 +68,7 @@ export default defineConfig({
   base,
   build: {
     sourcemap: true,
+    manifest: true,
     outDir: "out",
     rollupOptions: {
       output: {

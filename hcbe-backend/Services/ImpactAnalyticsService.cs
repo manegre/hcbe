@@ -7,9 +7,11 @@ namespace HcbeApi.Services;
 
 public sealed class ImpactAnalyticsService(ApplicationDbContext context) : IImpactAnalyticsService
 {
-    public async Task<ApiResponse<ImpactDashboardDto>> GetAsync()
+    public async Task<ApiResponse<ImpactDashboardDto>> GetAsync(int months = 6)
     {
+        months = months is 3 or 6 or 12 ? months : 6;
         var now = DateTime.UtcNow;
+        var periodStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(-(months - 1));
         var currentStart = now.AddDays(-30);
         var previousStart = now.AddDays(-60);
         var totalMembers = await context.Members.CountAsync();
@@ -28,6 +30,11 @@ public sealed class ImpactAnalyticsService(ApplicationDbContext context) : IImpa
         var savedItems = await context.SavedMemberItems.CountAsync();
         var unreadMemberNotifications = await context.Notifications.CountAsync(item => item.UserId != null && !item.IsRead);
         var weeklyDigests = await context.MemberPreferences.CountAsync(item => item.DigestFrequency == "Weekly");
+        // SQLite cannot aggregate decimals, so materialize this small approved-only projection.
+        var approvedVolunteerHours = (await context.VolunteerTimeEntries
+            .Where(item => item.Status == "Approved")
+            .Select(item => item.Hours)
+            .ToListAsync()).Sum();
         var averageResolutionHours = resolvedCases.Count == 0 ? 0 : resolvedCases.Average(item => (item.ResolvedAt!.Value - item.CreatedAt).TotalHours);
 
         var metrics = new List<ImpactMetricDto>
@@ -43,11 +50,12 @@ public sealed class ImpactAnalyticsService(ApplicationDbContext context) : IImpa
             new("associations", "Associations autogérées", managedAssociations, null, "associations"),
             new("saved-items", "Contenus enregistrés", savedItems, null, "favoris"),
             new("unread-notifications", "Notifications membres non lues", unreadMemberNotifications, null, "notifications"),
-            new("weekly-digests", "Résumés hebdomadaires actifs", weeklyDigests, null, "membres")
+            new("weekly-digests", "Résumés hebdomadaires actifs", weeklyDigests, null, "membres"),
+            new("volunteer-hours", "Heures de bénévolat confirmées", (double)approvedVolunteerHours, null, "heures")
         };
 
         var periods = new List<ImpactPeriodDto>();
-        for (var offset = 5; offset >= 0; offset--)
+        for (var offset = months - 1; offset >= 0; offset--)
         {
             var start = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(-offset);
             var end = start.AddMonths(1);
@@ -98,7 +106,7 @@ public sealed class ImpactAnalyticsService(ApplicationDbContext context) : IImpa
         var smallCount = rawProvinces.Where(item => item.Count < 3).Sum(item => item.Count);
         if (smallCount > 0) provinceDimensions.Add(Dimension("other", "Autres régions (groupées)", smallCount, denominator));
 
-        return ApiResponse<ImpactDashboardDto>.SuccessResponse(new(now, metrics, periods, funnel, activity, provinceDimensions));
+        return ApiResponse<ImpactDashboardDto>.SuccessResponse(new(now, periodStart, months, metrics, periods, funnel, activity, provinceDimensions));
     }
 
     private static bool ProfileComplete(Member item) => !string.IsNullOrWhiteSpace(item.FirstName) &&

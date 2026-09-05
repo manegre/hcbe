@@ -1008,6 +1008,7 @@ export default {
   'admin.impact.metric.saved-items': 'Contenus enregistrés',
   'admin.impact.metric.unread-notifications': 'Notifications membres non lues',
   'admin.impact.metric.weekly-digests': 'Résumés hebdomadaires actifs',
+  'admin.impact.metric.volunteer-hours': 'Heures de bénévolat confirmées',
   'admin.impact.unit.membres': 'membres',
   'admin.impact.unit.demandes': 'demandes',
   'admin.impact.unit.heures': 'heures',

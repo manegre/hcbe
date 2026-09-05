@@ -20,22 +20,39 @@ export default function ImpactPage() {
   const [data, setData] = useState<ImpactDashboard | null>(null);
   const [error, setError] = useState('');
   const [exporting, setExporting] = useState(false);
-  useEffect(() => { impactApi.get().then((response) => response.data ? setData(response.data) : setError(response.message ?? t('admin.impact.error'))).catch(() => setError(t('admin.impact.error'))); }, [t]);
+  const [months, setMonths] = useState(6);
+  useEffect(() => { setError(''); impactApi.get(months).then((response) => response.data ? setData(response.data) : setError(response.message ?? t('admin.impact.error'))).catch(() => setError(t('admin.impact.error'))); }, [months, t]);
   const max = useMemo(() => Math.max(1, ...(data?.periods.flatMap((item) => [item.newMembers, item.eventRegistrations, item.serviceRequests, item.opportunityApplications]) ?? [1])), [data]);
   const legend = ['newMembers', 'eventRegistrations', 'serviceRequests', 'opportunityApplications'].map((key) => t(`admin.impact.legend.${key}`));
   const exportCsv = async () => {
     setExporting(true); setError('');
     try {
-      const result = await impactApi.exportCsv();
+      const result = await impactApi.exportCsv(months);
       const url = URL.createObjectURL(result.blob); const link = document.createElement('a');
       link.href = url; link.download = result.fileName || 'hcbe-activation.csv'; link.click(); URL.revokeObjectURL(url);
     } catch { setError(fr ? 'Impossible d’exporter le rapport.' : 'Unable to export the report.'); }
     finally { setExporting(false); }
   };
+  const exportPdf = async () => {
+    setExporting(true); setError('');
+    try {
+      const result = await impactApi.exportPdf(months);
+      const url = URL.createObjectURL(result.blob); const link = document.createElement('a');
+      link.href = url; link.download = result.fileName || 'HCBE-rapport-impact.pdf'; link.click(); URL.revokeObjectURL(url);
+    } catch { setError(fr ? 'Impossible de produire le rapport PDF.' : 'Unable to generate the PDF report.'); }
+    finally { setExporting(false); }
+  };
 
   return <div className="space-y-6">
     <AdminPageHeader title={t('admin.impact.title')} subtitle={t('admin.impact.subtitle')} icon="ri-line-chart-line" count={data?.metrics.length} actions={
-      <button type="button" onClick={() => void exportCsv()} disabled={!data || exporting} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-green/20 bg-surface px-4 text-[10px] font-bold uppercase tracking-[.12em] text-green transition hover:border-green disabled:opacity-50"><i className={exporting ? 'ri-loader-4-line animate-spin' : 'ri-download-2-line'} />{fr ? 'Exporter les données' : 'Export data'}</button>
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="sr-only" htmlFor="impact-period">{fr ? 'Période du rapport' : 'Report period'}</label>
+        <select id="impact-period" value={months} onChange={(event) => setMonths(Number(event.target.value))} className="min-h-11 rounded-xl border border-line bg-surface px-3 text-xs font-bold text-green-deep">
+          <option value={3}>{fr ? '3 derniers mois' : 'Last 3 months'}</option><option value={6}>{fr ? '6 derniers mois' : 'Last 6 months'}</option><option value={12}>{fr ? '12 derniers mois' : 'Last 12 months'}</option>
+        </select>
+        <button type="button" onClick={() => void exportCsv()} disabled={!data || exporting} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-green/20 bg-surface px-4 text-[10px] font-bold uppercase tracking-[.12em] text-green transition hover:border-green disabled:opacity-50"><i className="ri-file-excel-2-line" />{fr ? 'Données CSV' : 'CSV data'}</button>
+        <button type="button" onClick={() => void exportPdf()} disabled={!data || exporting} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-gold px-4 text-[10px] font-bold uppercase tracking-[.12em] text-green-deep shadow-sm transition hover:bg-gold/85 disabled:opacity-50"><i className={exporting ? 'ri-loader-4-line animate-spin' : 'ri-file-pdf-2-line'} />{fr ? 'Rapport PDF' : 'PDF report'}</button>
+      </div>
     } />
     {error && <p className="rounded-xl border border-error/20 bg-error/5 p-4 text-error">{error}</p>}
     {!data ? <div className="h-48 animate-pulse rounded-2xl bg-surface" /> : <>
@@ -51,7 +68,7 @@ export default function ImpactPage() {
         <section className="rounded-[24px] border border-line bg-surface p-6 sm:p-7"><p className="text-[9px] font-bold uppercase tracking-[.16em] text-red-link">{fr ? 'Présence nationale' : 'National presence'}</p><h2 className="mb-2 mt-1 font-display text-2xl font-bold text-green-deep">{fr ? 'Répartition par province' : 'Breakdown by province'}</h2><p className="mb-6 text-xs leading-5 text-ink-variant">{fr ? 'Les groupes de moins de trois personnes sont regroupés afin de réduire le risque de réidentification.' : 'Groups with fewer than three people are combined to reduce re-identification risk.'}</p><DimensionList items={data.provinceBreakdown} empty={fr ? 'Aucune province renseignée.' : 'No province provided.'} translate={(item) => item.key === 'other' && !fr ? 'Other regions (grouped)' : item.label} /></section>
       </div>
 
-      <section className="rounded-[24px] border border-line bg-surface p-5 sm:p-7"><div className="flex items-end justify-between"><div><p className="text-[9px] font-bold uppercase tracking-[.16em] text-red-link">{t('admin.impact.sixMonths')}</p><h2 className="mt-1 font-display text-2xl font-bold text-green-deep">{t('admin.impact.activity')}</h2></div><p className="hidden text-xs text-ink-variant sm:block">{t('admin.impact.activitySummary')}</p></div><div className="mt-8 grid grid-cols-6 gap-3">{data.periods.map((period) => <div key={period.period} className="flex min-w-0 flex-col items-center"><div className="flex h-56 w-full items-end justify-center gap-1 border-b border-line px-1">{[period.newMembers, period.eventRegistrations, period.serviceRequests, period.opportunityApplications].map((value, index) => <div key={index} title={`${value}`} className={`w-1/5 min-w-1 rounded-t ${colors[index]}`} style={{ height: `${Math.max(value ? 5 : 0, value / max * 100)}%` }} />)}</div><span className="mt-2 text-[9px] font-bold text-ink-variant">{period.period.slice(5)}</span></div>)}</div><div className="mt-5 flex flex-wrap gap-4 text-xs">{legend.map((label, index) => <span key={label} className="flex items-center gap-2"><span className={`h-2.5 w-2.5 rounded-full ${colors[index]}`} />{label}</span>)}</div></section>
+      <section className="rounded-[24px] border border-line bg-surface p-5 sm:p-7"><div className="flex items-end justify-between"><div><p className="text-[9px] font-bold uppercase tracking-[.16em] text-red-link">{fr ? `${data.periodMonths} derniers mois` : `Last ${data.periodMonths} months`}</p><h2 className="mt-1 font-display text-2xl font-bold text-green-deep">{t('admin.impact.activity')}</h2></div><p className="hidden text-xs text-ink-variant sm:block">{t('admin.impact.activitySummary')}</p></div><div className="mt-8 overflow-x-auto pb-2"><div role="img" aria-label={fr ? `Graphique de l’activité communautaire sur ${data.periodMonths} mois` : `Community activity chart over ${data.periodMonths} months`} className="grid min-w-[42rem] gap-3" style={{ gridTemplateColumns: `repeat(${data.periods.length}, minmax(3.5rem, 1fr))` }}>{data.periods.map((period) => <div key={period.period} aria-label={`${period.period}: ${legend.map((label, index) => `${label} ${[period.newMembers, period.eventRegistrations, period.serviceRequests, period.opportunityApplications][index]}`).join(', ')}`} className="flex min-w-0 flex-col items-center"><div aria-hidden="true" className="flex h-56 w-full items-end justify-center gap-1 border-b border-line px-1">{[period.newMembers, period.eventRegistrations, period.serviceRequests, period.opportunityApplications].map((value, index) => <div key={index} title={`${value}`} className={`w-1/5 min-w-1 rounded-t ${colors[index]}`} style={{ height: `${Math.max(value ? 5 : 0, value / max * 100)}%` }} />)}</div><span className="mt-2 text-[9px] font-bold text-ink-variant">{period.period.slice(5)}</span></div>)}</div></div><div className="mt-5 flex flex-wrap gap-4 text-xs">{legend.map((label, index) => <span key={label} className="flex items-center gap-2"><span aria-hidden="true" className={`h-2.5 w-2.5 rounded-full ${colors[index]}`} />{label}</span>)}</div></section>
     </>}
   </div>;
 }

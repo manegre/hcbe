@@ -83,7 +83,7 @@ export const AdminListPage = ({
               </span>
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-green-deep">{t('admin.list.filters')}</p>
-                <p className="hidden text-xs text-ink-variant/70 sm:block">{t('admin.list.filtersHint')}</p>
+                <p className="hidden text-xs text-ink-variant sm:block">{t('admin.list.filtersHint')}</p>
               </div>
             </div>
           </div>

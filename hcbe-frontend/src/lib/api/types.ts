@@ -592,7 +592,7 @@ export interface ImpactMetric { key: string; label: string; value: number; chang
 export interface ImpactPeriod { period: string; newMembers: number; eventRegistrations: number; serviceRequests: number; opportunityApplications: number; }
 export interface ActivationStage { key: string; label: string; count: number; percentage: number; }
 export interface MemberDimension { key: string; label: string; count: number; percentage: number; }
-export interface ImpactDashboard { generatedAtUtc: string; metrics: ImpactMetric[]; periods: ImpactPeriod[]; activationFunnel: ActivationStage[]; activitySegments: MemberDimension[]; provinceBreakdown: MemberDimension[]; }
+export interface ImpactDashboard { generatedAtUtc: string; periodStartUtc: string; periodMonths: number; metrics: ImpactMetric[]; periods: ImpactPeriod[]; activationFunnel: ActivationStage[]; activitySegments: MemberDimension[]; provinceBreakdown: MemberDimension[]; }
 
 export interface UpdateTeamMemberRequest {
   name?: string;

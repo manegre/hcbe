@@ -107,6 +107,8 @@ jobs:
         run: npm audit --audit-level=high
       - name: Production build
         run: npm run build
+      - name: Enforce performance budgets
+        run: npm run check:budget
       - name: Install browser runtime
         run: npx playwright install --with-deps chromium
       - name: Prepare full-stack test database

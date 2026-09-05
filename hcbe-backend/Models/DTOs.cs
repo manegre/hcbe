@@ -632,6 +632,8 @@ public record ActivationStageDto(string Key, string Label, int Count, double Per
 public record MemberDimensionDto(string Key, string Label, int Count, double Percentage);
 public record ImpactDashboardDto(
     DateTime GeneratedAtUtc,
+    DateTime PeriodStartUtc,
+    int PeriodMonths,
     IReadOnlyList<ImpactMetricDto> Metrics,
     IReadOnlyList<ImpactPeriodDto> Periods,
     IReadOnlyList<ActivationStageDto> ActivationFunnel,

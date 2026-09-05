@@ -1008,6 +1008,7 @@ export default {
   'admin.impact.metric.saved-items': 'Saved content',
   'admin.impact.metric.unread-notifications': 'Unread member notifications',
   'admin.impact.metric.weekly-digests': 'Active weekly digests',
+  'admin.impact.metric.volunteer-hours': 'Confirmed volunteer hours',
   'admin.impact.unit.membres': 'members',
   'admin.impact.unit.demandes': 'requests',
   'admin.impact.unit.heures': 'hours',

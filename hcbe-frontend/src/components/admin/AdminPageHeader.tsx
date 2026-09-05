@@ -23,7 +23,7 @@ export const AdminPageHeader = ({ title, subtitle, icon, count, actions }: Admin
             <i className={`${icon} text-xl`} aria-hidden="true" />
           </span>
           <div className="min-w-0">
-            <p className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.2em] text-ink-variant/65">
+            <p className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.2em] text-ink-variant">
               <span className="h-px w-5 bg-gold" aria-hidden="true" />
               {t('admin.list.workspace')}
             </p>
@@ -38,7 +38,7 @@ export const AdminPageHeader = ({ title, subtitle, icon, count, actions }: Admin
           {typeof count === 'number' && (
             <div className="hidden min-w-[108px] rounded-xl border border-line/55 bg-surface/70 px-4 py-2.5 text-right shadow-[0_8px_20px_rgba(0,59,27,.045)] sm:block">
               <p className="font-display text-[24px] font-bold leading-none tabular-nums text-green-deep">{count}</p>
-              <p className="mt-1 text-[8px] font-bold uppercase tracking-[0.16em] text-ink-variant/65">
+              <p className="mt-1 text-[8px] font-bold uppercase tracking-[0.16em] text-ink-variant">
                 {t('admin.list.records')}
               </p>
             </div>

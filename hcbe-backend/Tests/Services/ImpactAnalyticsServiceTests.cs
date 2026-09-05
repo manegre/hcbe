@@ -31,13 +31,16 @@ public sealed class ImpactAnalyticsServiceTests : IDisposable
         context.EventRegistrations.Add(new EventRegistration { Event = eventEntity, EventId = eventEntity.Id, Member = members[0], MemberId = members[0].Id, ConfirmationCode = "IMPACT", Status = "Confirmed" });
         await context.SaveChangesAsync();
 
-        var result = await new ImpactAnalyticsService(context).GetAsync();
+        var result = await new ImpactAnalyticsService(context).GetAsync(12);
 
         result.Success.Should().BeTrue();
-        result.Data!.ActivationFunnel.Should().Contain(item => item.Key == "profile" && item.Count == 4);
+        result.Data!.PeriodMonths.Should().Be(12);
+        result.Data.Periods.Should().HaveCount(12);
+        result.Data.ActivationFunnel.Should().Contain(item => item.Key == "profile" && item.Count == 4);
         result.Data.ActivationFunnel.Should().Contain(item => item.Key == "first-engagement" && item.Count == 1);
         result.Data.ProvinceBreakdown.Should().Contain(item => item.Label == "Québec" && item.Count == 3);
         result.Data.ProvinceBreakdown.Should().Contain(item => item.Key == "other" && item.Count == 1);
+        ReceiptPdfRenderer.RenderImpactReport(result.Data).Should().StartWith("%PDF-"u8.ToArray());
     }
 
     public void Dispose() => context.Dispose();

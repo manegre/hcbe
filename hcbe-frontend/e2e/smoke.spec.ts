@@ -157,7 +157,10 @@ test('administrator can authenticate and reach the protected dashboard', async (
   await expect(page.locator('main')).toBeVisible();
   await page.goto('/admin/impact');
   await expect(page.getByRole('heading', { name: /du compte à la première participation|from account to first participation/i })).toBeVisible();
-  await expect(page.getByRole('button', { name: /exporter les données|export data/i })).toBeEnabled();
+  await expect(page.getByRole('button', { name: /rapport pdf|pdf report/i })).toBeEnabled();
+  await page.locator('#impact-period').selectOption('12');
+  await expect(page.locator('#impact-period')).toHaveValue('12');
+  await expect(page.getByRole('img', { name: /12 mois|12 months/i })).toBeVisible();
 
   await page.goto('/admin/members');
   await expect(page.getByRole('heading', { name: /registre fiable et portable|reliable, portable registry/i })).toBeVisible();
@@ -219,6 +222,31 @@ test('administrator can authenticate and reach the protected dashboard', async (
     await expect(page.locator('body')).not.toHaveText(/unexpected application error/i);
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
   }
+});
+
+test('authenticated administration routes meet automated WCAG 2.2 AA checks', async ({ page }) => {
+  test.setTimeout(120_000);
+  test.skip(!process.env.E2E_ADMIN_EMAIL || !process.env.E2E_ADMIN_PASSWORD, 'Admin E2E credentials are not configured');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/admin/login', { waitUntil: 'domcontentloaded' });
+  await page.locator('input[name="email"]').fill(process.env.E2E_ADMIN_EMAIL!);
+  await page.locator('input[name="password"]').fill(process.env.E2E_ADMIN_PASSWORD!);
+  await page.locator('button[type="submit"]').click();
+  await expect(page).toHaveURL(/\/admin\/dashboard$/);
+
+  const violations: string[] = [];
+  for (const route of ['/admin/dashboard', '/admin/impact', '/admin/members', '/admin/security']) {
+    await page.goto(route, { waitUntil: 'domcontentloaded' });
+    await page.locator('main').first().waitFor();
+    const results = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+      .exclude('[aria-hidden="true"]')
+      .analyze();
+    for (const violation of results.violations) {
+      for (const node of violation.nodes) violations.push(`${route}: ${violation.id}: ${node.target.join(' > ')} — ${node.failureSummary?.replace(/\s+/g, ' ')}`);
+    }
+  }
+  expect(violations).toEqual([]);
 });
 
 test('every administrator workspace remains usable on mobile and tablet in dark mode', async ({ page }) => {
