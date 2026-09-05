@@ -37,10 +37,11 @@ const ServicesPage = () => {
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
-      <ServicesHero />
-      <ServiceNav />
+      <main>
+        <ServicesHero />
+        <ServiceNav />
 
-      <section className="bg-background pb-24 pt-12">
+        <section className="bg-background pb-24 pt-12">
         <div className="container-page">
           <SectionHeading
             title={t('public.services.page.section.title')}
@@ -58,7 +59,7 @@ const ServicesPage = () => {
                 <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-green-deep text-2xl text-gold shadow-[0_8px_20px_rgba(0,59,27,.15)]">
                   <i className={destination.icon} aria-hidden="true" />
                 </span>
-                <p className="mt-7 text-[10px] font-bold uppercase tracking-[0.16em] text-green/55">Service {destination.number}</p>
+                <p className="mt-7 text-[10px] font-bold uppercase tracking-[0.16em] text-green-deep">Service {destination.number}</p>
                 <h3 className="mt-2 font-display text-[25px] font-bold leading-tight text-green-deep">{t(destination.titleKey)}</h3>
                 <p className="mt-4 text-[15px] leading-6 text-ink-variant">{t(destination.descriptionKey)}</p>
                 <span className="mt-auto flex items-center gap-2 pt-7 text-[11px] font-bold uppercase tracking-[0.12em] text-red-link">
@@ -70,7 +71,8 @@ const ServicesPage = () => {
             ))}
           </div>
         </div>
-      </section>
+        </section>
+      </main>
 
       <Footer />
     </div>

@@ -9,6 +9,8 @@ import BackToTopButton from "./components/feature/BackToTopButton";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import CookieConsent from "./components/feature/CookieConsent";
 import { CmsContentProvider } from "./contexts/CmsContentContext";
+import AccessibilityNavigation from "./components/AccessibilityNavigation";
+import PwaExperience from "./components/feature/PwaExperience";
 
 
 function App() {
@@ -19,9 +21,11 @@ function App() {
         <AuthProvider>
           <BrowserRouter basename={__BASE_PATH__}>
             <CmsContentProvider>
+              <AccessibilityNavigation />
               <ScrollToTop />
               <AppRoutes />
               <BackToTopButton />
+              <PwaExperience />
               <CookieConsent />
             </CmsContentProvider>
           </BrowserRouter>

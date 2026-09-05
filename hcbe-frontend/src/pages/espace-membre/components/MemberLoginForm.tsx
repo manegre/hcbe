@@ -369,7 +369,7 @@ const MemberLoginForm = ({ mode = 'login', embedded = false }: MemberLoginFormPr
       )}
 
       {!mfaChallenge && !signupMode && import.meta.env.VITE_GOOGLE_CLIENT_ID && (
-        <div className="my-5 flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.14em] text-ink-variant/65">
+        <div className="my-5 flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.14em] text-ink-variant">
           <span className="h-px flex-1 bg-line" aria-hidden="true" />
           <span>{t('public.member.login.orEmail')}</span>
           <span className="h-px flex-1 bg-line" aria-hidden="true" />

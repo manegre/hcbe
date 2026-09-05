@@ -14,24 +14,26 @@ const HomePage = () => {
   return (
     <div className="min-h-screen bg-background text-ink">
       <Navbar />
-      <HeroSection />
-      <PartnersMarquee />
-      <MissionVisionSection />
-      <Reveal>
-        <ZonesSection />
-      </Reveal>
-      <Reveal>
-        <UpcomingEventsSection />
-      </Reveal>
-      <Reveal>
-        <RecentAnnouncementsSection />
-      </Reveal>
-      <Reveal>
-        <DocumentsSection />
-      </Reveal>
-      <Reveal>
-        <CTASection />
-      </Reveal>
+      <main>
+        <HeroSection />
+        <PartnersMarquee />
+        <MissionVisionSection />
+        <Reveal>
+          <ZonesSection />
+        </Reveal>
+        <Reveal>
+          <UpcomingEventsSection />
+        </Reveal>
+        <Reveal>
+          <RecentAnnouncementsSection />
+        </Reveal>
+        <Reveal>
+          <DocumentsSection />
+        </Reveal>
+        <Reveal>
+          <CTASection />
+        </Reveal>
+      </main>
       <Footer />
     </div>
   );

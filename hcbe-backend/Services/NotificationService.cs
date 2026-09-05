@@ -8,10 +8,12 @@ namespace HcbeApi.Services;
 public class NotificationService : INotificationService
 {
     private readonly ApplicationDbContext _context;
+    private readonly IAppPushService? _appPush;
 
-    public NotificationService(ApplicationDbContext context)
+    public NotificationService(ApplicationDbContext context, IAppPushService? appPush = null)
     {
         _context = context;
+        _appPush = appPush;
     }
 
     public async Task<ApiResponse<List<NotificationDto>>> GetNotificationsAsync(Guid? userId = null, int limit = 5)
@@ -180,6 +182,8 @@ public class NotificationService : INotificationService
             UserId = userId
         });
         await _context.SaveChangesAsync();
+        if (_appPush is not null)
+            await _appPush.SendToUserAsync(userId, title, message, link);
     }
 
     private static NotificationDto MapToDto(Notification notification)

@@ -1,13 +1,27 @@
 {
+  "id": "/",
   "name": "HCBE Canada — Espace communautaire",
   "short_name": "HCBE Canada",
   "description": "Services, événements et communauté des Burkinabè du Canada.",
-  "start_url": "/",
+  "start_url": "/?source=pwa",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#f6f7f3",
   "theme_color": "#0d4524",
   "lang": "fr-CA",
+  "dir": "ltr",
+  "categories": ["community", "social", "productivity"],
   "icons": [
-    { "src": "/hcbe-app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+    { "src": "/hcbe-app-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/hcbe-app-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/hcbe-app-icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/hcbe-app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/hcbe-app-icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Événements / Events", "short_name": "Événements", "url": "/actualites/evenements?source=pwa", "icons": [{ "src": "/hcbe-app-icon-192.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "Services", "short_name": "Services", "url": "/services?source=pwa", "icons": [{ "src": "/hcbe-app-icon-192.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "Espace membre / Member portal", "short_name": "Membres", "url": "/espace-membre?source=pwa", "icons": [{ "src": "/hcbe-app-icon-192.png", "sizes": "192x192", "type": "image/png" }] }
   ]
 }

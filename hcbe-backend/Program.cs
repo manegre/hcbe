@@ -22,6 +22,13 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.AspNetCore.RateLimiting;
 
+if (args.Length > 0 && args[0] == "GenerateVapidKeys")
+{
+    var keys = WebPush.VapidHelper.GenerateVapidKeys();
+    Console.WriteLine(JsonSerializer.Serialize(new { keys.PublicKey, keys.PrivateKey }));
+    return;
+}
+
 if (args.Length > 0 && args[0] == "MigrateDatabase")
 {
     var migrationConfiguration = new ConfigurationBuilder()
@@ -361,6 +368,8 @@ builder.Services.AddScoped<IFooterService, FooterService>();
 builder.Services.AddScoped<ICmsContentService, CmsContentService>();
 builder.Services.AddSingleton<ICmsContentNotifier, CmsContentNotifier>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.Configure<WebPushOptions>(builder.Configuration.GetSection(WebPushOptions.SectionName));
+builder.Services.AddScoped<IAppPushService, AppPushService>();
 builder.Services.AddScoped<ITeamMemberService, TeamMemberService>();
 builder.Services.AddScoped<IMembershipApplicationService, MembershipApplicationService>();
 builder.Services.AddScoped<INewsletterService, NewsletterService>();
@@ -1308,6 +1317,7 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
 // Map all API endpoints
 app.MapAuthEndpoints();
 app.MapSecurityEndpoints();
+app.MapPushEndpoints();
 app.MapMemberEndpoints();
 app.MapMembershipApplicationEndpoints();
 app.MapNewsletterEndpoints();
@@ -1697,6 +1707,15 @@ static void EnsureSqliteSecuritySchema(ApplicationDbContext context)
         Notes TEXT, ReviewedAtUtc TEXT NOT NULL, NextReviewAtUtc TEXT NOT NULL
     )");
     context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_AdminAccessReviews_ReviewedUserId_NextReviewAtUtc ON AdminAccessReviews(ReviewedUserId, NextReviewAtUtc)");
+
+    context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS WebPushSubscriptions (
+        Id TEXT PRIMARY KEY, UserId TEXT NOT NULL, Endpoint TEXT NOT NULL, EndpointHash TEXT NOT NULL,
+        P256dh TEXT NOT NULL, Auth TEXT NOT NULL, DeviceName TEXT NOT NULL,
+        CreatedAtUtc TEXT NOT NULL, LastUsedAtUtc TEXT NOT NULL,
+        FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE CASCADE
+    )");
+    context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_WebPushSubscriptions_EndpointHash ON WebPushSubscriptions(EndpointHash)");
+    context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_WebPushSubscriptions_UserId_LastUsedAtUtc ON WebPushSubscriptions(UserId, LastUsedAtUtc)");
 
     context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS AuditLogs (
         Id TEXT PRIMARY KEY,

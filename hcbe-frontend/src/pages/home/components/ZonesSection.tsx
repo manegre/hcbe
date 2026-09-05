@@ -1,8 +1,8 @@
 import { useTranslation } from 'react-i18next';
-import zone1DelegatePhoto from '../../../assets/delegates/zone1-delegate.png';
-import zone1DeputyPhoto from '../../../assets/delegates/zone1-deputy.png';
-import zone2DelegatePhoto from '../../../assets/delegates/zone2-delegate.png';
-import zone2DeputyPhoto from '../../../assets/delegates/zone2-deputy.png';
+import zone1DelegatePhoto from '../../../assets/delegates/zone1-delegate.webp';
+import zone1DeputyPhoto from '../../../assets/delegates/zone1-deputy.webp';
+import zone2DelegatePhoto from '../../../assets/delegates/zone2-delegate.webp';
+import zone2DeputyPhoto from '../../../assets/delegates/zone2-deputy.webp';
 import { ArrowLink } from '../../../components/ui';
 import { useCmsContent } from '../../../contexts/CmsContentContext';
 import { resolveMediaUrl } from '../../../lib/api/media-url';
@@ -136,7 +136,7 @@ const ZonesSection = () => {
                       <div className="relative flex items-center gap-5">
                         <div className="relative shrink-0">
                           <div className="border border-green/15 bg-background p-1.5">
-                            <img src={person.photo} alt="" className="h-28 w-24 object-cover object-top grayscale-[6%] transition-all duration-300 group-hover:scale-[1.025] group-hover:grayscale-0 lg:h-32 lg:w-28" />
+                            <img src={person.photo} alt="" width="112" height="128" loading="lazy" decoding="async" className="h-28 w-24 object-cover object-top grayscale-[6%] transition-all duration-300 group-hover:scale-[1.025] group-hover:grayscale-0 lg:h-32 lg:w-28" />
                           </div>
                         {isLead && (
                             <span className="absolute -bottom-2 -right-2 flex h-8 w-8 items-center justify-center rounded-full border-[3px] border-surface-container bg-gold text-xs text-green-deep shadow-[0_5px_14px_rgba(0,59,27,.18)]" aria-hidden="true">
@@ -145,11 +145,11 @@ const ZonesSection = () => {
                         )}
                         </div>
                         <div className="min-w-0 py-2">
-                          <span className={`inline-flex h-7 items-center px-2.5 text-[8px] font-bold uppercase tracking-[0.14em] ${isLead ? 'bg-gold text-green-deep' : 'bg-red text-white'}`}>
+                          <span className={`inline-flex h-7 items-center px-2.5 text-[8px] font-bold uppercase tracking-[0.14em] ${isLead ? 'bg-gold text-green-deep' : 'bg-red-link text-white'}`}>
                             {role}
                           </span>
                           <p className="mt-4 font-display text-[22px] font-bold leading-[1.08] text-green sm:text-[24px]">{person.name}</p>
-                          <p className="mt-3 text-[9px] font-bold uppercase tracking-[0.16em] text-green/45">HCBE Canada · {zone.name}</p>
+                          <p className="mt-3 text-[9px] font-bold uppercase tracking-[0.16em] text-ink-variant">HCBE Canada · {zone.name}</p>
                         </div>
                       </div>
                     </div>
@@ -164,7 +164,7 @@ const ZonesSection = () => {
                   </div>
 
                   <div className="md:border-l md:border-line md:pl-8">
-                    <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-green/55">{t('public.home.zones.regions')}</p>
+                    <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-green-deep">{t('public.home.zones.regions')}</p>
                     <ul className="mt-4 grid gap-x-5 gap-y-2.5 sm:grid-cols-2" aria-label={t('public.home.zones.regions')}>
                       {zone.regions.map((region, regionIndex) => (
                         <li key={region} className="flex items-start gap-2.5 text-[13px] font-medium leading-5 text-ink-variant">

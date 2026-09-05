@@ -5,7 +5,7 @@ type Variant = 'primary' | 'secondary' | 'tertiary' | 'destructive';
 
 const variants: Record<Variant, string> = {
   primary:
-    'bg-gold text-green hover:bg-gold-dim border border-transparent px-6 py-3 focus-visible:outline-green',
+    'bg-gold text-green-deep hover:bg-gold-dim border border-transparent px-6 py-3 focus-visible:outline-green',
   secondary:
     'bg-transparent text-green border-2 border-green hover:bg-green hover:text-white px-6 py-3 focus-visible:outline-green',
   tertiary: 'bg-transparent text-red-link hover:text-green border-0 focus-visible:outline-red-link',

@@ -99,6 +99,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<MfaChallenge> MfaChallenges { get; set; }
     public DbSet<SecurityIncident> SecurityIncidents { get; set; }
     public DbSet<AdminAccessReview> AdminAccessReviews { get; set; }
+    public DbSet<WebPushSubscription> WebPushSubscriptions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -137,6 +138,15 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<MemberPreference>().Property(item => item.PreferredLanguage).HasMaxLength(5);
         modelBuilder.Entity<MemberPreference>().Property(item => item.TimeZone).HasMaxLength(100);
         modelBuilder.Entity<MemberPreference>().Property(item => item.DigestFrequency).HasMaxLength(20).HasDefaultValue("Off");
+
+        modelBuilder.Entity<WebPushSubscription>()
+            .HasOne(item => item.User).WithMany().HasForeignKey(item => item.UserId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<WebPushSubscription>().HasIndex(item => item.EndpointHash).IsUnique();
+        modelBuilder.Entity<WebPushSubscription>().HasIndex(item => new { item.UserId, item.LastUsedAtUtc });
+        modelBuilder.Entity<WebPushSubscription>().Property(item => item.EndpointHash).HasMaxLength(64);
+        modelBuilder.Entity<WebPushSubscription>().Property(item => item.P256dh).HasMaxLength(512);
+        modelBuilder.Entity<WebPushSubscription>().Property(item => item.Auth).HasMaxLength(256);
+        modelBuilder.Entity<WebPushSubscription>().Property(item => item.DeviceName).HasMaxLength(120);
 
         modelBuilder.Entity<SavedMemberItem>()
             .HasOne(item => item.User).WithMany().HasForeignKey(item => item.UserId).OnDelete(DeleteBehavior.Cascade);
@@ -743,7 +753,7 @@ public class ApplicationDbContext : DbContext
     {
         ChangeTracker.DetectChanges();
         var changedEntries = ChangeTracker.Entries()
-            .Where(entry => entry.Entity is not AuditLog and not RefreshToken and not MfaChallenge and not EmailOutboxMessage &&
+            .Where(entry => entry.Entity is not AuditLog and not RefreshToken and not MfaChallenge and not EmailOutboxMessage and not WebPushSubscription &&
                 entry.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
             .ToList();
         if (changedEntries.Count == 0) return;

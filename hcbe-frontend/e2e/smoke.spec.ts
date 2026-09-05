@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 
 test('public home page renders the application shell', async ({ page }) => {
   await page.goto('/');
@@ -6,6 +7,53 @@ test('public home page renders the application shell', async ({ page }) => {
   await expect(page).toHaveTitle(/HCBE Canada/i);
   await expect(page.locator('#root')).toBeVisible();
   await expect(page.locator('body')).not.toHaveText(/unexpected application error/i);
+});
+
+test('PWA manifest, offline fallback and service worker are production-ready', async ({ page, request }) => {
+  const manifestResponse = await request.get('/manifest.webmanifest');
+  expect(manifestResponse.ok()).toBeTruthy();
+  const manifest = await manifestResponse.json();
+  expect(manifest.display).toBe('standalone');
+  expect(manifest.icons).toEqual(expect.arrayContaining([
+    expect.objectContaining({ sizes: '192x192', type: 'image/png' }),
+    expect.objectContaining({ sizes: '512x512', type: 'image/png' }),
+    expect.objectContaining({ sizes: '512x512', type: 'image/png', purpose: 'maskable' }),
+  ]));
+  expect(manifest.shortcuts.length).toBeGreaterThanOrEqual(3);
+  expect((await request.get('/offline.html')).ok()).toBeTruthy();
+  expect(await (await request.get('/sw.js')).text()).toContain("addEventListener('push'");
+  await page.goto('/');
+  await expect.poll(() => page.evaluate(() => navigator.serviceWorker.getRegistration().then(Boolean))).toBeTruthy();
+});
+
+test('representative public routes meet automated WCAG 2.2 AA checks', async ({ page }) => {
+  test.setTimeout(90_000);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const violations: string[] = [];
+  for (const route of ['/', '/services', '/actualites/evenements', '/contact', '/espace-membre', '/admin/login']) {
+    await page.goto(route);
+    await page.locator('main').first().waitFor();
+    const results = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+      .exclude('[aria-hidden="true"]')
+      .analyze();
+    for (const violation of results.violations) {
+      for (const node of violation.nodes) {
+        violations.push(`${route}: ${violation.id}: ${node.target.join(' > ')} — ${node.failureSummary?.replace(/\s+/g, ' ')}`);
+      }
+    }
+  }
+  expect(violations).toEqual([]);
+});
+
+test('keyboard users can skip repeated navigation', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('main#main-content').waitFor();
+  await page.keyboard.press('Tab');
+  const skip = page.getByRole('link', { name: /aller au contenu principal|skip to main content/i });
+  await expect(skip).toBeFocused();
+  await skip.press('Enter');
+  await expect(page.locator('main#main-content')).toBeFocused();
 });
 
 test('public services and events pages load against the real API', async ({ page, request }) => {

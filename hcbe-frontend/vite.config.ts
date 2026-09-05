@@ -69,6 +69,17 @@ export default defineConfig({
   build: {
     sourcemap: true,
     outDir: "out",
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return;
+          if (id.includes('react') || id.includes('scheduler')) return 'vendor-react';
+          if (id.includes('i18next')) return 'vendor-i18n';
+          if (id.includes('@microsoft/signalr')) return 'vendor-realtime';
+          if (id.includes('qrcode')) return 'vendor-qrcode';
+        },
+      },
+    },
   },
   resolve: {
     alias: {

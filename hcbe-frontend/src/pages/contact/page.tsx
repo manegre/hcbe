@@ -113,7 +113,7 @@ const ContactPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-
+      <main>
       <PageHeader
         variant="hero"
         title={t('public.contact.hero.title')}
@@ -470,6 +470,7 @@ const ContactPage = () => {
         </div>
       </section>
 
+      </main>
       <Footer />
     </div>
   );

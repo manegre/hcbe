@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Button, Field, inputClasses } from '../../../components/ui';
 import { memberAccountApi } from '../../../lib/api/member-account';
 import type { MemberOnboarding, UpdateMemberPreferenceRequest } from '../../../lib/api/types';
-import { setAppNotificationsEnabled } from '../../../lib/pwa/notifications';
+import { disablePushNotifications, enablePushNotifications, sendTestPushNotification, setAppNotificationsEnabled, supportsPushNotifications } from '../../../lib/pwa/notifications';
 import MemberPrivacyPanel from './MemberPrivacyPanel';
 
 const defaults: UpdateMemberPreferenceRequest = {
@@ -49,6 +49,26 @@ export default function MemberPreferencesPanel() {
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
     await persist(form);
+  };
+
+  const changeOption = async (key: keyof UpdateMemberPreferenceRequest, checked: boolean) => {
+    if (key !== 'pushNotifications') { setForm({ ...form, [key]: checked }); return; }
+    setBusy(true); setNotice(null);
+    try {
+      if (checked) await enablePushNotifications(); else await disablePushNotifications();
+      setForm((current) => ({ ...current, pushNotifications: checked }));
+      setNotice(checked ? (fr ? 'Cet appareil est prêt à recevoir les notifications.' : 'This device is ready to receive notifications.') : (fr ? 'Les notifications sont désactivées sur cet appareil.' : 'Notifications are disabled on this device.'));
+    } catch {
+      setForm((current) => ({ ...current, pushNotifications: false }));
+      setNotice(fr ? 'Les notifications ne sont pas disponibles ou leur autorisation a été refusée.' : 'Notifications are unavailable or permission was denied.');
+    } finally { setBusy(false); }
+  };
+
+  const testPush = async () => {
+    setBusy(true); setNotice(null);
+    try { await sendTestPushNotification(fr ? 'fr' : 'en'); setNotice(fr ? 'Notification de test envoyée.' : 'Test notification sent.'); }
+    catch { setNotice(fr ? 'Impossible d’envoyer la notification de test.' : 'Unable to send the test notification.'); }
+    finally { setBusy(false); }
   };
 
   const withdrawOptional = async () => {
@@ -100,9 +120,9 @@ export default function MemberPreferencesPanel() {
               <select className={inputClasses} value={form.digestFrequency} onChange={(event) => setForm({ ...form, digestFrequency: event.target.value as 'Off' | 'Weekly' })}><option value="Off">{fr ? 'Désactivé' : 'Off'}</option><option value="Weekly">{fr ? 'Chaque semaine' : 'Weekly'}</option></select>
             </div>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">{options.map(([key, label, icon]) => <label key={key} className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-4 ${form[key] ? 'border-green/25 bg-green/[.045]' : 'border-line'}`}><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-green/8 text-lg text-green"><i className={icon} /></span><span className="flex-1 text-sm font-semibold text-green-deep">{label}</span><input type="checkbox" className="h-5 w-5 accent-green" checked={Boolean(form[key])} onChange={async (event) => { let checked = event.target.checked; if (key === 'pushNotifications' && checked && 'Notification' in window) checked = (await Notification.requestPermission()) === 'granted'; setForm({ ...form, [key]: checked }); }} /></label>)}</div>
+          <div className="grid gap-3 sm:grid-cols-2">{options.map(([key, label, icon]) => <label key={key} className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-4 ${form[key] ? 'border-green/25 bg-green/[.045]' : 'border-line'}`}><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-green/8 text-lg text-green"><i className={icon} /></span><span className="flex-1 text-sm font-semibold text-green-deep">{label}</span><input type="checkbox" className="h-5 w-5 accent-green" checked={Boolean(form[key])} disabled={busy || (key === 'pushNotifications' && !supportsPushNotifications())} onChange={(event) => void changeOption(key, event.target.checked)} /></label>)}</div>
           {notice && <p className="rounded-xl border border-green/15 bg-green/5 px-4 py-3 text-sm text-green">{notice}</p>}
-          <div className="flex justify-end"><Button type="submit" variant="secondary" disabled={busy}><i className={busy ? 'ri-loader-4-line animate-spin' : 'ri-save-line'} />{fr ? 'Enregistrer mes préférences' : 'Save my preferences'}</Button></div>
+          <div className="flex flex-wrap justify-end gap-3">{form.pushNotifications && <Button type="button" variant="tertiary" disabled={busy} onClick={testPush}><i className="ri-notification-badge-line" />{fr ? 'Tester sur cet appareil' : 'Test on this device'}</Button>}<Button type="submit" variant="secondary" disabled={busy}><i className={busy ? 'ri-loader-4-line animate-spin' : 'ri-save-line'} />{fr ? 'Enregistrer mes préférences' : 'Save my preferences'}</Button></div>
         </div>
       </form>
 

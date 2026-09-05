@@ -117,7 +117,7 @@ export const AdminLoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-surface-container lg:grid lg:grid-cols-[minmax(0,1.08fr)_minmax(480px,0.92fr)]">
+    <main className="min-h-screen bg-surface-container lg:grid lg:grid-cols-[minmax(0,1.08fr)_minmax(480px,0.92fr)]">
       <section className="public-grid-pattern relative flex min-h-[460px] flex-col overflow-hidden bg-green-deep px-5 py-7 text-white sm:px-10 sm:py-10 lg:min-h-screen lg:px-14 lg:py-12 xl:px-20">
         <div className="pointer-events-none absolute -left-24 bottom-[-160px] h-[420px] w-[420px] rounded-full border-[72px] border-white/[0.035]" aria-hidden="true" />
         <div className="pointer-events-none absolute -right-20 top-24 h-56 w-56 rounded-full border-[42px] border-gold/[0.055]" aria-hidden="true" />
@@ -245,7 +245,7 @@ export const AdminLoginPage = () => {
                 />
 
                 {import.meta.env.VITE_GOOGLE_CLIENT_ID && (
-                  <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.14em] text-ink-variant/65">
+                  <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.14em] text-ink-variant">
                     <span className="h-px flex-1 bg-line" aria-hidden="true" />
                     <span>{t('admin.login.orEmail')}</span>
                     <span className="h-px flex-1 bg-line" aria-hidden="true" />
@@ -324,6 +324,6 @@ export const AdminLoginPage = () => {
           </Link>
         </div>
       </section>
-    </div>
+    </main>
   );
 };
