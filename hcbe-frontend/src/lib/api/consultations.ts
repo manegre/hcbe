@@ -4,6 +4,8 @@ import type {
   Consultation,
   CreateConsultationRequest,
   UpdateConsultationRequest,
+  ConsultationAuditEvent,
+  ConsultationComment,
 } from './types';
 
 export const consultationsApi = {
@@ -30,4 +32,16 @@ export const consultationsApi = {
 
   toggleConsultationStatus: (id: string): Promise<ApiResponse<boolean>> =>
     apiClient.post<boolean>(`/api/consultations/${id}/toggle-status`, {}),
+
+  vote: (id: string, optionId: string): Promise<ApiResponse<Consultation>> =>
+    apiClient.post<Consultation>(`/api/consultations/${id}/vote`, { optionId }),
+
+  comment: (id: string, body: string): Promise<ApiResponse<ConsultationComment>> =>
+    apiClient.post<ConsultationComment>(`/api/consultations/${id}/comments`, { body }),
+
+  publishResults: (id: string, publish: boolean): Promise<ApiResponse<Consultation>> =>
+    apiClient.put<Consultation>(`/api/consultations/${id}/results`, { publish }),
+
+  getAudit: (id: string): Promise<ApiResponse<ConsultationAuditEvent[]>> =>
+    apiClient.get<ConsultationAuditEvent[]>(`/api/consultations/admin/${id}/audit`),
 };

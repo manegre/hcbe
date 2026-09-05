@@ -856,7 +856,36 @@ public record ConsultationDto(
     string? TitleEn = null,
     string? DescriptionEn = null,
     string? ActionLabelEn = null,
-    string? SecondaryActionLabelEn = null);
+    string? SecondaryActionLabelEn = null,
+    string GovernanceType = "Information",
+    DateTime? OpensAtUtc = null,
+    DateTime? ClosesAtUtc = null,
+    DateTime? CommentClosesAtUtc = null,
+    string VotingMode = "Named",
+    string EligibilityRule = "ActiveMembers",
+    int QuorumPercentage = 0,
+    int MinimumParticipation = 0,
+    bool AllowComments = false,
+    DateTime? ResultsPublishedAtUtc = null,
+    List<ConsultationOptionDto>? Options = null,
+    List<ConsultationCommentDto>? Comments = null,
+    ConsultationGovernanceSummaryDto? Governance = null,
+    Guid? SelectedOptionId = null);
+
+public record ConsultationOptionDto(Guid Id, string Label, string? LabelEn, int DisplayOrder);
+public record ConsultationCommentDto(Guid Id, string MemberName, string Body, DateTime CreatedAtUtc);
+public record ConsultationResultDto(Guid OptionId, string Label, string? LabelEn, int VoteCount, double Percentage);
+public record ConsultationGovernanceSummaryDto(
+    string Status, bool IsEligible, bool HasParticipated, bool CanVote, bool CanComment,
+    int EligibleCount, int ParticipantCount, int RequiredParticipation, bool QuorumReached,
+    bool ResultsPublished, List<ConsultationResultDto> Results);
+public record ConsultationAuditEventDto(Guid Id, string Action, string? Details, string? Actor, DateTime CreatedAtUtc);
+public record ConsultationOptionRequest(
+    [Required] [StringLength(300, MinimumLength = 1)] string Label,
+    [StringLength(300)] string? LabelEn);
+public record CastConsultationVoteRequest(Guid OptionId);
+public record AddConsultationCommentRequest([Required] [StringLength(3000, MinimumLength = 3)] string Body);
+public record PublishConsultationResultsRequest(bool Publish);
 
 public record CreateConsultationRequest(
     [Required] string Title,
@@ -873,7 +902,17 @@ public record CreateConsultationRequest(
     string? TitleEn = null,
     string? DescriptionEn = null,
     string? ActionLabelEn = null,
-    string? SecondaryActionLabelEn = null);
+    string? SecondaryActionLabelEn = null,
+    string GovernanceType = "Information",
+    DateTime? OpensAtUtc = null,
+    DateTime? ClosesAtUtc = null,
+    DateTime? CommentClosesAtUtc = null,
+    string VotingMode = "Named",
+    string EligibilityRule = "ActiveMembers",
+    int QuorumPercentage = 0,
+    int MinimumParticipation = 0,
+    bool AllowComments = false,
+    List<ConsultationOptionRequest>? Options = null);
 
 public record UpdateConsultationRequest(
     string? Title,
@@ -890,7 +929,17 @@ public record UpdateConsultationRequest(
     string? TitleEn = null,
     string? DescriptionEn = null,
     string? ActionLabelEn = null,
-    string? SecondaryActionLabelEn = null);
+    string? SecondaryActionLabelEn = null,
+    string? GovernanceType = null,
+    DateTime? OpensAtUtc = null,
+    DateTime? ClosesAtUtc = null,
+    DateTime? CommentClosesAtUtc = null,
+    string? VotingMode = null,
+    string? EligibilityRule = null,
+    int? QuorumPercentage = null,
+    int? MinimumParticipation = null,
+    bool? AllowComments = null,
+    List<ConsultationOptionRequest>? Options = null);
 
 // Newsletter DTOs
 public record NewsletterSubscriptionDto(

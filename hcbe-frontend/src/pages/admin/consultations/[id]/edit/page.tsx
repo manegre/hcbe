@@ -14,6 +14,7 @@ import {
   CONSULTATION_ICON_OPTIONS,
   CONSULTATION_LAYOUT_OPTIONS,
 } from '../../consultation-form-utils';
+import GovernanceFields, { normalizeGovernanceDates } from '../../GovernanceFields';
 
 const ConsultationEditPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -47,6 +48,13 @@ const ConsultationEditPage: React.FC = () => {
     accentColor: 'emerald',
     displayOrder: 0,
     isActive: true,
+    governanceType: 'Information',
+    votingMode: 'Named',
+    eligibilityRule: 'ActiveMembers',
+    quorumPercentage: 0,
+    minimumParticipation: 0,
+    allowComments: false,
+    options: [],
   });
 
   const backPath = `/admin/consultations/${id}`;
@@ -76,6 +84,16 @@ const ConsultationEditPage: React.FC = () => {
             accentColor: item.accentColor,
             displayOrder: item.displayOrder,
             isActive: item.isActive,
+            governanceType: item.governanceType,
+            opensAtUtc: item.opensAtUtc,
+            closesAtUtc: item.closesAtUtc,
+            commentClosesAtUtc: item.commentClosesAtUtc,
+            votingMode: item.votingMode,
+            eligibilityRule: item.eligibilityRule,
+            quorumPercentage: item.quorumPercentage,
+            minimumParticipation: item.minimumParticipation,
+            allowComments: item.allowComments,
+            options: item.options.map(option => ({ label: option.label, labelEn: option.labelEn })),
           });
         } else {
           setError(response.message || t('admin.consultations.errorLoad'));
@@ -114,7 +132,7 @@ const ConsultationEditPage: React.FC = () => {
     setError(null);
 
     try {
-      const response = await consultationsApi.updateConsultation(id, formData);
+      const response = await consultationsApi.updateConsultation(id, normalizeGovernanceDates(formData));
       if (response.success && response.data) {
         navigate(`/admin/consultations/${id}`);
       } else {
@@ -372,6 +390,10 @@ const ConsultationEditPage: React.FC = () => {
                 </label>
               </div>
             </div>
+            <GovernanceFields
+              value={formData}
+              onChange={(field, value) => setFormData(previous => ({ ...previous, [field]: value }))}
+            />
           </div>
         }
       />

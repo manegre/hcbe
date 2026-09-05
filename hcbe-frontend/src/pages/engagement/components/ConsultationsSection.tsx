@@ -65,6 +65,10 @@ const ConsultationsSection = () => {
 
   const featured = consultations.find((item) => item.layoutType === 'featured');
   const cards = consultations.filter((item) => item.layoutType === 'card');
+  const participationUrl = (item: Consultation) => item.governanceType === 'Information'
+    ? (item.actionUrl || `/contact?type=consultation-response&referenceId=${encodeURIComponent(item.id)}&label=${encodeURIComponent(localized(item.title, item.titleEn, i18n.language))}`)
+    : `/engagement/consultations/${item.id}`;
+  const statusLabel = (item: Consultation) => t(`public.engagement.consultations.detail.statusValue.${item.governance?.status || (item.isActive ? 'Open' : 'Draft')}`);
 
   return (
     <section className="bg-surface-container py-12 md:py-16">
@@ -113,9 +117,7 @@ const ConsultationsSection = () => {
               <StatusChip
                 status={featured.isActive ? 'approved' : 'past'}
                 label={
-                  featured.isActive
-                    ? t('public.engagement.consultations.status.open')
-                    : t('public.engagement.consultations.status.closed')
+                  statusLabel(featured)
                 }
               />
               <p className="mt-4 max-w-3xl text-body-md text-ink-variant">
@@ -125,7 +127,7 @@ const ConsultationsSection = () => {
                 <div className="mt-6 flex flex-wrap items-center gap-6">
                   {featured.isActive && (
                     <PrimaryActionLink
-                      url={featured.actionUrl || `/contact?type=consultation-response&referenceId=${encodeURIComponent(featured.id)}&label=${encodeURIComponent(localized(featured.title, featured.titleEn, i18n.language))}`}
+                      url={participationUrl(featured)}
                       label={
                         localizedOptional(featured.actionLabel, featured.actionLabelEn, i18n.language) ||
                         t('public.engagement.consultations.participate')
@@ -171,9 +173,7 @@ const ConsultationsSection = () => {
                     <StatusChip
                       status={item.isActive ? 'approved' : 'past'}
                       label={
-                        item.isActive
-                          ? t('public.engagement.consultations.status.open')
-                          : t('public.engagement.consultations.status.closed')
+                        statusLabel(item)
                       }
                     />
                   </div>
@@ -185,7 +185,7 @@ const ConsultationsSection = () => {
                     <div className="mt-auto flex flex-wrap items-center gap-6 pt-6">
                       {item.isActive && (
                         <PrimaryActionLink
-                          url={item.actionUrl || `/contact?type=consultation-response&referenceId=${encodeURIComponent(item.id)}&label=${encodeURIComponent(title)}`}
+                          url={participationUrl(item)}
                           label={actionLabel || t('public.engagement.consultations.participate')}
                         />
                       )}

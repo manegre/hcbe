@@ -89,6 +89,15 @@ public sealed class PrivacyService(
                     item.CampaignId, item.QueuedAtUtc, item.FirstOpenedAtUtc,
                     item.LastOpenedAtUtc, item.OpenCount, item.UnsubscribedAtUtc
                 }).ToListAsync(cancellationToken),
+            consultationComments = await context.ConsultationComments.AsNoTracking()
+                .Where(item => item.UserId == userId)
+                .Select(item => new { item.ConsultationId, item.Body, item.CreatedAtUtc }).ToListAsync(cancellationToken),
+            consultationParticipations = await context.ConsultationParticipations.AsNoTracking()
+                .Where(item => item.UserId == userId)
+                .Select(item => new { item.ConsultationId, item.ParticipatedAtUtc }).ToListAsync(cancellationToken),
+            namedConsultationBallots = await context.ConsultationBallots.AsNoTracking()
+                .Where(item => item.UserId == userId)
+                .Select(item => new { item.ConsultationId, item.OptionId, item.CastAtUtc }).ToListAsync(cancellationToken),
             membershipStanding = await context.MembershipStandings.AsNoTracking().Where(item => item.UserId == userId).Select(item => new
             {
                 item.Status, item.PlanId, item.CurrentPeriodStartUtc, item.CurrentPeriodEndUtc,
@@ -443,6 +452,20 @@ public sealed class PrivacyService(
         foreach (var item in await context.AuditLogs.Where(item => item.UserId == user.Id || item.UserEmail == originalEmail).ToListAsync(cancellationToken))
         {
             item.UserId = null; item.UserEmail = null;
+        }
+        foreach (var item in await context.ConsultationComments.Where(item => item.UserId == user.Id).ToListAsync(cancellationToken))
+        {
+            item.UserId = null;
+            item.Body = "[comment removed]";
+        }
+        foreach (var item in await context.ConsultationParticipations.Where(item => item.UserId == user.Id).ToListAsync(cancellationToken))
+            item.UserId = null;
+        foreach (var item in await context.ConsultationBallots.Where(item => item.UserId == user.Id).ToListAsync(cancellationToken))
+            item.UserId = null;
+        foreach (var item in await context.ConsultationAuditEvents.Where(item => item.UserId == user.Id).ToListAsync(cancellationToken))
+        {
+            item.UserId = null;
+            item.Details = null;
         }
 
         request.SubjectReference = subjectReference;

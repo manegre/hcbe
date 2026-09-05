@@ -14,6 +14,7 @@ import {
   CONSULTATION_ICON_OPTIONS,
   CONSULTATION_LAYOUT_OPTIONS,
 } from '../consultation-form-utils';
+import GovernanceFields, { normalizeGovernanceDates } from '../GovernanceFields';
 
 const ConsultationCreatePage: React.FC = () => {
   const navigate = useNavigate();
@@ -37,6 +38,13 @@ const ConsultationCreatePage: React.FC = () => {
     accentColor: 'emerald',
     displayOrder: 0,
     isActive: true,
+    governanceType: 'Information',
+    votingMode: 'Named',
+    eligibilityRule: 'ActiveMembers',
+    quorumPercentage: 0,
+    minimumParticipation: 0,
+    allowComments: false,
+    options: [{ label: '', labelEn: '' }, { label: '', labelEn: '' }],
   });
 
   const backPath = '/admin/consultations';
@@ -62,7 +70,7 @@ const ConsultationCreatePage: React.FC = () => {
     setError(null);
 
     try {
-      const response = await consultationsApi.createConsultation(formData);
+      const response = await consultationsApi.createConsultation(normalizeGovernanceDates(formData));
       if (response.success && response.data) {
         navigate(`/admin/consultations/${response.data.id}`);
       } else {
@@ -313,6 +321,10 @@ const ConsultationCreatePage: React.FC = () => {
                 </label>
               </div>
             </div>
+            <GovernanceFields
+              value={formData}
+              onChange={(field, value) => setFormData(previous => ({ ...previous, [field]: value }))}
+            />
           </div>
         }
       />

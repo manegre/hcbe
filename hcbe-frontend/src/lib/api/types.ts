@@ -1119,7 +1119,40 @@ export interface Consultation {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  governanceType: 'Information' | 'Survey' | 'Proposal' | 'Vote';
+  opensAtUtc?: string;
+  closesAtUtc?: string;
+  commentClosesAtUtc?: string;
+  votingMode: 'Named' | 'Anonymous';
+  eligibilityRule: 'AllMembers' | 'ActiveMembers' | 'Administrators';
+  quorumPercentage: number;
+  minimumParticipation: number;
+  allowComments: boolean;
+  resultsPublishedAtUtc?: string;
+  options: ConsultationOption[];
+  comments: ConsultationComment[];
+  governance?: ConsultationGovernance;
+  selectedOptionId?: string;
 }
+
+export interface ConsultationOption { id: string; label: string; labelEn?: string; displayOrder: number }
+export interface ConsultationOptionRequest { label: string; labelEn?: string }
+export interface ConsultationComment { id: string; memberName: string; body: string; createdAtUtc: string }
+export interface ConsultationResult extends ConsultationOptionRequest { optionId: string; voteCount: number; percentage: number }
+export interface ConsultationGovernance {
+  status: 'Draft' | 'Upcoming' | 'Open' | 'Closed';
+  isEligible: boolean;
+  hasParticipated: boolean;
+  canVote: boolean;
+  canComment: boolean;
+  eligibleCount: number;
+  participantCount: number;
+  requiredParticipation: number;
+  quorumReached: boolean;
+  resultsPublished: boolean;
+  results: ConsultationResult[];
+}
+export interface ConsultationAuditEvent { id: string; action: string; details?: string; actor?: string; createdAtUtc: string }
 
 export interface CreateConsultationRequest {
   title: string;
@@ -1137,6 +1170,16 @@ export interface CreateConsultationRequest {
   accentColor?: 'emerald' | 'amber';
   displayOrder?: number;
   isActive?: boolean;
+  governanceType?: Consultation['governanceType'];
+  opensAtUtc?: string;
+  closesAtUtc?: string;
+  commentClosesAtUtc?: string;
+  votingMode?: Consultation['votingMode'];
+  eligibilityRule?: Consultation['eligibilityRule'];
+  quorumPercentage?: number;
+  minimumParticipation?: number;
+  allowComments?: boolean;
+  options?: ConsultationOptionRequest[];
 }
 
 export interface UpdateConsultationRequest {
@@ -1155,6 +1198,16 @@ export interface UpdateConsultationRequest {
   accentColor?: 'emerald' | 'amber';
   displayOrder?: number;
   isActive?: boolean;
+  governanceType?: Consultation['governanceType'];
+  opensAtUtc?: string;
+  closesAtUtc?: string;
+  commentClosesAtUtc?: string;
+  votingMode?: Consultation['votingMode'];
+  eligibilityRule?: Consultation['eligibilityRule'];
+  quorumPercentage?: number;
+  minimumParticipation?: number;
+  allowComments?: boolean;
+  options?: ConsultationOptionRequest[];
 }
 
 // News / Annonces

@@ -60,6 +60,11 @@ public class ApplicationDbContext : DbContext
     public DbSet<NewsletterSubscription> NewsletterSubscriptions { get; set; }
     public DbSet<GrantProgram> GrantPrograms { get; set; }
     public DbSet<Consultation> Consultations { get; set; }
+    public DbSet<ConsultationOption> ConsultationOptions { get; set; }
+    public DbSet<ConsultationComment> ConsultationComments { get; set; }
+    public DbSet<ConsultationParticipation> ConsultationParticipations { get; set; }
+    public DbSet<ConsultationBallot> ConsultationBallots { get; set; }
+    public DbSet<ConsultationAuditEvent> ConsultationAuditEvents { get; set; }
     public DbSet<PublicSubmission> PublicSubmissions { get; set; }
     public DbSet<NewsletterCampaign> NewsletterCampaigns { get; set; }
     public DbSet<NewsletterDelivery> NewsletterDeliveries { get; set; }
@@ -595,6 +600,48 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<Consultation>()
             .HasIndex(c => c.IsActive);
+        modelBuilder.Entity<Consultation>().Property(c => c.GovernanceType).HasMaxLength(30).HasDefaultValue("Information");
+        modelBuilder.Entity<Consultation>().Property(c => c.VotingMode).HasMaxLength(20).HasDefaultValue("Named");
+        modelBuilder.Entity<Consultation>().Property(c => c.EligibilityRule).HasMaxLength(30).HasDefaultValue("ActiveMembers");
+
+        modelBuilder.Entity<ConsultationOption>()
+            .HasOne(item => item.Consultation).WithMany(item => item.Options)
+            .HasForeignKey(item => item.ConsultationId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<ConsultationOption>()
+            .HasIndex(item => new { item.ConsultationId, item.DisplayOrder });
+        modelBuilder.Entity<ConsultationComment>()
+            .HasOne(item => item.Consultation).WithMany(item => item.Comments)
+            .HasForeignKey(item => item.ConsultationId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<ConsultationComment>()
+            .HasOne(item => item.User).WithMany().HasForeignKey(item => item.UserId).OnDelete(DeleteBehavior.SetNull);
+        modelBuilder.Entity<ConsultationComment>()
+            .HasIndex(item => new { item.ConsultationId, item.CreatedAtUtc });
+        modelBuilder.Entity<ConsultationParticipation>()
+            .HasOne(item => item.Consultation).WithMany(item => item.Participations)
+            .HasForeignKey(item => item.ConsultationId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<ConsultationParticipation>()
+            .HasOne(item => item.User).WithMany().HasForeignKey(item => item.UserId).OnDelete(DeleteBehavior.SetNull);
+        modelBuilder.Entity<ConsultationParticipation>()
+            .HasIndex(item => new { item.ConsultationId, item.UserId }).IsUnique()
+            .HasFilter("\"UserId\" IS NOT NULL");
+        modelBuilder.Entity<ConsultationBallot>()
+            .HasOne(item => item.Consultation).WithMany(item => item.Ballots)
+            .HasForeignKey(item => item.ConsultationId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<ConsultationBallot>()
+            .HasOne(item => item.Option).WithMany(item => item.Ballots)
+            .HasForeignKey(item => item.OptionId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<ConsultationBallot>()
+            .HasOne(item => item.User).WithMany().HasForeignKey(item => item.UserId).OnDelete(DeleteBehavior.SetNull);
+        modelBuilder.Entity<ConsultationBallot>()
+            .HasIndex(item => new { item.ConsultationId, item.UserId }).IsUnique()
+            .HasFilter("\"UserId\" IS NOT NULL");
+        modelBuilder.Entity<ConsultationAuditEvent>()
+            .HasOne(item => item.Consultation).WithMany(item => item.AuditEvents)
+            .HasForeignKey(item => item.ConsultationId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<ConsultationAuditEvent>()
+            .HasOne(item => item.User).WithMany().HasForeignKey(item => item.UserId).OnDelete(DeleteBehavior.SetNull);
+        modelBuilder.Entity<ConsultationAuditEvent>()
+            .HasIndex(item => new { item.ConsultationId, item.CreatedAtUtc });
 
         modelBuilder.Entity<PublicSubmission>()
             .HasIndex(s => new { s.Type, s.Status, s.CreatedAt });

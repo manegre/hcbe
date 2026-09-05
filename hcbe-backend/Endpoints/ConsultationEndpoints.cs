@@ -12,9 +12,9 @@ public static class ConsultationEndpoints
             .WithTags("Consultations")
             .WithOpenApi();
 
-        group.MapGet("/", async (IConsultationService consultationService) =>
+        group.MapGet("/", async (HttpContext context, IConsultationService consultationService) =>
         {
-            var response = await consultationService.GetActiveAsync();
+            var response = await consultationService.GetActiveAsync(context.GetUserId());
             return response.HandleServiceResponse();
         })
         .WithName("GetConsultations")
@@ -54,9 +54,9 @@ public static class ConsultationEndpoints
         .Produces(404)
         .Produces(400);
 
-        group.MapGet("/{id:guid}", async (Guid id, IConsultationService consultationService) =>
+        group.MapGet("/{id:guid}", async (Guid id, HttpContext context, IConsultationService consultationService) =>
         {
-            var response = await consultationService.GetByIdAsync(id);
+            var response = await consultationService.GetByIdAsync(id, context.GetUserId());
             return response.HandleServiceResponse();
         })
         .WithName("GetConsultation")
@@ -71,7 +71,8 @@ public static class ConsultationEndpoints
                 return Results.Forbid();
             }
 
-            var response = await consultationService.CreateAsync(request);
+            if (context.GetUserId() is not Guid userId) return Results.Unauthorized();
+            var response = await consultationService.CreateAsync(request, userId);
             return response.HandleServiceResponse($"/api/consultations/{response.Data?.Id}");
         })
         .WithName("CreateConsultation")
@@ -87,7 +88,8 @@ public static class ConsultationEndpoints
                 return Results.Forbid();
             }
 
-            var response = await consultationService.UpdateAsync(id, request);
+            if (context.GetUserId() is not Guid userId) return Results.Unauthorized();
+            var response = await consultationService.UpdateAsync(id, request, userId);
             return response.HandleServiceResponse();
         })
         .WithName("UpdateConsultation")
@@ -130,5 +132,40 @@ public static class ConsultationEndpoints
         .Produces(403)
         .Produces(404)
         .Produces(400);
+
+        group.MapPost("/{id:guid}/vote", async (Guid id, CastConsultationVoteRequest request, HttpContext context, IConsultationService consultationService) =>
+        {
+            if (context.GetUserId() is not Guid userId) return Results.Unauthorized();
+            return (await consultationService.VoteAsync(id, userId, request)).HandleServiceResponse();
+        })
+        .WithName("VoteInConsultation")
+        .RequireAuthorization("Authenticated")
+        .RequireRateLimiting("PublicWrite");
+
+        group.MapPost("/{id:guid}/comments", async (Guid id, AddConsultationCommentRequest request, HttpContext context, IConsultationService consultationService) =>
+        {
+            if (context.GetUserId() is not Guid userId) return Results.Unauthorized();
+            return (await consultationService.CommentAsync(id, userId, request)).HandleServiceResponse();
+        })
+        .WithName("CommentOnConsultation")
+        .RequireAuthorization("Authenticated")
+        .RequireRateLimiting("PublicWrite");
+
+        group.MapPut("/{id:guid}/results", async (Guid id, PublishConsultationResultsRequest request, HttpContext context, IConsultationService consultationService) =>
+        {
+            if (!context.HasPermission(AdminPermissions.CommunityManage)) return Results.Forbid();
+            if (context.GetUserId() is not Guid userId) return Results.Unauthorized();
+            return (await consultationService.PublishResultsAsync(id, userId, request.Publish)).HandleServiceResponse();
+        })
+        .WithName("PublishConsultationResults")
+        .RequireAuthorization();
+
+        group.MapGet("/admin/{id:guid}/audit", async (Guid id, HttpContext context, IConsultationService consultationService) =>
+        {
+            if (!context.HasPermission(AdminPermissions.CommunityManage)) return Results.Forbid();
+            return (await consultationService.GetAuditAsync(id)).HandleServiceResponse();
+        })
+        .WithName("GetConsultationAudit")
+        .RequireAuthorization();
     }
 }

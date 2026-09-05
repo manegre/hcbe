@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import { consultationsApi } from '../../../lib/api/consultations';
 import type { Consultation } from '../../../lib/api/types';
 import { AdminListPage } from '../../../components/admin/AdminListPage';
@@ -73,7 +74,7 @@ const ConsultationsAdminPage: React.FC = () => {
       createPath="/admin/consultations/create"
       columns={[
         { key: 'item', label: t('admin.consultations.colItem') },
-        { key: 'layout', label: t('admin.consultations.colLayout') },
+        { key: 'layout', label: t('admin.consultations.governance.type') },
         { key: 'status', label: t('admin.common.status') },
         { key: 'order', label: t('admin.consultations.colOrder') },
         { key: 'actions', label: t('admin.common.actions'), align: 'right' },
@@ -95,14 +96,12 @@ const ConsultationsAdminPage: React.FC = () => {
             </div>
           </Td>
           <Td>
-            {item.layoutType === 'featured'
-              ? t('admin.consultations.layoutFeatured')
-              : t('admin.consultations.layoutCard')}
+            {t(`admin.consultations.governance.typeValue.${item.governanceType}`)}
           </Td>
           <Td>
             <StatusChip
-              status={item.isActive ? 'published' : 'draft'}
-              label={item.isActive ? t('admin.common.active') : t('admin.common.inactive')}
+              status={item.governance?.status === 'Open' ? 'published' : item.governance?.status === 'Closed' ? 'past' : 'draft'}
+              label={t(`public.engagement.consultations.detail.statusValue.${item.governance?.status || 'Draft'}`)}
             />
           </Td>
           <Td>{item.displayOrder}</Td>

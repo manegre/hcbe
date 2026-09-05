@@ -19,6 +19,7 @@ const NotFound = lazy(() => import('../pages/NotFound'));
 const AnnuairePage = lazy(() => import('../pages/engagement/annuaire/page'));
 const ProjetsPage = lazy(() => import('../pages/engagement/projets/page'));
 const ConsultationsPage = lazy(() => import('../pages/engagement/consultations/page'));
+const ConsultationDetailPage = lazy(() => import('../pages/engagement/consultations/[id]/page'));
 const ProjectDetailPage = lazy(() => import('../pages/projet/page'));
 
 // Services sub-pages
@@ -172,6 +173,10 @@ const routes: RouteObject[] = [
   {
     path: '/engagement/consultations',
     element: <ConsultationsPage />,
+  },
+  {
+    path: '/engagement/consultations/:id',
+    element: <ConsultationDetailPage />,
   },
   {
     path: '/projet/:id',

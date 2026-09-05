@@ -490,6 +490,16 @@ if (needsInitialization)
             try { context.Database.ExecuteSqlRaw("ALTER TABLE Consultations ADD COLUMN DescriptionEn TEXT"); } catch { }
             try { context.Database.ExecuteSqlRaw("ALTER TABLE Consultations ADD COLUMN ActionLabelEn TEXT"); } catch { }
             try { context.Database.ExecuteSqlRaw("ALTER TABLE Consultations ADD COLUMN SecondaryActionLabelEn TEXT"); } catch { }
+            try { context.Database.ExecuteSqlRaw("ALTER TABLE Consultations ADD COLUMN GovernanceType TEXT NOT NULL DEFAULT 'Information'"); } catch { }
+            try { context.Database.ExecuteSqlRaw("ALTER TABLE Consultations ADD COLUMN OpensAtUtc TEXT"); } catch { }
+            try { context.Database.ExecuteSqlRaw("ALTER TABLE Consultations ADD COLUMN ClosesAtUtc TEXT"); } catch { }
+            try { context.Database.ExecuteSqlRaw("ALTER TABLE Consultations ADD COLUMN CommentClosesAtUtc TEXT"); } catch { }
+            try { context.Database.ExecuteSqlRaw("ALTER TABLE Consultations ADD COLUMN VotingMode TEXT NOT NULL DEFAULT 'Named'"); } catch { }
+            try { context.Database.ExecuteSqlRaw("ALTER TABLE Consultations ADD COLUMN EligibilityRule TEXT NOT NULL DEFAULT 'ActiveMembers'"); } catch { }
+            try { context.Database.ExecuteSqlRaw("ALTER TABLE Consultations ADD COLUMN QuorumPercentage INTEGER NOT NULL DEFAULT 0"); } catch { }
+            try { context.Database.ExecuteSqlRaw("ALTER TABLE Consultations ADD COLUMN MinimumParticipation INTEGER NOT NULL DEFAULT 0"); } catch { }
+            try { context.Database.ExecuteSqlRaw("ALTER TABLE Consultations ADD COLUMN AllowComments INTEGER NOT NULL DEFAULT 0"); } catch { }
+            try { context.Database.ExecuteSqlRaw("ALTER TABLE Consultations ADD COLUMN ResultsPublishedAtUtc TEXT"); } catch { }
             try { context.Database.ExecuteSqlRaw("ALTER TABLE Documents ADD COLUMN Description TEXT"); } catch { }
             try { context.Database.ExecuteSqlRaw("ALTER TABLE Documents ADD COLUMN Icon TEXT"); } catch { }
             try { context.Database.ExecuteSqlRaw("ALTER TABLE Documents ADD COLUMN Pages TEXT"); } catch { }
@@ -914,6 +924,16 @@ using (var scope = app.Services.CreateScope())
         try { context.Database.ExecuteSqlRaw("ALTER TABLE Consultations ADD COLUMN DescriptionEn TEXT"); } catch { }
         try { context.Database.ExecuteSqlRaw("ALTER TABLE Consultations ADD COLUMN ActionLabelEn TEXT"); } catch { }
         try { context.Database.ExecuteSqlRaw("ALTER TABLE Consultations ADD COLUMN SecondaryActionLabelEn TEXT"); } catch { }
+        try { context.Database.ExecuteSqlRaw("ALTER TABLE Consultations ADD COLUMN GovernanceType TEXT NOT NULL DEFAULT 'Information'"); } catch { }
+        try { context.Database.ExecuteSqlRaw("ALTER TABLE Consultations ADD COLUMN OpensAtUtc TEXT"); } catch { }
+        try { context.Database.ExecuteSqlRaw("ALTER TABLE Consultations ADD COLUMN ClosesAtUtc TEXT"); } catch { }
+        try { context.Database.ExecuteSqlRaw("ALTER TABLE Consultations ADD COLUMN CommentClosesAtUtc TEXT"); } catch { }
+        try { context.Database.ExecuteSqlRaw("ALTER TABLE Consultations ADD COLUMN VotingMode TEXT NOT NULL DEFAULT 'Named'"); } catch { }
+        try { context.Database.ExecuteSqlRaw("ALTER TABLE Consultations ADD COLUMN EligibilityRule TEXT NOT NULL DEFAULT 'ActiveMembers'"); } catch { }
+        try { context.Database.ExecuteSqlRaw("ALTER TABLE Consultations ADD COLUMN QuorumPercentage INTEGER NOT NULL DEFAULT 0"); } catch { }
+        try { context.Database.ExecuteSqlRaw("ALTER TABLE Consultations ADD COLUMN MinimumParticipation INTEGER NOT NULL DEFAULT 0"); } catch { }
+        try { context.Database.ExecuteSqlRaw("ALTER TABLE Consultations ADD COLUMN AllowComments INTEGER NOT NULL DEFAULT 0"); } catch { }
+        try { context.Database.ExecuteSqlRaw("ALTER TABLE Consultations ADD COLUMN ResultsPublishedAtUtc TEXT"); } catch { }
         try { context.Database.ExecuteSqlRaw("ALTER TABLE Documents ADD COLUMN Description TEXT"); } catch { }
         try { context.Database.ExecuteSqlRaw("ALTER TABLE Documents ADD COLUMN Icon TEXT"); } catch { }
         try { context.Database.ExecuteSqlRaw("ALTER TABLE Documents ADD COLUMN Pages TEXT"); } catch { }
@@ -990,6 +1010,16 @@ using (var scope = app.Services.CreateScope())
             SecondaryActionUrl TEXT,
             SecondaryActionLabel TEXT,
             AccentColor TEXT NOT NULL DEFAULT 'emerald',
+            GovernanceType TEXT NOT NULL DEFAULT 'Information',
+            OpensAtUtc TEXT,
+            ClosesAtUtc TEXT,
+            CommentClosesAtUtc TEXT,
+            VotingMode TEXT NOT NULL DEFAULT 'Named',
+            EligibilityRule TEXT NOT NULL DEFAULT 'ActiveMembers',
+            QuorumPercentage INTEGER NOT NULL DEFAULT 0,
+            MinimumParticipation INTEGER NOT NULL DEFAULT 0,
+            AllowComments INTEGER NOT NULL DEFAULT 0,
+            ResultsPublishedAtUtc TEXT,
             DisplayOrder INTEGER NOT NULL DEFAULT 0,
             IsActive INTEGER NOT NULL DEFAULT 1,
             CreatedAt TEXT NOT NULL,
@@ -997,6 +1027,37 @@ using (var scope = app.Services.CreateScope())
         )");
         context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_Consultations_DisplayOrder ON Consultations(DisplayOrder)");
         context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_Consultations_IsActive ON Consultations(IsActive)");
+        context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS ConsultationOptions (
+            Id TEXT PRIMARY KEY, ConsultationId TEXT NOT NULL, Label TEXT NOT NULL, LabelEn TEXT,
+            DisplayOrder INTEGER NOT NULL DEFAULT 0,
+            FOREIGN KEY (ConsultationId) REFERENCES Consultations(Id) ON DELETE CASCADE
+        )");
+        context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_ConsultationOptions_ConsultationId_DisplayOrder ON ConsultationOptions(ConsultationId, DisplayOrder)");
+        context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS ConsultationComments (
+            Id TEXT PRIMARY KEY, ConsultationId TEXT NOT NULL, UserId TEXT, Body TEXT NOT NULL, CreatedAtUtc TEXT NOT NULL,
+            FOREIGN KEY (ConsultationId) REFERENCES Consultations(Id) ON DELETE CASCADE,
+            FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE SET NULL
+        )");
+        context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_ConsultationComments_ConsultationId_CreatedAtUtc ON ConsultationComments(ConsultationId, CreatedAtUtc)");
+        context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS ConsultationParticipations (
+            Id TEXT PRIMARY KEY, ConsultationId TEXT NOT NULL, UserId TEXT, ParticipatedAtUtc TEXT NOT NULL,
+            FOREIGN KEY (ConsultationId) REFERENCES Consultations(Id) ON DELETE CASCADE,
+            FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE SET NULL
+        )");
+        context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_ConsultationParticipations_ConsultationId_UserId ON ConsultationParticipations(ConsultationId, UserId) WHERE UserId IS NOT NULL");
+        context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS ConsultationBallots (
+            Id TEXT PRIMARY KEY, ConsultationId TEXT NOT NULL, OptionId TEXT NOT NULL, UserId TEXT, CastAtUtc TEXT NOT NULL,
+            FOREIGN KEY (ConsultationId) REFERENCES Consultations(Id) ON DELETE CASCADE,
+            FOREIGN KEY (OptionId) REFERENCES ConsultationOptions(Id) ON DELETE CASCADE,
+            FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE SET NULL
+        )");
+        context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_ConsultationBallots_ConsultationId_UserId ON ConsultationBallots(ConsultationId, UserId) WHERE UserId IS NOT NULL");
+        context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS ConsultationAuditEvents (
+            Id TEXT PRIMARY KEY, ConsultationId TEXT NOT NULL, UserId TEXT, Action TEXT NOT NULL, Details TEXT, CreatedAtUtc TEXT NOT NULL,
+            FOREIGN KEY (ConsultationId) REFERENCES Consultations(Id) ON DELETE CASCADE,
+            FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE SET NULL
+        )");
+        context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_ConsultationAuditEvents_ConsultationId_CreatedAtUtc ON ConsultationAuditEvents(ConsultationId, CreatedAtUtc)");
 
         context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS PublicSubmissions (
             Id TEXT PRIMARY KEY,
