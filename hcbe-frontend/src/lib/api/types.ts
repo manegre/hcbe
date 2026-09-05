@@ -23,7 +23,8 @@ export interface MfaStatus { enabled: boolean; enabledAtUtc?: string; recoveryCo
 export interface MfaEnrollment { secret: string; otpAuthUri: string; }
 export interface MfaConfirmation { status: MfaStatus; recoveryCodes: string[]; }
 export interface AccountSession { id: string; deviceName: string; ipAddress?: string; createdAtUtc: string; lastUsedAtUtc?: string; expiresAtUtc: string; isCurrent: boolean; }
-export interface SecurityPosture { activeAdmins: number; adminsWithMfa: number; activeSessions: number; openIncidents: number; overdueAccessReviews: number; oldestOpenIncidentAtUtc?: string; }
+export interface AdminAccountSession { id: string; userId: string; userEmail: string; userName: string; deviceName: string; ipAddress?: string; createdAtUtc: string; lastUsedAtUtc?: string; expiresAtUtc: string; isCurrentUser: boolean; }
+export interface SecurityPosture { activeAdmins: number; adminsWithMfa: number; activeSessions: number; openIncidents: number; overdueAccessReviews: number; oldestOpenIncidentAtUtc?: string; adminsWithoutMfa: number; staleAdminSessions: number; }
 export interface SecurityIncident {
   id: string; referenceNumber: string; title: string; description: string; severity: string; status: string;
   assignedTo?: string; containmentActions?: string; rootCause?: string; correctiveActions?: string;

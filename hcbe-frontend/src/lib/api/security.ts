@@ -1,14 +1,17 @@
 import { apiClient } from './client';
-import type { AccountSession, AuditLog, MfaConfirmation, MfaEnrollment, MfaStatus, SecurityIncident, SecurityPosture } from './types';
+import type { AccountSession, AdminAccountSession, AuditLog, MfaConfirmation, MfaEnrollment, MfaStatus, SecurityIncident, SecurityPosture } from './types';
 
 export const securityApi = {
   getMfaStatus: () => apiClient.get<MfaStatus>('/api/security/mfa'),
   beginMfaEnrollment: () => apiClient.post<MfaEnrollment>('/api/security/mfa/enroll'),
   confirmMfaEnrollment: (code: string) => apiClient.post<MfaConfirmation>('/api/security/mfa/confirm', { code }),
   disableMfa: (code: string) => apiClient.post<MfaStatus>('/api/security/mfa/disable', { code }),
+  regenerateRecoveryCodes: (code: string) => apiClient.post<MfaConfirmation>('/api/security/mfa/recovery-codes', { code }),
   getSessions: () => apiClient.get<AccountSession[]>('/api/security/sessions'),
   revokeSession: (id: string) => apiClient.delete<boolean>(`/api/security/sessions/${id}`),
   revokeOtherSessions: () => apiClient.post<number>('/api/security/sessions/revoke-others'),
+  getAdminSessions: () => apiClient.get<AdminAccountSession[]>('/api/admin/security/sessions'),
+  revokeAdminSession: (id: string) => apiClient.delete<boolean>(`/api/admin/security/sessions/${id}`),
   getPosture: () => apiClient.get<SecurityPosture>('/api/admin/security/posture'),
   getIncidents: (includeResolved = false) => apiClient.get<SecurityIncident[]>(`/api/admin/security/incidents?includeResolved=${includeResolved}`),
   createIncident: (data: Partial<SecurityIncident>) => apiClient.post<SecurityIncident>('/api/admin/security/incidents', data),

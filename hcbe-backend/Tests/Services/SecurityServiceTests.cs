@@ -64,6 +64,35 @@ public sealed class SecurityServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task RecoveryCodes_CanBeRegeneratedAndOldCodesBecomeInvalid()
+    {
+        var user = await AddUserAsync();
+        var enrollment = await security.BeginEnrollmentAsync(user.Id);
+        var first = await security.ConfirmEnrollmentAsync(user.Id, CurrentTotp(enrollment.Data!.Secret));
+        var regenerated = await security.RegenerateRecoveryCodesAsync(user.Id, CurrentTotp(enrollment.Data.Secret));
+
+        regenerated.Success.Should().BeTrue();
+        regenerated.Data!.RecoveryCodes.Should().HaveCount(10).And.NotIntersectWith(first.Data!.RecoveryCodes);
+        var session = await auth.CreateSessionForUserAsync(user, null, null);
+        var challenge = await security.CompleteOrChallengeAsync(session, "password", null, null);
+        (await security.VerifyChallengeAsync(challenge.ChallengeToken!, first.Data.RecoveryCodes[0], null, null)).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task AdministratorSessions_CanBeReviewedAndRevokedBySecurityManager()
+    {
+        var actor = await AddUserAsync(); actor.IsAdmin = true;
+        var affected = await AddUserAsync(); affected.IsAdmin = true; await db.SaveChangesAsync();
+        var session = await auth.CreateSessionForUserAsync(affected, "10.0.0.7", "Mozilla/5.0 Android Chrome/120");
+
+        var listed = await security.GetAdminSessionsAsync(actor.Id);
+        listed.Data.Should().ContainSingle(item => item.UserId == affected.Id && item.DeviceName.Contains("Android"));
+        (await security.RevokeAdminSessionAsync(actor.Id, listed.Data!.Single().Id, "10.0.0.1")).Success.Should().BeTrue();
+        (await security.GetAdminSessionsAsync(actor.Id)).Data.Should().BeEmpty();
+        db.AuditLogs.Should().Contain(item => item.Action == "AdminSessionRevoked" && item.UserId == actor.Id);
+    }
+
+    [Fact]
     public async Task Posture_FlagsAdminsWithoutCurrentAccessReview()
     {
         var user = await AddUserAsync(); user.IsAdmin = true; await db.SaveChangesAsync();

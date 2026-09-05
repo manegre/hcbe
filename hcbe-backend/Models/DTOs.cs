@@ -42,9 +42,14 @@ public record DisableMfaRequest([Required] string Code);
 public record MfaEnrollmentDto(string Secret, string OtpAuthUri);
 public record MfaStatusDto(bool Enabled, DateTime? EnabledAtUtc, int RecoveryCodesRemaining);
 public record MfaConfirmationDto(MfaStatusDto Status, IReadOnlyList<string> RecoveryCodes);
+public record RegenerateMfaRecoveryCodesRequest([Required] string Code);
 public record AccountSessionDto(
     Guid Id, string DeviceName, string? IpAddress, DateTime CreatedAtUtc,
     DateTime? LastUsedAtUtc, DateTime ExpiresAtUtc, bool IsCurrent);
+public record AdminAccountSessionDto(
+    Guid Id, Guid UserId, string UserEmail, string UserName, string DeviceName,
+    string? IpAddress, DateTime CreatedAtUtc, DateTime? LastUsedAtUtc,
+    DateTime ExpiresAtUtc, bool IsCurrentUser);
 
 public record CreateSecurityIncidentRequest(
     [Required][MaxLength(200)] string Title,
@@ -68,7 +73,8 @@ public record UpdateSecurityIncidentRequest(
 public record AdminAccessReviewRequest([Required] string Decision, string? Notes);
 public record SecurityPostureDto(
     int ActiveAdmins, int AdminsWithMfa, int ActiveSessions, int OpenIncidents,
-    int OverdueAccessReviews, DateTime? OldestOpenIncidentAtUtc);
+    int OverdueAccessReviews, DateTime? OldestOpenIncidentAtUtc,
+    int AdminsWithoutMfa, int StaleAdminSessions);
 
 public record MemberPreferenceDto(
     string PreferredLanguage, string TimeZone, bool EmailEvents, bool EmailOpportunities,

@@ -122,6 +122,19 @@ public sealed class SecurityService : ISecurityService
         return ApiResponse<MfaStatusDto>.SuccessResponse(Status(user));
     }
 
+    public async Task<ApiResponse<MfaConfirmationDto>> RegenerateRecoveryCodesAsync(Guid userId, string code, CancellationToken cancellationToken = default)
+    {
+        var user = await _db.Users.FindAsync([userId], cancellationToken);
+        if (user is null || user.MfaEnabledAtUtc is null) return ApiResponse<MfaConfirmationDto>.ErrorResponse("MFA is not enabled");
+        if (!VerifyUserCode(user, code, consumeRecoveryCode: true)) return ApiResponse<MfaConfirmationDto>.ErrorResponse("Invalid verification code");
+
+        var recoveryCodes = Enumerable.Range(0, 10).Select(_ => RecoveryCode()).ToList();
+        user.MfaRecoveryCodesJson = JsonSerializer.Serialize(recoveryCodes.Select(value => Hash(NormalizeCode(value))));
+        AddAudit(user, "MfaRecoveryCodesRegenerated", nameof(User), user.Id.ToString(), null, new { recoveryCodes = recoveryCodes.Count });
+        await _db.SaveChangesAsync(cancellationToken);
+        return ApiResponse<MfaConfirmationDto>.SuccessResponse(new MfaConfirmationDto(Status(user), recoveryCodes));
+    }
+
     public async Task<ApiResponse<List<AccountSessionDto>>> GetSessionsAsync(Guid userId, string? currentRefreshToken, CancellationToken cancellationToken = default)
     {
         var currentHash = string.IsNullOrWhiteSpace(currentRefreshToken) ? null : Hash(currentRefreshToken);
@@ -156,6 +169,33 @@ public sealed class SecurityService : ISecurityService
         return ApiResponse<int>.SuccessResponse(tokens.Count);
     }
 
+    public async Task<ApiResponse<List<AdminAccountSessionDto>>> GetAdminSessionsAsync(Guid currentUserId, CancellationToken cancellationToken = default)
+    {
+        var now = DateTime.UtcNow;
+        var sessions = await _db.RefreshTokens.AsNoTracking()
+            .Where(item => item.User.IsAdmin && item.User.IsActive && item.RevokedAtUtc == null && item.ExpiresAtUtc > now)
+            .OrderByDescending(item => item.LastUsedAtUtc ?? item.CreatedAtUtc)
+            .Select(item => new AdminAccountSessionDto(
+                item.Id, item.UserId, item.User.Email,
+                ((item.User.FirstName ?? "") + " " + (item.User.LastName ?? "")).Trim(),
+                item.DeviceName ?? "Unknown device", item.CreatedByIp, item.CreatedAtUtc,
+                item.LastUsedAtUtc, item.ExpiresAtUtc, item.UserId == currentUserId))
+            .ToListAsync(cancellationToken);
+        return ApiResponse<List<AdminAccountSessionDto>>.SuccessResponse(sessions);
+    }
+
+    public async Task<ApiResponse<bool>> RevokeAdminSessionAsync(Guid currentUserId, Guid sessionId, string? ipAddress, CancellationToken cancellationToken = default)
+    {
+        var token = await _db.RefreshTokens.Include(item => item.User)
+            .SingleOrDefaultAsync(item => item.Id == sessionId && item.User.IsAdmin, cancellationToken);
+        if (token is null) return ApiResponse<bool>.ErrorResponse("Administrator session not found");
+        if (token.RevokedAtUtc is null) { token.RevokedAtUtc = DateTime.UtcNow; token.RevokedByIp = ipAddress; }
+        var actor = await _db.Users.FindAsync([currentUserId], cancellationToken);
+        AddAudit(actor, "AdminSessionRevoked", nameof(RefreshToken), sessionId.ToString(), ipAddress, new { affectedUserId = token.UserId, affectedEmail = token.User.Email });
+        await _db.SaveChangesAsync(cancellationToken);
+        return ApiResponse<bool>.SuccessResponse(true);
+    }
+
     public async Task<ApiResponse<SecurityPostureDto>> GetPostureAsync(CancellationToken cancellationToken = default)
     {
         var now = DateTime.UtcNow;
@@ -165,7 +205,9 @@ public sealed class SecurityService : ISecurityService
         var openIncidents = await _db.SecurityIncidents.CountAsync(item => item.ResolvedAtUtc == null, cancellationToken);
         var oldest = await _db.SecurityIncidents.Where(item => item.ResolvedAtUtc == null).MinAsync(item => (DateTime?)item.ReportedAtUtc, cancellationToken);
         var overdue = await _db.Users.CountAsync(user => user.IsAdmin && user.IsActive && !_db.AdminAccessReviews.Any(review => review.ReviewedUserId == user.Id && review.NextReviewAtUtc > now), cancellationToken);
-        return ApiResponse<SecurityPostureDto>.SuccessResponse(new(activeAdmins, mfaAdmins, sessions, openIncidents, overdue, oldest));
+        var staleCutoff = now.AddDays(-30);
+        var staleAdminSessions = await _db.RefreshTokens.CountAsync(item => item.User.IsAdmin && item.User.IsActive && item.RevokedAtUtc == null && item.ExpiresAtUtc > now && (item.LastUsedAtUtc ?? item.CreatedAtUtc) < staleCutoff, cancellationToken);
+        return ApiResponse<SecurityPostureDto>.SuccessResponse(new(activeAdmins, mfaAdmins, sessions, openIncidents, overdue, oldest, activeAdmins - mfaAdmins, staleAdminSessions));
     }
 
     private bool VerifyUserCode(User user, string code, bool consumeRecoveryCode)

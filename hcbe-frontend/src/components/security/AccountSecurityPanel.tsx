@@ -21,7 +21,7 @@ export function AccountSecurityPanel() {
     mfa: 'Authentification multifacteur', enabled: 'Activée', disabled: 'Non activée',
     mfaHint: 'Ajoutez HCBE Canada dans votre application d’authentification pour demander un code à chaque connexion.',
     begin: 'Configurer le MFA', secret: 'Clé de configuration', open: 'Ouvrir l’application', verify: 'Vérifier et activer', code: 'Code à 6 chiffres',
-    recovery: 'Codes de récupération', recoveryHint: 'Conservez ces codes hors ligne. Chaque code ne fonctionne qu’une fois.',
+    recovery: 'Codes de récupération', recoveryHint: 'Conservez ces codes hors ligne. Chaque code ne fonctionne qu’une fois.', regenerate: 'Générer de nouveaux codes', regenerateHint: 'Saisissez un code valide; tous les anciens codes de récupération seront immédiatement invalidés.',
     disable: 'Désactiver le MFA', sessions: 'Appareils connectés', current: 'Session actuelle', revoke: 'Déconnecter', revokeOthers: 'Déconnecter les autres appareils',
     noSessions: 'Aucune session active.', expires: 'Expire', success: 'Sécurité du compte mise à jour.', error: 'Impossible de terminer cette action.',
   } : {
@@ -29,7 +29,7 @@ export function AccountSecurityPanel() {
     mfa: 'Multi-factor authentication', enabled: 'Enabled', disabled: 'Not enabled',
     mfaHint: 'Add HCBE Canada to your authenticator app to require a code at every sign-in.',
     begin: 'Set up MFA', secret: 'Setup key', open: 'Open authenticator', verify: 'Verify and enable', code: '6-digit code',
-    recovery: 'Recovery codes', recoveryHint: 'Store these codes offline. Each code works only once.',
+    recovery: 'Recovery codes', recoveryHint: 'Store these codes offline. Each code works only once.', regenerate: 'Generate new codes', regenerateHint: 'Enter a valid code; all previous recovery codes will be invalidated immediately.',
     disable: 'Disable MFA', sessions: 'Connected devices', current: 'Current session', revoke: 'Sign out', revokeOthers: 'Sign out other devices',
     noSessions: 'No active sessions.', expires: 'Expires', success: 'Account security updated.', error: 'Unable to complete this action.',
   };
@@ -49,6 +49,7 @@ export function AccountSecurityPanel() {
   const begin = () => run(async () => { const response = await securityApi.beginMfaEnrollment(); if (!response.success || !response.data) throw new Error(); setEnrollment(response.data); });
   const confirm = () => run(async () => { const response = await securityApi.confirmMfaEnrollment(code); if (!response.success || !response.data) throw new Error(); setRecoveryCodes(response.data.recoveryCodes); setEnrollment(null); setCode(''); });
   const disable = () => run(async () => { const response = await securityApi.disableMfa(code); if (!response.success) throw new Error(); setCode(''); setRecoveryCodes([]); });
+  const regenerate = () => run(async () => { const response = await securityApi.regenerateRecoveryCodes(code); if (!response.success || !response.data) throw new Error(); setRecoveryCodes(response.data.recoveryCodes); setCode(''); });
 
   return (
     <section className="overflow-hidden rounded-[26px] border border-line bg-surface shadow-[0_18px_55px_rgba(0,59,27,.06)]">
@@ -68,7 +69,7 @@ export function AccountSecurityPanel() {
             <Field label={copy.code} htmlFor="mfa-enroll-code" required className="mt-4"><input id="mfa-enroll-code" value={code} onChange={(e) => setCode(e.target.value)} inputMode="numeric" autoComplete="one-time-code" className={inputClasses} placeholder="000 000" /></Field>
             <Button type="button" onClick={confirm} disabled={busy || code.trim().length < 6} className="mt-4"><i className="ri-shield-check-line" />{copy.verify}</Button>
           </div>}
-          {status?.enabled && <div className="mt-6"><Field label={copy.code} htmlFor="mfa-disable-code"><input id="mfa-disable-code" value={code} onChange={(e) => setCode(e.target.value)} className={inputClasses} inputMode="numeric" /></Field><Button type="button" variant="secondary" onClick={disable} disabled={busy || code.trim().length < 6} className="mt-3"><i className="ri-lock-unlock-line" />{copy.disable}</Button></div>}
+          {status?.enabled && <div className="mt-6"><Field label={copy.code} htmlFor="mfa-disable-code" hint={copy.regenerateHint}><input id="mfa-disable-code" value={code} onChange={(e) => setCode(e.target.value)} className={inputClasses} inputMode="numeric" autoComplete="one-time-code" /></Field><div className="mt-3 flex flex-wrap gap-3"><Button type="button" variant="secondary" onClick={regenerate} disabled={busy || code.trim().length < 6}><i className="ri-key-2-line" />{copy.regenerate}</Button><Button type="button" variant="tertiary" onClick={disable} disabled={busy || code.trim().length < 6}><i className="ri-lock-unlock-line" />{copy.disable}</Button></div></div>}
           {recoveryCodes.length > 0 && <div className="mt-6 rounded-2xl border border-green/20 bg-green/[.04] p-5"><h4 className="font-display text-lg font-bold text-green-deep">{copy.recovery}</h4><p className="mt-1 text-sm text-ink-variant">{copy.recoveryHint}</p><div className="mt-4 grid gap-2 sm:grid-cols-2">{recoveryCodes.map(value => <code key={value} className="rounded-lg bg-surface-container p-2 text-center text-xs font-bold text-ink">{value}</code>)}</div></div>}
         </div>
         <div className="p-5 sm:p-8">

@@ -24,6 +24,8 @@ public static class SecurityEndpoints
             http.GetUserId() is Guid userId ? (await service.ConfirmEnrollmentAsync(userId, request.Code, ct)).HandleServiceResponse() : Results.Unauthorized());
         account.MapPost("/mfa/disable", async (DisableMfaRequest request, HttpContext http, ISecurityService service, CancellationToken ct) =>
             http.GetUserId() is Guid userId ? (await service.DisableMfaAsync(userId, request.Code, ct)).HandleServiceResponse() : Results.Unauthorized());
+        account.MapPost("/mfa/recovery-codes", async (RegenerateMfaRecoveryCodesRequest request, HttpContext http, ISecurityService service, CancellationToken ct) =>
+            http.GetUserId() is Guid userId ? (await service.RegenerateRecoveryCodesAsync(userId, request.Code, ct)).HandleServiceResponse() : Results.Unauthorized());
         account.MapGet("/sessions", async (HttpContext http, ISecurityService service, CancellationToken ct) =>
             http.GetUserId() is Guid userId ? (await service.GetSessionsAsync(userId, http.Request.Cookies[RefreshCookieName], ct)).HandleServiceResponse() : Results.Unauthorized());
         account.MapDelete("/sessions/{id:guid}", async (Guid id, HttpContext http, ISecurityService service, CancellationToken ct) =>
@@ -34,6 +36,10 @@ public static class SecurityEndpoints
         var admin = app.MapGroup("/api/admin/security").WithTags("Administrative security").RequireAuthorization();
         admin.MapGet("/posture", async (HttpContext http, ISecurityService service, CancellationToken ct) =>
             !http.HasPermission(AdminPermissions.SecurityManage) ? Results.Forbid() : (await service.GetPostureAsync(ct)).HandleServiceResponse());
+        admin.MapGet("/sessions", async (HttpContext http, ISecurityService service, CancellationToken ct) =>
+            !http.HasPermission(AdminPermissions.SecurityManage) || http.GetUserId() is not Guid userId ? Results.Forbid() : (await service.GetAdminSessionsAsync(userId, ct)).HandleServiceResponse());
+        admin.MapDelete("/sessions/{id:guid}", async (Guid id, HttpContext http, ISecurityService service, CancellationToken ct) =>
+            !http.HasPermission(AdminPermissions.SecurityManage) || http.GetUserId() is not Guid userId ? Results.Forbid() : (await service.RevokeAdminSessionAsync(userId, id, http.Connection.RemoteIpAddress?.ToString(), ct)).HandleServiceResponse());
         admin.MapGet("/audit", async (int? page, int? pageSize, string? action, HttpContext http, ApplicationDbContext db, CancellationToken ct) =>
         {
             if (!http.HasPermission(AdminPermissions.SecurityManage)) return Results.Forbid();

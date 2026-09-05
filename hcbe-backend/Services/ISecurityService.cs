@@ -16,8 +16,11 @@ public interface ISecurityService
     Task<ApiResponse<MfaConfirmationDto>> ConfirmEnrollmentAsync(Guid userId, string code, CancellationToken cancellationToken = default);
     Task<ApiResponse<MfaStatusDto>> GetMfaStatusAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<ApiResponse<MfaStatusDto>> DisableMfaAsync(Guid userId, string code, CancellationToken cancellationToken = default);
+    Task<ApiResponse<MfaConfirmationDto>> RegenerateRecoveryCodesAsync(Guid userId, string code, CancellationToken cancellationToken = default);
     Task<ApiResponse<List<AccountSessionDto>>> GetSessionsAsync(Guid userId, string? currentRefreshToken, CancellationToken cancellationToken = default);
     Task<ApiResponse<bool>> RevokeSessionAsync(Guid userId, Guid sessionId, string? ipAddress, CancellationToken cancellationToken = default);
     Task<ApiResponse<int>> RevokeOtherSessionsAsync(Guid userId, string? currentRefreshToken, string? ipAddress, CancellationToken cancellationToken = default);
+    Task<ApiResponse<List<AdminAccountSessionDto>>> GetAdminSessionsAsync(Guid currentUserId, CancellationToken cancellationToken = default);
+    Task<ApiResponse<bool>> RevokeAdminSessionAsync(Guid currentUserId, Guid sessionId, string? ipAddress, CancellationToken cancellationToken = default);
     Task<ApiResponse<SecurityPostureDto>> GetPostureAsync(CancellationToken cancellationToken = default);
 }
