@@ -12,6 +12,7 @@ test('public home page renders the application shell', async ({ page }) => {
 test('PWA manifest, offline fallback and service worker are production-ready', async ({ page, request }) => {
   const manifestResponse = await request.get('/manifest.webmanifest');
   expect(manifestResponse.ok()).toBeTruthy();
+  expect(manifestResponse.headers()['content-type']).toMatch(/application\/(?:manifest\+json|json)/i);
   const manifest = await manifestResponse.json();
   expect(manifest.display).toBe('standalone');
   expect(manifest.icons).toEqual(expect.arrayContaining([
