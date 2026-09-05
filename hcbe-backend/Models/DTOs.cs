@@ -26,7 +26,9 @@ public record AuthResponse(
     string? Token,
     UserDto? User,
     bool MfaRequired = false,
-    string? MfaChallengeToken = null);
+    string? MfaChallengeToken = null,
+    string? MfaMethod = null,
+    string? MfaDestination = null);
 
 public sealed record AuthSession(string AccessToken, string RefreshToken, DateTime RefreshTokenExpiresAtUtc, User User);
 
@@ -37,12 +39,15 @@ public record UserDto(
     bool MfaEnabled = false);
 
 public record VerifyMfaRequest([Required] string ChallengeToken, [Required] string Code);
+public record ResendMfaCodeRequest([Required] string ChallengeToken);
+public record BeginMfaEnrollmentRequest([Required] string Method);
 public record ConfirmMfaEnrollmentRequest([Required] string Code);
 public record DisableMfaRequest([Required] string Code);
-public record MfaEnrollmentDto(string Secret, string OtpAuthUri);
-public record MfaStatusDto(bool Enabled, DateTime? EnabledAtUtc, int RecoveryCodesRemaining);
+public record MfaEnrollmentDto(string Method, string? Secret, string? OtpAuthUri, string? Destination, DateTime? ExpiresAtUtc);
+public record MfaStatusDto(bool Enabled, DateTime? EnabledAtUtc, int RecoveryCodesRemaining, string? Method);
 public record MfaConfirmationDto(MfaStatusDto Status, IReadOnlyList<string> RecoveryCodes);
 public record RegenerateMfaRecoveryCodesRequest([Required] string Code);
+public record MfaEmailCodeDto(string Destination, DateTime ExpiresAtUtc, int ResendAfterSeconds);
 public record AccountSessionDto(
     Guid Id, string DeviceName, string? IpAddress, DateTime CreatedAtUtc,
     DateTime? LastUsedAtUtc, DateTime ExpiresAtUtc, bool IsCurrent);

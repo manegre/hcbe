@@ -433,5 +433,6 @@ public sealed class FinanceServiceTests : IDisposable
         public RenderedEmail ServiceCaseUpdate(string? firstName, string ticketNumber, string subject, string status, string? message, string caseUrl) => Email("service");
         public RenderedEmail MembershipReminder(string? firstName, DateTime expiresAtUtc, string renewalUrl, bool expired) => Email("renewal");
         public RenderedEmail PaymentReceipt(string? name, string kind, long amountCents, string currency, string receiptNumber, string receiptUrl) => Email("receipt");
+        public RenderedEmail MfaVerificationCode(string? firstName, string code, int expiresInMinutes) => Email("mfa");
     }
 }

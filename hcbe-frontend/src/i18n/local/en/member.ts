@@ -1,6 +1,9 @@
 export default {
   'public.member.login.mfaTitle': 'Two-step verification',
   'public.member.login.mfaHint': 'Enter the code from your authenticator app or a recovery code.',
+  'public.member.login.mfaEmailHint': 'We sent a code to {{destination}}. It expires in 10 minutes.',
+  'public.member.login.mfaResend': 'Resend code',
+  'public.member.login.mfaResent': 'A new code has been sent.',
   'public.member.login.mfaCode': 'Security code',
   'public.member.login.mfaVerify': 'Verify my identity',
   'public.member.login.mfaBack': 'Back to sign in',

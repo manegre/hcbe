@@ -16,6 +16,7 @@ public sealed class SecurityServiceTests : IDisposable
     private readonly ApplicationDbContext db = TestDbContextFactory.CreateInMemoryContext();
     private readonly AuthService auth;
     private readonly SecurityService security;
+    private readonly RecordingEmailSender emailSender = new();
 
     public SecurityServiceTests()
     {
@@ -26,15 +27,15 @@ public sealed class SecurityServiceTests : IDisposable
             ["JwtSettings:ExpirationInMinutes"] = "15", ["JwtSettings:RefreshTokenExpirationInDays"] = "7"
         }).Build();
         auth = new AuthService(db, configuration);
-        security = new SecurityService(db, auth, new EphemeralDataProtectionProvider());
+        security = new SecurityService(db, auth, new EphemeralDataProtectionProvider(), emailSender, new TestEmailRenderer());
     }
 
     [Fact]
     public async Task Enrollment_EnablesTotpAndIssuesSingleUseRecoveryCodes()
     {
         var user = await AddUserAsync();
-        var enrollment = await security.BeginEnrollmentAsync(user.Id);
-        var confirmation = await security.ConfirmEnrollmentAsync(user.Id, CurrentTotp(enrollment.Data!.Secret));
+        var enrollment = await security.BeginEnrollmentAsync(user.Id, "Authenticator");
+        var confirmation = await security.ConfirmEnrollmentAsync(user.Id, CurrentTotp(enrollment.Data!.Secret!));
 
         confirmation.Success.Should().BeTrue();
         confirmation.Data!.Status.Enabled.Should().BeTrue();
@@ -67,9 +68,9 @@ public sealed class SecurityServiceTests : IDisposable
     public async Task RecoveryCodes_CanBeRegeneratedAndOldCodesBecomeInvalid()
     {
         var user = await AddUserAsync();
-        var enrollment = await security.BeginEnrollmentAsync(user.Id);
-        var first = await security.ConfirmEnrollmentAsync(user.Id, CurrentTotp(enrollment.Data!.Secret));
-        var regenerated = await security.RegenerateRecoveryCodesAsync(user.Id, CurrentTotp(enrollment.Data.Secret));
+        var enrollment = await security.BeginEnrollmentAsync(user.Id, "Authenticator");
+        var first = await security.ConfirmEnrollmentAsync(user.Id, CurrentTotp(enrollment.Data!.Secret!));
+        var regenerated = await security.RegenerateRecoveryCodesAsync(user.Id, CurrentTotp(enrollment.Data.Secret!));
 
         regenerated.Success.Should().BeTrue();
         regenerated.Data!.RecoveryCodes.Should().HaveCount(10).And.NotIntersectWith(first.Data!.RecoveryCodes);
@@ -101,6 +102,28 @@ public sealed class SecurityServiceTests : IDisposable
         posture.Data.OverdueAccessReviews.Should().Be(1);
     }
 
+    [Fact]
+    public async Task EmailEnrollment_SendsAndVerifiesOneTimeCode()
+    {
+        var user = await AddUserAsync();
+
+        var enrollment = await security.BeginEnrollmentAsync(user.Id, "Email");
+        enrollment.Success.Should().BeTrue();
+        enrollment.Data!.Method.Should().Be("Email");
+        enrollment.Data.Destination.Should().Contain("@");
+        emailSender.LastRecipient.Should().Be(user.Email);
+
+        var confirmation = await security.ConfirmEnrollmentAsync(user.Id, emailSender.LastBody!);
+        confirmation.Success.Should().BeTrue();
+        confirmation.Data!.Status.Method.Should().Be("Email");
+
+        var session = await auth.CreateSessionForUserAsync(user, null, null);
+        var challenge = await security.CompleteOrChallengeAsync(session, "password", null, null);
+        challenge.Method.Should().Be("Email");
+        emailSender.LastBody.Should().MatchRegex("^[0-9]{6}$");
+        (await security.VerifyChallengeAsync(challenge.ChallengeToken!, emailSender.LastBody!, null, null)).Should().NotBeNull();
+    }
+
     private async Task<User> AddUserAsync()
     {
         var user = new User { Email = $"user-{Guid.NewGuid():N}@hcbe.test", PasswordHash = BCrypt.Net.BCrypt.HashPassword("ValidPassword123!"), IsActive = true };
@@ -117,6 +140,37 @@ public sealed class SecurityServiceTests : IDisposable
         using var hmac = new HMACSHA1(output.ToArray()); var hash = hmac.ComputeHash(bytes.ToArray()); var offset = hash[^1] & 0x0f;
         var value = ((hash[offset] & 0x7f) << 24) | (hash[offset + 1] << 16) | (hash[offset + 2] << 8) | hash[offset + 3];
         return (value % 1_000_000).ToString("D6", CultureInfo.InvariantCulture);
+    }
+
+    private sealed class RecordingEmailSender : IEmailSender
+    {
+        public string? LastRecipient { get; private set; }
+        public string? LastBody { get; private set; }
+        public Task SendAsync(string recipient, string subject, string htmlBody, CancellationToken cancellationToken = default)
+        {
+            LastRecipient = recipient;
+            LastBody = htmlBody;
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class TestEmailRenderer : IEmailTemplateRenderer
+    {
+        private static RenderedEmail Empty() => new("test", "test");
+        public RenderedEmail MfaVerificationCode(string? firstName, string code, int expiresInMinutes) => new("code", code);
+        public RenderedEmail MemberOnboarding(string? firstName, string actionUrl) => Empty();
+        public RenderedEmail MemberWelcome(string? firstName, string memberSpaceUrl) => Empty();
+        public RenderedEmail AdminWelcome(string? firstName, string email, string temporaryPassword, string adminLoginUrl) => Empty();
+        public RenderedEmail AdminPromotion(string? firstName, string adminLoginUrl) => Empty();
+        public RenderedEmail PasswordReset(string? firstName, string resetUrl, int expiresInMinutes) => Empty();
+        public RenderedEmail PasswordChanged(string? firstName, string memberSpaceUrl) => Empty();
+        public RenderedEmail MembershipDecision(string? firstName, bool approved, string actionUrl) => Empty();
+        public RenderedEmail Newsletter(string subject, string body, string unsubscribeUrl, bool useEnglish) => Empty();
+        public RenderedEmail EventRegistrationUpdate(string? firstName, string eventTitle, DateTime eventDate, string status, string confirmationCode, string eventUrl) => Empty();
+        public RenderedEmail EventMessage(string? firstName, string eventTitle, string subject, string body, string eventUrl) => Empty();
+        public RenderedEmail ServiceCaseUpdate(string? firstName, string ticketNumber, string subject, string status, string? message, string caseUrl) => Empty();
+        public RenderedEmail PaymentReceipt(string? name, string kind, long amountCents, string currency, string receiptNumber, string receiptUrl) => Empty();
+        public RenderedEmail MembershipReminder(string? firstName, DateTime expiresAtUtc, string renewalUrl, bool expired) => Empty();
     }
 
     public void Dispose() => db.Dispose();

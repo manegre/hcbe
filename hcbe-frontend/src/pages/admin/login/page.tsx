@@ -40,9 +40,12 @@ export const AdminLoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [mfaChallenge, setMfaChallenge] = useState('');
   const [mfaCode, setMfaCode] = useState('');
+  const [mfaMethod, setMfaMethod] = useState<'Authenticator' | 'Email'>('Authenticator');
+  const [mfaDestination, setMfaDestination] = useState('');
+  const [mfaNotice, setMfaNotice] = useState('');
   const { t } = useTranslation();
 
-  const { login, googleAdminLogin, verifyMfa, logout } = useAuth();
+  const { login, googleAdminLogin, verifyMfa, resendMfaCode, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -75,6 +78,8 @@ export const AdminLoginPage = () => {
 
       if (result.mfaRequired && result.challengeToken) {
         setMfaChallenge(result.challengeToken);
+        setMfaMethod(result.mfaMethod ?? 'Authenticator');
+        setMfaDestination(result.mfaDestination ?? '');
       } else if (result.success) {
         finishAdminLogin();
       } else {
@@ -92,7 +97,11 @@ export const AdminLoginPage = () => {
     setIsGoogleLoading(true);
     try {
       const result = await googleAdminLogin(credential);
-      if (result.mfaRequired && result.challengeToken) setMfaChallenge(result.challengeToken);
+      if (result.mfaRequired && result.challengeToken) {
+        setMfaChallenge(result.challengeToken);
+        setMfaMethod(result.mfaMethod ?? 'Authenticator');
+        setMfaDestination(result.mfaDestination ?? '');
+      }
       else if (result.success) finishAdminLogin();
       else setError(mapGoogleLoginError(result.message, t));
     } catch {
@@ -113,6 +122,14 @@ export const AdminLoginPage = () => {
     const result = await verifyMfa(mfaChallenge, mfaCode);
     if (result.success) finishAdminLogin();
     else setError(t('admin.login.mfaInvalid'));
+    setIsLoading(false);
+  };
+
+  const handleMfaResend = async () => {
+    setError(''); setMfaNotice(''); setIsLoading(true);
+    const result = await resendMfaCode(mfaChallenge);
+    if (result.success) setMfaNotice(t('admin.login.mfaResent'));
+    else setError(result.message ?? t('admin.common.errorUnexpected'));
     setIsLoading(false);
   };
 
@@ -226,8 +243,9 @@ export const AdminLoginPage = () => {
                     <div className="rounded-2xl border border-green/15 bg-green/[.035] p-5">
                       <span className="flex h-11 w-11 items-center justify-center rounded-full bg-green text-gold"><i className="ri-shield-keyhole-line text-xl" aria-hidden="true" /></span>
                       <h3 className="mt-4 font-display text-xl font-bold text-green-deep">{t('admin.login.mfaTitle')}</h3>
-                      <p className="mt-2 text-sm leading-6 text-ink-variant">{t('admin.login.mfaHint')}</p>
+                      <p className="mt-2 text-sm leading-6 text-ink-variant">{mfaMethod === 'Email' ? t('admin.login.mfaEmailHint', { destination: mfaDestination }) : t('admin.login.mfaHint')}</p>
                     </div>
+                    {mfaNotice && <p role="status" className="rounded-xl border border-green/20 bg-green/5 px-4 py-3 text-sm font-semibold text-green">{mfaNotice}</p>}
                     <Field label={t('admin.login.mfaCode')} htmlFor="mfa-code" required>
                       <input id="mfa-code" value={mfaCode} onChange={(event) => setMfaCode(event.target.value)} inputMode="numeric" autoComplete="one-time-code" required autoFocus className={loginInputClasses.replace('pl-12', 'pl-4')} placeholder="000 000" />
                     </Field>
@@ -235,7 +253,8 @@ export const AdminLoginPage = () => {
                       {isLoading ? <i className="ri-loader-4-line animate-spin" aria-hidden="true" /> : <i className="ri-shield-check-line" aria-hidden="true" />}
                       {t('admin.login.mfaVerify')}
                     </Button>
-                    <button type="button" onClick={() => { setMfaChallenge(''); setMfaCode(''); }} className="min-h-11 text-sm font-semibold text-green hover:text-red-link">{t('admin.login.mfaBack')}</button>
+                    {mfaMethod === 'Email' && <button type="button" onClick={handleMfaResend} disabled={isLoading} className="min-h-11 text-sm font-semibold text-green hover:text-red-link disabled:opacity-50"><i className="ri-refresh-line mr-2" />{t('admin.login.mfaResend')}</button>}
+                    <button type="button" onClick={() => { setMfaChallenge(''); setMfaCode(''); setMfaNotice(''); }} className="min-h-11 text-sm font-semibold text-green hover:text-red-link">{t('admin.login.mfaBack')}</button>
                   </>
                 ) : <>
                 <GoogleSignInButton

@@ -13,37 +13,64 @@ namespace HcbeApi.Services;
 public sealed class SecurityService : ISecurityService
 {
     private const int ChallengeLifetimeMinutes = 5;
+    private const int EmailCodeLifetimeMinutes = 10;
+    private const int EmailCodeResendSeconds = 60;
     private const int StaleAdminSessionDays = 30;
     private readonly ApplicationDbContext _db;
     private readonly IAuthService _auth;
     private readonly IDataProtector _protector;
+    private readonly IEmailSender _emailSender;
+    private readonly IEmailTemplateRenderer _emailRenderer;
 
-    public SecurityService(ApplicationDbContext db, IAuthService auth, IDataProtectionProvider provider)
+    public SecurityService(
+        ApplicationDbContext db,
+        IAuthService auth,
+        IDataProtectionProvider provider,
+        IEmailSender emailSender,
+        IEmailTemplateRenderer emailRenderer)
     {
         _db = db;
         _auth = auth;
         _protector = provider.CreateProtector("HCBE.Security.MFA.v1");
+        _emailSender = emailSender;
+        _emailRenderer = emailRenderer;
     }
 
     public async Task<SecureLoginResult> CompleteOrChallengeAsync(AuthSession session, string method, string? ipAddress, string? userAgent, CancellationToken cancellationToken = default)
     {
-        if (session.User.MfaEnabledAtUtc is null || string.IsNullOrWhiteSpace(session.User.MfaSecretProtected))
+        if (session.User.MfaEnabledAtUtc is null)
             return new SecureLoginResult(session, null);
 
         await _auth.RevokeRefreshTokenAsync(session.RefreshToken, ipAddress);
         var rawToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48));
-        _db.MfaChallenges.Add(new MfaChallenge
+        var deliveryMethod = EffectiveMethod(session.User);
+        var code = deliveryMethod == "Email" ? NumericCode() : null;
+        var challenge = new MfaChallenge
         {
             UserId = session.User.Id,
             TokenHash = Hash(rawToken),
             AuthenticationMethod = string.IsNullOrWhiteSpace(method) ? "password" : method,
+            DeliveryMethod = deliveryMethod,
+            CodeHash = code is null ? null : Hash(code),
+            LastSentAtUtc = code is null ? null : DateTime.UtcNow,
             IpAddress = ipAddress,
             UserAgent = Trim(userAgent, 500),
-            ExpiresAtUtc = DateTime.UtcNow.AddMinutes(ChallengeLifetimeMinutes)
-        });
-        AddAudit(session.User, "MfaChallengeCreated", nameof(User), session.User.Id.ToString(), ipAddress, new { method });
+            ExpiresAtUtc = DateTime.UtcNow.AddMinutes(deliveryMethod == "Email" ? EmailCodeLifetimeMinutes : ChallengeLifetimeMinutes)
+        };
+        _db.MfaChallenges.Add(challenge);
+        AddAudit(session.User, "MfaChallengeCreated", nameof(User), session.User.Id.ToString(), ipAddress, new { method, deliveryMethod });
         await _db.SaveChangesAsync(cancellationToken);
-        return new SecureLoginResult(null, rawToken);
+        if (code is not null)
+        {
+            try { await SendEmailCodeAsync(session.User, code, cancellationToken); }
+            catch
+            {
+                challenge.ConsumedAtUtc = DateTime.UtcNow;
+                await _db.SaveChangesAsync(cancellationToken);
+                throw;
+            }
+        }
+        return new SecureLoginResult(null, rawToken, deliveryMethod, deliveryMethod == "Email" ? MaskEmail(session.User.Email) : null);
     }
 
     public async Task<AuthSession?> VerifyChallengeAsync(string challengeToken, string code, string? ipAddress, string? userAgent, CancellationToken cancellationToken = default)
@@ -55,7 +82,10 @@ public sealed class SecurityService : ISecurityService
         if (challenge is null || challenge.ConsumedAtUtc is not null || challenge.ExpiresAtUtc <= DateTime.UtcNow || challenge.FailedAttempts >= 5 || !challenge.User.IsActive)
             return null;
 
-        var valid = VerifyUserCode(challenge.User, code, consumeRecoveryCode: true);
+        var normalized = NormalizeCode(code);
+        var valid = challenge.DeliveryMethod == "Email"
+            ? VerifyHashedCode(challenge.CodeHash, normalized) || VerifyRecoveryCode(challenge.User, normalized, consume: true)
+            : VerifyUserCode(challenge.User, normalized, consumeRecoveryCode: true);
         if (!valid)
         {
             challenge.FailedAttempts++;
@@ -70,31 +100,80 @@ public sealed class SecurityService : ISecurityService
         return await _auth.CreateSessionForUserAsync(challenge.User, ipAddress, userAgent);
     }
 
-    public async Task<ApiResponse<MfaEnrollmentDto>> BeginEnrollmentAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<ApiResponse<SecureLoginResult>> ResendChallengeAsync(string challengeToken, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(challengeToken)) return ApiResponse<SecureLoginResult>.ErrorResponse("Invalid challenge");
+        var challenge = await _db.MfaChallenges.Include(item => item.User)
+            .SingleOrDefaultAsync(item => item.TokenHash == Hash(challengeToken), cancellationToken);
+        if (challenge is null || challenge.ConsumedAtUtc is not null || challenge.ExpiresAtUtc <= DateTime.UtcNow || challenge.DeliveryMethod != "Email")
+            return ApiResponse<SecureLoginResult>.ErrorResponse("Invalid or expired challenge");
+        var seconds = SecondsUntilResend(challenge.LastSentAtUtc);
+        if (seconds > 0) return ApiResponse<SecureLoginResult>.ErrorResponse($"Please wait {seconds} seconds before requesting another code");
+
+        var code = NumericCode();
+        challenge.CodeHash = Hash(code);
+        challenge.LastSentAtUtc = DateTime.UtcNow;
+        challenge.ExpiresAtUtc = DateTime.UtcNow.AddMinutes(EmailCodeLifetimeMinutes);
+        challenge.FailedAttempts = 0;
+        AddAudit(challenge.User, "MfaEmailCodeResent", nameof(User), challenge.UserId.ToString(), challenge.IpAddress, null);
+        await _db.SaveChangesAsync(cancellationToken);
+        await SendEmailCodeAsync(challenge.User, code, cancellationToken);
+        return ApiResponse<SecureLoginResult>.SuccessResponse(new SecureLoginResult(null, challengeToken, "Email", MaskEmail(challenge.User.Email)));
+    }
+
+    public async Task<ApiResponse<MfaEnrollmentDto>> BeginEnrollmentAsync(Guid userId, string method, CancellationToken cancellationToken = default)
     {
         var user = await _db.Users.FindAsync([userId], cancellationToken);
         if (user is null || !user.IsActive) return ApiResponse<MfaEnrollmentDto>.ErrorResponse("Account not found");
-        var secret = Base32Encode(RandomNumberGenerator.GetBytes(20));
-        user.MfaSecretProtected = _protector.Protect(secret);
+        if (user.MfaEnabledAtUtc is not null) return ApiResponse<MfaEnrollmentDto>.ErrorResponse("Disable the current verification method before choosing another one");
+        var normalizedMethod = NormalizeMethod(method);
+        if (normalizedMethod is null) return ApiResponse<MfaEnrollmentDto>.ErrorResponse("Invalid verification method");
+
+        user.MfaMethod = normalizedMethod;
         user.MfaEnabledAtUtc = null;
         user.MfaRecoveryCodesJson = null;
+        if (normalizedMethod == "Email")
+        {
+            if (user.MfaMethod == "Email")
+            {
+                var existing = ReadProtectedEmailCode(user.MfaSecretProtected);
+                var seconds = SecondsUntilResend(existing?.SentAtUtc);
+                if (seconds > 0) return ApiResponse<MfaEnrollmentDto>.ErrorResponse($"Please wait {seconds} seconds before requesting another code");
+            }
+            var code = NumericCode();
+            var expiresAt = DateTime.UtcNow.AddMinutes(EmailCodeLifetimeMinutes);
+            user.MfaSecretProtected = ProtectEmailCode(code, expiresAt, DateTime.UtcNow);
+            AddAudit(user, "MfaEnrollmentStarted", nameof(User), user.Id.ToString(), null, new { method = normalizedMethod });
+            await _db.SaveChangesAsync(cancellationToken);
+            await SendEmailCodeAsync(user, code, cancellationToken);
+            return ApiResponse<MfaEnrollmentDto>.SuccessResponse(new MfaEnrollmentDto(normalizedMethod, null, null, MaskEmail(user.Email), expiresAt));
+        }
+
+        var secret = Base32Encode(RandomNumberGenerator.GetBytes(20));
+        user.MfaSecretProtected = _protector.Protect(secret);
         var issuer = Uri.EscapeDataString("HCBE Canada");
         var label = Uri.EscapeDataString($"HCBE Canada:{user.Email}");
         var uri = $"otpauth://totp/{label}?secret={secret}&issuer={issuer}&algorithm=SHA1&digits=6&period=30";
-        AddAudit(user, "MfaEnrollmentStarted", nameof(User), user.Id.ToString(), null, null);
+        AddAudit(user, "MfaEnrollmentStarted", nameof(User), user.Id.ToString(), null, new { method = normalizedMethod });
         await _db.SaveChangesAsync(cancellationToken);
-        return ApiResponse<MfaEnrollmentDto>.SuccessResponse(new MfaEnrollmentDto(secret, uri));
+        return ApiResponse<MfaEnrollmentDto>.SuccessResponse(new MfaEnrollmentDto(normalizedMethod, secret, uri, null, null));
     }
 
     public async Task<ApiResponse<MfaConfirmationDto>> ConfirmEnrollmentAsync(Guid userId, string code, CancellationToken cancellationToken = default)
     {
         var user = await _db.Users.FindAsync([userId], cancellationToken);
-        if (user is null || string.IsNullOrWhiteSpace(user.MfaSecretProtected)) return ApiResponse<MfaConfirmationDto>.ErrorResponse("MFA enrollment has not been started");
-        if (!VerifyTotp(Unprotect(user.MfaSecretProtected), NormalizeCode(code))) return ApiResponse<MfaConfirmationDto>.ErrorResponse("Invalid verification code");
+        if (user is null || string.IsNullOrWhiteSpace(user.MfaSecretProtected) || user.MfaEnabledAtUtc is not null) return ApiResponse<MfaConfirmationDto>.ErrorResponse("MFA enrollment has not been started");
+        var normalized = NormalizeCode(code);
+        var valid = user.MfaMethod == "Email"
+            ? VerifyProtectedEmailCode(user.MfaSecretProtected, normalized)
+            : VerifyTotp(Unprotect(user.MfaSecretProtected), normalized);
+        if (!valid) return ApiResponse<MfaConfirmationDto>.ErrorResponse("Invalid or expired verification code");
 
         var recoveryCodes = Enumerable.Range(0, 10).Select(_ => RecoveryCode()).ToList();
         user.MfaRecoveryCodesJson = JsonSerializer.Serialize(recoveryCodes.Select(value => Hash(NormalizeCode(value))));
         user.MfaEnabledAtUtc = DateTime.UtcNow;
+        if (user.MfaMethod == "Email") user.MfaSecretProtected = null;
+        else user.MfaMethod = "Authenticator";
         foreach (var token in await _db.RefreshTokens.Where(item => item.UserId == userId && item.RevokedAtUtc == null).ToListAsync(cancellationToken))
             token.RevokedAtUtc = DateTime.UtcNow;
         AddAudit(user, "MfaEnabled", nameof(User), user.Id.ToString(), null, new { recoveryCodes = recoveryCodes.Count });
@@ -108,6 +187,24 @@ public sealed class SecurityService : ISecurityService
         return user is null ? ApiResponse<MfaStatusDto>.ErrorResponse("Account not found") : ApiResponse<MfaStatusDto>.SuccessResponse(Status(user));
     }
 
+    public async Task<ApiResponse<MfaEmailCodeDto>> SendAccountEmailCodeAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var user = await _db.Users.FindAsync([userId], cancellationToken);
+        if (user is null || user.MfaEnabledAtUtc is null || EffectiveMethod(user) != "Email")
+            return ApiResponse<MfaEmailCodeDto>.ErrorResponse("Email verification is not enabled");
+        var existing = ReadProtectedEmailCode(user.MfaSecretProtected);
+        var seconds = SecondsUntilResend(existing?.SentAtUtc);
+        if (seconds > 0) return ApiResponse<MfaEmailCodeDto>.ErrorResponse($"Please wait {seconds} seconds before requesting another code");
+
+        var code = NumericCode();
+        var expiresAt = DateTime.UtcNow.AddMinutes(EmailCodeLifetimeMinutes);
+        user.MfaSecretProtected = ProtectEmailCode(code, expiresAt, DateTime.UtcNow);
+        AddAudit(user, "MfaAccountEmailCodeSent", nameof(User), user.Id.ToString(), null, null);
+        await _db.SaveChangesAsync(cancellationToken);
+        await SendEmailCodeAsync(user, code, cancellationToken);
+        return ApiResponse<MfaEmailCodeDto>.SuccessResponse(new MfaEmailCodeDto(MaskEmail(user.Email), expiresAt, EmailCodeResendSeconds));
+    }
+
     public async Task<ApiResponse<MfaStatusDto>> DisableMfaAsync(Guid userId, string code, CancellationToken cancellationToken = default)
     {
         var user = await _db.Users.FindAsync([userId], cancellationToken);
@@ -116,6 +213,7 @@ public sealed class SecurityService : ISecurityService
         user.MfaSecretProtected = null;
         user.MfaRecoveryCodesJson = null;
         user.MfaEnabledAtUtc = null;
+        user.MfaMethod = null;
         foreach (var token in await _db.RefreshTokens.Where(item => item.UserId == userId && item.RevokedAtUtc == null).ToListAsync(cancellationToken))
             token.RevokedAtUtc = DateTime.UtcNow;
         AddAudit(user, "MfaDisabled", nameof(User), user.Id.ToString(), null, null);
@@ -214,11 +312,24 @@ public sealed class SecurityService : ISecurityService
     private bool VerifyUserCode(User user, string code, bool consumeRecoveryCode)
     {
         var normalized = NormalizeCode(code);
-        if (!string.IsNullOrWhiteSpace(user.MfaSecretProtected) && VerifyTotp(Unprotect(user.MfaSecretProtected), normalized)) return true;
+        if (EffectiveMethod(user) == "Email")
+        {
+            if (VerifyProtectedEmailCode(user.MfaSecretProtected, normalized))
+            {
+                user.MfaSecretProtected = null;
+                return true;
+            }
+        }
+        else if (!string.IsNullOrWhiteSpace(user.MfaSecretProtected) && VerifyTotp(Unprotect(user.MfaSecretProtected), normalized)) return true;
+        return VerifyRecoveryCode(user, normalized, consumeRecoveryCode);
+    }
+
+    private static bool VerifyRecoveryCode(User user, string normalized, bool consume)
+    {
         var hashes = RecoveryHashes(user);
         var match = hashes.FirstOrDefault(item => CryptographicOperations.FixedTimeEquals(Convert.FromHexString(item), Convert.FromHexString(Hash(normalized))));
         if (match is null) return false;
-        if (consumeRecoveryCode)
+        if (consume)
         {
             hashes.Remove(match);
             user.MfaRecoveryCodesJson = JsonSerializer.Serialize(hashes);
@@ -227,16 +338,63 @@ public sealed class SecurityService : ISecurityService
     }
 
     private string Unprotect(string value) => _protector.Unprotect(value);
-    private static MfaStatusDto Status(User user) => new(user.MfaEnabledAtUtc is not null, user.MfaEnabledAtUtc, RecoveryHashes(user).Count);
+    private static MfaStatusDto Status(User user) => new(user.MfaEnabledAtUtc is not null, user.MfaEnabledAtUtc, RecoveryHashes(user).Count, user.MfaEnabledAtUtc is null ? null : EffectiveMethod(user));
     private static List<string> RecoveryHashes(User user)
     {
         try { return string.IsNullOrWhiteSpace(user.MfaRecoveryCodesJson) ? [] : JsonSerializer.Deserialize<List<string>>(user.MfaRecoveryCodesJson) ?? []; }
         catch (JsonException) { return []; }
     }
     private static string NormalizeCode(string value) => value.Replace(" ", "").Replace("-", "").Trim().ToUpperInvariant();
+    private static string? NormalizeMethod(string? value) => value?.Trim().ToLowerInvariant() switch { "authenticator" => "Authenticator", "email" => "Email", _ => null };
+    private static string EffectiveMethod(User user) => user.MfaMethod == "Email" ? "Email" : "Authenticator";
+    private static string NumericCode() => RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6", CultureInfo.InvariantCulture);
     private static string RecoveryCode() => $"{Convert.ToHexString(RandomNumberGenerator.GetBytes(4))}-{Convert.ToHexString(RandomNumberGenerator.GetBytes(4))}";
     private static string Hash(string value) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
     private static string? Trim(string? value, int length) => string.IsNullOrWhiteSpace(value) ? null : value.Trim()[..Math.Min(length, value.Trim().Length)];
+
+    private string ProtectEmailCode(string code, DateTime expiresAtUtc, DateTime sentAtUtc) =>
+        _protector.Protect(JsonSerializer.Serialize(new EmailCodePayload(Hash(NormalizeCode(code)), expiresAtUtc, sentAtUtc)));
+
+    private EmailCodePayload? ReadProtectedEmailCode(string? protectedValue)
+    {
+        if (string.IsNullOrWhiteSpace(protectedValue)) return null;
+        try { return JsonSerializer.Deserialize<EmailCodePayload>(_protector.Unprotect(protectedValue)); }
+        catch (Exception exception) when (exception is CryptographicException or JsonException) { return null; }
+    }
+
+    private bool VerifyProtectedEmailCode(string? protectedValue, string code)
+    {
+        var payload = ReadProtectedEmailCode(protectedValue);
+        return payload is not null && payload.ExpiresAtUtc > DateTime.UtcNow && VerifyHashedCode(payload.CodeHash, code);
+    }
+
+    private static bool VerifyHashedCode(string? expectedHash, string code)
+    {
+        if (string.IsNullOrWhiteSpace(expectedHash) || code.Length != 6 || !code.All(char.IsDigit)) return false;
+        return CryptographicOperations.FixedTimeEquals(Convert.FromHexString(expectedHash), Convert.FromHexString(Hash(code)));
+    }
+
+    private static int SecondsUntilResend(DateTime? sentAtUtc)
+    {
+        if (sentAtUtc is null) return 0;
+        return Math.Max(0, (int)Math.Ceiling((sentAtUtc.Value.AddSeconds(EmailCodeResendSeconds) - DateTime.UtcNow).TotalSeconds));
+    }
+
+    private async Task SendEmailCodeAsync(User user, string code, CancellationToken cancellationToken)
+    {
+        var email = _emailRenderer.MfaVerificationCode(user.FirstName, code, EmailCodeLifetimeMinutes);
+        await _emailSender.SendAsync(user.Email, email.Subject, email.HtmlBody, cancellationToken);
+    }
+
+    private static string MaskEmail(string email)
+    {
+        var at = email.IndexOf('@');
+        if (at <= 0) return email;
+        var visible = Math.Min(2, at);
+        return $"{email[..visible]}{new string('•', Math.Max(3, at - visible))}{email[at..]}";
+    }
+
+    private sealed record EmailCodePayload(string CodeHash, DateTime ExpiresAtUtc, DateTime SentAtUtc);
 
     private static bool VerifyTotp(string secret, string code)
     {

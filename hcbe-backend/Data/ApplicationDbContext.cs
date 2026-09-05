@@ -131,6 +131,7 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<User>().Property(u => u.AdminPermissions).HasMaxLength(1000);
         modelBuilder.Entity<User>().Property(u => u.MfaSecretProtected).HasMaxLength(2000);
         modelBuilder.Entity<User>().Property(u => u.MfaRecoveryCodesJson).HasMaxLength(4000);
+        modelBuilder.Entity<User>().Property(u => u.MfaMethod).HasMaxLength(30);
 
         modelBuilder.Entity<MemberPreference>().HasKey(item => item.UserId);
         modelBuilder.Entity<MemberPreference>()
@@ -179,6 +180,8 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<MfaChallenge>().HasIndex(item => new { item.UserId, item.ExpiresAtUtc });
         modelBuilder.Entity<MfaChallenge>().Property(item => item.TokenHash).HasMaxLength(64);
         modelBuilder.Entity<MfaChallenge>().Property(item => item.AuthenticationMethod).HasMaxLength(30);
+        modelBuilder.Entity<MfaChallenge>().Property(item => item.DeliveryMethod).HasMaxLength(30);
+        modelBuilder.Entity<MfaChallenge>().Property(item => item.CodeHash).HasMaxLength(64);
         modelBuilder.Entity<MfaChallenge>().Property(item => item.IpAddress).HasMaxLength(100);
         modelBuilder.Entity<MfaChallenge>().Property(item => item.UserAgent).HasMaxLength(500);
 

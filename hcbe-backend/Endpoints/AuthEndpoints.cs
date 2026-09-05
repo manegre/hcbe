@@ -32,7 +32,7 @@ public static class AuthEndpoints
             }
 
             var secured = await securityService.CompleteOrChallengeAsync(session, "password", context.Connection.RemoteIpAddress?.ToString(), context.Request.Headers.UserAgent.ToString());
-            if (secured.RequiresMfa) return Results.Ok(ApiResponse<AuthResponse>.SuccessResponse(new AuthResponse(null, null, true, secured.ChallengeToken)));
+            if (secured.RequiresMfa) return Results.Ok(ApiResponse<AuthResponse>.SuccessResponse(new AuthResponse(null, null, true, secured.ChallengeToken, secured.Method, secured.Destination)));
             session = secured.Session!;
             SetRefreshCookie(context, environment, session.RefreshToken, session.RefreshTokenExpiresAtUtc);
             var user = session.User;
@@ -84,7 +84,7 @@ public static class AuthEndpoints
             }
 
             var secured = await securityService.CompleteOrChallengeAsync(session, "google", context.Connection.RemoteIpAddress?.ToString(), context.Request.Headers.UserAgent.ToString(), cancellationToken);
-            if (secured.RequiresMfa) return Results.Ok(ApiResponse<AuthResponse>.SuccessResponse(new AuthResponse(null, null, true, secured.ChallengeToken)));
+            if (secured.RequiresMfa) return Results.Ok(ApiResponse<AuthResponse>.SuccessResponse(new AuthResponse(null, null, true, secured.ChallengeToken, secured.Method, secured.Destination)));
             session = secured.Session!;
             SetRefreshCookie(context, environment, session.RefreshToken, session.RefreshTokenExpiresAtUtc);
             var user = session.User;
@@ -138,7 +138,7 @@ public static class AuthEndpoints
             }
 
             var secured = await securityService.CompleteOrChallengeAsync(session, "google", context.Connection.RemoteIpAddress?.ToString(), context.Request.Headers.UserAgent.ToString(), cancellationToken);
-            if (secured.RequiresMfa) return Results.Ok(ApiResponse<AuthResponse>.SuccessResponse(new AuthResponse(null, null, true, secured.ChallengeToken)));
+            if (secured.RequiresMfa) return Results.Ok(ApiResponse<AuthResponse>.SuccessResponse(new AuthResponse(null, null, true, secured.ChallengeToken, secured.Method, secured.Destination)));
             session = secured.Session!;
             SetRefreshCookie(context, environment, session.RefreshToken, session.RefreshTokenExpiresAtUtc);
             var user = session.User;
@@ -219,6 +219,20 @@ public static class AuthEndpoints
             return Results.Ok(ApiResponse<AuthResponse>.SuccessResponse(new AuthResponse(session.AccessToken, MapUser(session.User))));
         })
         .WithName("VerifyMfaChallenge")
+        .AllowAnonymous()
+        .RequireRateLimiting("Authentication");
+
+        group.MapPost("/mfa/resend", async (
+            ResendMfaCodeRequest request,
+            ISecurityService securityService,
+            CancellationToken cancellationToken) =>
+        {
+            var result = await securityService.ResendChallengeAsync(request.ChallengeToken, cancellationToken);
+            if (!result.Success || result.Data is null) return Results.BadRequest(result);
+            var secured = result.Data;
+            return Results.Ok(ApiResponse<AuthResponse>.SuccessResponse(new AuthResponse(null, null, true, secured.ChallengeToken, secured.Method, secured.Destination)));
+        })
+        .WithName("ResendMfaEmailCode")
         .AllowAnonymous()
         .RequireRateLimiting("Authentication");
 

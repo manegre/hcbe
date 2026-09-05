@@ -222,6 +222,23 @@ public sealed class EmailTemplateRenderer(IConfiguration configuration) : IEmail
         return new RenderedEmail("[HCBE Canada] Renouvellement de votre adhésion", Layout("Votre adhésion HCBE Canada doit être renouvelée.", "Adhésion", expired ? "Renouvelez votre adhésion" : "Votre échéance approche", body, "Gérer mon adhésion", renewalUrl));
     }
 
+    public RenderedEmail MfaVerificationCode(string? firstName, string code, int expiresInMinutes)
+    {
+        var body = $"""
+            <p style="margin:0 0 18px;font-size:16px;line-height:1.75;color:{Ink};">Bonjour {GreetingName(firstName)}, utilisez ce code pour confirmer votre identité sur HCBE Canada.</p>
+            <div style="margin:24px 0;padding:24px;border:1px solid {Line};border-left:5px solid {Gold};background:#f5f7f3;text-align:center;">
+              <p style="margin:0 0 9px;font-family:Verdana,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:{Muted};">Code de sécurité · Security code</p>
+              <strong style="display:block;font-family:Consolas,'Courier New',monospace;font-size:34px;line-height:1.2;letter-spacing:.2em;color:{GreenDark};">{Encode(code)}</strong>
+            </div>
+            {Callout("Code temporaire", $"Ce code expire dans {expiresInMinutes} minutes et ne peut être utilisé qu’une seule fois.")}
+            <p style="margin:20px 0 0;font-size:14px;line-height:1.7;color:{Muted};">Vous n’avez pas demandé ce code? Ne le partagez pas et modifiez votre mot de passe si vous soupçonnez une tentative d’accès.</p>
+            <p style="margin:9px 0 0;font-size:13px;line-height:1.65;color:{Muted};">This code expires in {expiresInMinutes} minutes. Never share it with anyone.</p>
+            """;
+        return new RenderedEmail(
+            "[HCBE Canada] Votre code de sécurité / Security code",
+            Layout("Votre code de vérification HCBE Canada.", "Sécurité du compte", "Confirmez votre identité", body, null, null, securityNotice: true));
+    }
+
     private string Layout(
         string preheader,
         string eyebrow,

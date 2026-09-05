@@ -17,11 +17,15 @@ export interface AuthResponse {
   user?: User;
   mfaRequired: boolean;
   mfaChallengeToken?: string;
+  mfaMethod?: 'Authenticator' | 'Email';
+  mfaDestination?: string;
 }
 
-export interface MfaStatus { enabled: boolean; enabledAtUtc?: string; recoveryCodesRemaining: number; }
-export interface MfaEnrollment { secret: string; otpAuthUri: string; }
+export type MfaMethod = 'Authenticator' | 'Email';
+export interface MfaStatus { enabled: boolean; enabledAtUtc?: string; recoveryCodesRemaining: number; method?: MfaMethod; }
+export interface MfaEnrollment { method: MfaMethod; secret?: string; otpAuthUri?: string; destination?: string; expiresAtUtc?: string; }
 export interface MfaConfirmation { status: MfaStatus; recoveryCodes: string[]; }
+export interface MfaEmailCode { destination: string; expiresAtUtc: string; resendAfterSeconds: number; }
 export interface AccountSession { id: string; deviceName: string; ipAddress?: string; createdAtUtc: string; lastUsedAtUtc?: string; expiresAtUtc: string; isCurrent: boolean; }
 export interface AdminAccountSession { id: string; userId: string; userEmail: string; userName: string; deviceName: string; ipAddress?: string; createdAtUtc: string; lastUsedAtUtc?: string; expiresAtUtc: string; isCurrentUser: boolean; }
 export interface SecurityPosture { activeAdmins: number; adminsWithMfa: number; activeSessions: number; openIncidents: number; overdueAccessReviews: number; oldestOpenIncidentAtUtc?: string; adminsWithoutMfa: number; staleAdminSessions: number; }

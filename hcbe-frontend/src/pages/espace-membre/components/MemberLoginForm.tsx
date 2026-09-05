@@ -28,7 +28,7 @@ interface MemberLoginFormProps {
 const MemberLoginForm = ({ mode = 'login', embedded = false }: MemberLoginFormProps) => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const { user, login, googleMemberLogin, verifyMfa, logout } = useAuth();
+  const { user, login, googleMemberLogin, verifyMfa, resendMfaCode, logout } = useAuth();
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [member, setMember] = useState<MemberDto | null>(null);
   const [memberLoading, setMemberLoading] = useState(false);
@@ -37,6 +37,8 @@ const MemberLoginForm = ({ mode = 'login', embedded = false }: MemberLoginFormPr
   const [resetPassword, setResetPassword] = useState('');
   const [mfaChallenge, setMfaChallenge] = useState('');
   const [mfaCode, setMfaCode] = useState('');
+  const [mfaMethod, setMfaMethod] = useState<'Authenticator' | 'Email'>('Authenticator');
+  const [mfaDestination, setMfaDestination] = useState('');
   const [profileData, setProfileData] = useState({
     firstName: '', lastName: '', phone: '', city: '', province: '', profession: '',
     expertise: '', interests: '', availability: '',
@@ -94,6 +96,8 @@ const MemberLoginForm = ({ mode = 'login', embedded = false }: MemberLoginFormPr
     const storedUser = JSON.parse(localStorage.getItem('hcbe_user') || 'null');
     if (result.mfaRequired && result.challengeToken) {
       setMfaChallenge(result.challengeToken);
+      setMfaMethod(result.mfaMethod ?? 'Authenticator');
+      setMfaDestination(result.mfaDestination ?? '');
     } else if (!result.success) {
       setStatus(result.message || t('public.member.login.error'));
     } else if (storedUser?.mustChangePassword) {
@@ -113,6 +117,8 @@ const MemberLoginForm = ({ mode = 'login', embedded = false }: MemberLoginFormPr
     const result = await googleMemberLogin(credential);
     if (result.mfaRequired && result.challengeToken) {
       setMfaChallenge(result.challengeToken);
+      setMfaMethod(result.mfaMethod ?? 'Authenticator');
+      setMfaDestination(result.mfaDestination ?? '');
     } else if (!result.success) {
       const normalized = (result.message ?? '').toLowerCase();
       setStatus(
@@ -135,6 +141,13 @@ const MemberLoginForm = ({ mode = 'login', embedded = false }: MemberLoginFormPr
     const result = await verifyMfa(mfaChallenge, mfaCode);
     if (!result.success) setStatus(t('public.member.login.mfaInvalid'));
     else if (safeReturnTo) navigate(safeReturnTo);
+    setSubmitting(false);
+  };
+
+  const handleMfaResend = async () => {
+    setSubmitting(true); setStatus(null);
+    const result = await resendMfaCode(mfaChallenge);
+    setStatus(result.success ? t('public.member.login.mfaResent') : result.message || t('public.member.login.error'));
     setSubmitting(false);
   };
 
@@ -399,11 +412,12 @@ const MemberLoginForm = ({ mode = 'login', embedded = false }: MemberLoginFormPr
       )}
 
       {mfaChallenge && <form className="space-y-5" onSubmit={handleMfaSubmit}>
-        <div className="rounded-2xl border border-green/15 bg-green/[.04] p-5"><i className="ri-shield-keyhole-line text-2xl text-green" /><h3 className="mt-3 font-display text-xl font-bold text-green-deep">{t('public.member.login.mfaTitle')}</h3><p className="mt-2 text-sm leading-6 text-ink-variant">{t('public.member.login.mfaHint')}</p></div>
+        <div className="rounded-2xl border border-green/15 bg-green/[.04] p-5"><i className={`${mfaMethod === 'Email' ? 'ri-mail-check-line' : 'ri-shield-keyhole-line'} text-2xl text-green`} /><h3 className="mt-3 font-display text-xl font-bold text-green-deep">{t('public.member.login.mfaTitle')}</h3><p className="mt-2 text-sm leading-6 text-ink-variant">{mfaMethod === 'Email' ? t('public.member.login.mfaEmailHint', { destination: mfaDestination }) : t('public.member.login.mfaHint')}</p></div>
         <Field label={t('public.member.login.mfaCode')} htmlFor="member-mfa-code" required><input id="member-mfa-code" value={mfaCode} onChange={e => setMfaCode(e.target.value)} inputMode="numeric" autoComplete="one-time-code" className={inputClasses} autoFocus required placeholder="000 000" /></Field>
-        {status && <p className="border border-error/30 bg-error/5 p-3 text-sm text-error">{status}</p>}
+        {status && <p role="status" className="rounded-xl border border-green/20 bg-green/5 p-3 text-sm font-semibold text-green">{status}</p>}
         <Button type="submit" variant="secondary" className="w-full" disabled={submitting || mfaCode.trim().length < 6}><i className="ri-shield-check-line" />{t('public.member.login.mfaVerify')}</Button>
-        <button type="button" className="min-h-11 w-full text-sm font-semibold text-green" onClick={() => { setMfaChallenge(''); setMfaCode(''); }}>{t('public.member.login.mfaBack')}</button>
+        {mfaMethod === 'Email' && <button type="button" disabled={submitting} className="min-h-11 w-full text-sm font-semibold text-green disabled:opacity-50" onClick={handleMfaResend}><i className="ri-refresh-line mr-2" />{t('public.member.login.mfaResend')}</button>}
+        <button type="button" className="min-h-11 w-full text-sm font-semibold text-green" onClick={() => { setMfaChallenge(''); setMfaCode(''); setStatus(null); }}>{t('public.member.login.mfaBack')}</button>
       </form>}
 
       {!mfaChallenge && !signupMode && <form className="space-y-5" onSubmit={handleSubmit}>

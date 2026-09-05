@@ -39,6 +39,10 @@ export const authApi = {
     return apiClient.post<AuthResponse>('/api/auth/mfa/verify', { challengeToken, code }, false);
   },
 
+  async resendMfaCode(challengeToken: string): Promise<ApiResponse<AuthResponse>> {
+    return apiClient.post<AuthResponse>('/api/auth/mfa/resend', { challengeToken }, false);
+  },
+
   logout(): void {
     void apiClient.post<void>('/api/auth/logout', undefined, false).catch(() => undefined);
     localStorage.removeItem('hcbe_token');

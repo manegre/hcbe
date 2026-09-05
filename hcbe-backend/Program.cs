@@ -1497,6 +1497,7 @@ static void EnsureSqliteSecuritySchema(ApplicationDbContext context)
     try { context.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN MfaSecretProtected TEXT"); } catch { }
     try { context.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN MfaRecoveryCodesJson TEXT"); } catch { }
     try { context.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN MfaEnabledAtUtc TEXT"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN MfaMethod TEXT"); } catch { }
     context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS MemberPreferences (
         UserId TEXT NOT NULL PRIMARY KEY, PreferredLanguage TEXT NOT NULL DEFAULT 'fr', TimeZone TEXT NOT NULL DEFAULT 'America/Toronto',
         EmailEvents INTEGER NOT NULL DEFAULT 0, EmailOpportunities INTEGER NOT NULL DEFAULT 0,
@@ -1704,6 +1705,9 @@ static void EnsureSqliteSecuritySchema(ApplicationDbContext context)
     )");
     context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_MfaChallenges_TokenHash ON MfaChallenges(TokenHash)");
     context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_MfaChallenges_UserId_ExpiresAtUtc ON MfaChallenges(UserId, ExpiresAtUtc)");
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE MfaChallenges ADD COLUMN DeliveryMethod TEXT NOT NULL DEFAULT 'Authenticator'"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE MfaChallenges ADD COLUMN CodeHash TEXT"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE MfaChallenges ADD COLUMN LastSentAtUtc TEXT"); } catch { }
 
     context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS SecurityIncidents (
         Id TEXT PRIMARY KEY, ReferenceNumber TEXT NOT NULL, Title TEXT NOT NULL, Description TEXT NOT NULL,

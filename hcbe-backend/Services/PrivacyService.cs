@@ -330,6 +330,7 @@ public sealed class PrivacyService(
         user.MfaSecretProtected = null;
         user.MfaRecoveryCodesJson = null;
         user.MfaEnabledAtUtc = null;
+        user.MfaMethod = null;
 
         if (memberId != null)
         {

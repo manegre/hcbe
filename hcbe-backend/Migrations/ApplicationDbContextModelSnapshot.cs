@@ -2327,11 +2327,20 @@ namespace HcbeApi.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
+                    b.Property<string>("CodeHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
                     b.Property<DateTime?>("ConsumedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeliveryMethod")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
 
                     b.Property<DateTime>("ExpiresAtUtc")
                         .HasColumnType("timestamp with time zone");
@@ -2342,6 +2351,9 @@ namespace HcbeApi.Migrations
                     b.Property<string>("IpAddress")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("LastSentAtUtc")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("TokenHash")
                         .IsRequired()
@@ -4002,6 +4014,10 @@ namespace HcbeApi.Migrations
 
                     b.Property<DateTime?>("MfaEnabledAtUtc")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("MfaMethod")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("MfaRecoveryCodesJson")
                         .HasMaxLength(4000)

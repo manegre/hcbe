@@ -11,12 +11,13 @@ interface AuthContextType {
   googleAdminLogin: (credential: string) => Promise<LoginResult>;
   googleMemberLogin: (credential: string) => Promise<LoginResult>;
   verifyMfa: (challengeToken: string, code: string) => Promise<LoginResult>;
+  resendMfaCode: (challengeToken: string) => Promise<LoginResult>;
   completeRequiredPasswordChange: (password: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
   checkAuth: () => Promise<void>;
 }
 
-interface LoginResult { success: boolean; message?: string; mfaRequired?: boolean; challengeToken?: string; }
+interface LoginResult { success: boolean; message?: string; mfaRequired?: boolean; challengeToken?: string; mfaMethod?: 'Authenticator' | 'Email'; mfaDestination?: string; }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -43,11 +44,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await authApi.login(email, password);
       
-      if (response.success && response.data) {
+      if (response.success && response.data?.mfaRequired) {
+        return { success: false, mfaRequired: true, challengeToken: response.data.mfaChallengeToken, mfaMethod: response.data.mfaMethod, mfaDestination: response.data.mfaDestination };
+      }
+      if (response.success && response.data?.token && response.data.user) {
         const { token, user } = response.data;
-        localStorage.setItem('hcbe_token', token);
-        localStorage.setItem('hcbe_user', JSON.stringify(user));
-        setUser(user);
+        storeSession(token, user);
         return { success: true };
       } else {
         return { success: false, message: response.message || 'Login failed' };
@@ -69,7 +71,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await authApi.googleAdminLogin(credential);
       if (response.success && response.data?.mfaRequired) {
-        return { success: false, mfaRequired: true, challengeToken: response.data.mfaChallengeToken };
+        return { success: false, mfaRequired: true, challengeToken: response.data.mfaChallengeToken, mfaMethod: response.data.mfaMethod, mfaDestination: response.data.mfaDestination };
       }
       if (response.success && response.data?.token && response.data.user) {
         storeSession(response.data.token, response.data.user);
@@ -89,7 +91,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const googleMemberLogin = async (credential: string) => {
     try {
       const response = await authApi.googleMemberLogin(credential);
-      if (response.success && response.data?.mfaRequired) return { success: false, mfaRequired: true, challengeToken: response.data.mfaChallengeToken };
+      if (response.success && response.data?.mfaRequired) return { success: false, mfaRequired: true, challengeToken: response.data.mfaChallengeToken, mfaMethod: response.data.mfaMethod, mfaDestination: response.data.mfaDestination };
       if (response.success && response.data?.token && response.data.user) {
         storeSession(response.data.token, response.data.user);
         return { success: true };
@@ -133,6 +135,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return { success: false, message: response.message || 'Verification failed' };
     } catch (error) {
       return { success: false, message: error instanceof Error ? error.message : 'Verification failed' };
+    }
+  };
+
+  const resendMfaCode = async (challengeToken: string): Promise<LoginResult> => {
+    try {
+      const response = await authApi.resendMfaCode(challengeToken);
+      if (response.success && response.data) {
+        return { success: true, mfaRequired: true, challengeToken: response.data.mfaChallengeToken, mfaMethod: response.data.mfaMethod, mfaDestination: response.data.mfaDestination };
+      }
+      return { success: false, message: response.message || 'Unable to send another code' };
+    } catch (error) {
+      return { success: false, message: error instanceof Error ? error.message : 'Unable to send another code' };
     }
   };
 
@@ -193,6 +207,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     googleAdminLogin,
     googleMemberLogin,
     verifyMfa,
+    resendMfaCode,
     completeRequiredPasswordChange,
     logout,
     checkAuth

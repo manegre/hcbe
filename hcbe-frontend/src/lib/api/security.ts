@@ -1,12 +1,13 @@
 import { apiClient } from './client';
-import type { AccountSession, AdminAccountSession, AuditLog, MfaConfirmation, MfaEnrollment, MfaStatus, SecurityIncident, SecurityPosture } from './types';
+import type { AccountSession, AdminAccountSession, AuditLog, MfaConfirmation, MfaEmailCode, MfaEnrollment, MfaMethod, MfaStatus, SecurityIncident, SecurityPosture } from './types';
 
 export const securityApi = {
   getMfaStatus: () => apiClient.get<MfaStatus>('/api/security/mfa'),
-  beginMfaEnrollment: () => apiClient.post<MfaEnrollment>('/api/security/mfa/enroll'),
+  beginMfaEnrollment: (method: MfaMethod) => apiClient.post<MfaEnrollment>('/api/security/mfa/enroll', { method }),
   confirmMfaEnrollment: (code: string) => apiClient.post<MfaConfirmation>('/api/security/mfa/confirm', { code }),
   disableMfa: (code: string) => apiClient.post<MfaStatus>('/api/security/mfa/disable', { code }),
   regenerateRecoveryCodes: (code: string) => apiClient.post<MfaConfirmation>('/api/security/mfa/recovery-codes', { code }),
+  sendMfaEmailCode: () => apiClient.post<MfaEmailCode>('/api/security/mfa/email-code'),
   getSessions: () => apiClient.get<AccountSession[]>('/api/security/sessions'),
   revokeSession: (id: string) => apiClient.delete<boolean>(`/api/security/sessions/${id}`),
   revokeOtherSessions: () => apiClient.post<number>('/api/security/sessions/revoke-others'),

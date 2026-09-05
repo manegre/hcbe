@@ -3,7 +3,7 @@ using HcbeApi.Helpers;
 
 namespace HcbeApi.Services;
 
-public sealed record SecureLoginResult(AuthSession? Session, string? ChallengeToken)
+public sealed record SecureLoginResult(AuthSession? Session, string? ChallengeToken, string? Method = null, string? Destination = null)
 {
     public bool RequiresMfa => ChallengeToken is not null;
 }
@@ -12,9 +12,11 @@ public interface ISecurityService
 {
     Task<SecureLoginResult> CompleteOrChallengeAsync(AuthSession session, string method, string? ipAddress, string? userAgent, CancellationToken cancellationToken = default);
     Task<AuthSession?> VerifyChallengeAsync(string challengeToken, string code, string? ipAddress, string? userAgent, CancellationToken cancellationToken = default);
-    Task<ApiResponse<MfaEnrollmentDto>> BeginEnrollmentAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<ApiResponse<SecureLoginResult>> ResendChallengeAsync(string challengeToken, CancellationToken cancellationToken = default);
+    Task<ApiResponse<MfaEnrollmentDto>> BeginEnrollmentAsync(Guid userId, string method, CancellationToken cancellationToken = default);
     Task<ApiResponse<MfaConfirmationDto>> ConfirmEnrollmentAsync(Guid userId, string code, CancellationToken cancellationToken = default);
     Task<ApiResponse<MfaStatusDto>> GetMfaStatusAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<ApiResponse<MfaEmailCodeDto>> SendAccountEmailCodeAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<ApiResponse<MfaStatusDto>> DisableMfaAsync(Guid userId, string code, CancellationToken cancellationToken = default);
     Task<ApiResponse<MfaConfirmationDto>> RegenerateRecoveryCodesAsync(Guid userId, string code, CancellationToken cancellationToken = default);
     Task<ApiResponse<List<AccountSessionDto>>> GetSessionsAsync(Guid userId, string? currentRefreshToken, CancellationToken cancellationToken = default);

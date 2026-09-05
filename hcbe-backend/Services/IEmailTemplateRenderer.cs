@@ -17,4 +17,5 @@ public interface IEmailTemplateRenderer
     RenderedEmail ServiceCaseUpdate(string? firstName, string ticketNumber, string subject, string status, string? message, string caseUrl);
     RenderedEmail PaymentReceipt(string? name, string kind, long amountCents, string currency, string receiptNumber, string receiptUrl);
     RenderedEmail MembershipReminder(string? firstName, DateTime expiresAtUtc, string renewalUrl, bool expired);
+    RenderedEmail MfaVerificationCode(string? firstName, string code, int expiresInMinutes);
 }

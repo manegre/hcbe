@@ -18,14 +18,16 @@ public static class SecurityEndpoints
 
         account.MapGet("/mfa", async (HttpContext http, ISecurityService service, CancellationToken ct) =>
             http.GetUserId() is Guid userId ? (await service.GetMfaStatusAsync(userId, ct)).HandleServiceResponse() : Results.Unauthorized());
-        account.MapPost("/mfa/enroll", async (HttpContext http, ISecurityService service, CancellationToken ct) =>
-            http.GetUserId() is Guid userId ? (await service.BeginEnrollmentAsync(userId, ct)).HandleServiceResponse() : Results.Unauthorized());
+        account.MapPost("/mfa/enroll", async (BeginMfaEnrollmentRequest request, HttpContext http, ISecurityService service, CancellationToken ct) =>
+            http.GetUserId() is Guid userId ? (await service.BeginEnrollmentAsync(userId, request.Method, ct)).HandleServiceResponse() : Results.Unauthorized());
         account.MapPost("/mfa/confirm", async (ConfirmMfaEnrollmentRequest request, HttpContext http, ISecurityService service, CancellationToken ct) =>
             http.GetUserId() is Guid userId ? (await service.ConfirmEnrollmentAsync(userId, request.Code, ct)).HandleServiceResponse() : Results.Unauthorized());
         account.MapPost("/mfa/disable", async (DisableMfaRequest request, HttpContext http, ISecurityService service, CancellationToken ct) =>
             http.GetUserId() is Guid userId ? (await service.DisableMfaAsync(userId, request.Code, ct)).HandleServiceResponse() : Results.Unauthorized());
         account.MapPost("/mfa/recovery-codes", async (RegenerateMfaRecoveryCodesRequest request, HttpContext http, ISecurityService service, CancellationToken ct) =>
             http.GetUserId() is Guid userId ? (await service.RegenerateRecoveryCodesAsync(userId, request.Code, ct)).HandleServiceResponse() : Results.Unauthorized());
+        account.MapPost("/mfa/email-code", async (HttpContext http, ISecurityService service, CancellationToken ct) =>
+            http.GetUserId() is Guid userId ? (await service.SendAccountEmailCodeAsync(userId, ct)).HandleServiceResponse() : Results.Unauthorized());
         account.MapGet("/sessions", async (HttpContext http, ISecurityService service, CancellationToken ct) =>
             http.GetUserId() is Guid userId ? (await service.GetSessionsAsync(userId, http.Request.Cookies[RefreshCookieName], ct)).HandleServiceResponse() : Results.Unauthorized());
         account.MapDelete("/sessions/{id:guid}", async (Guid id, HttpContext http, ISecurityService service, CancellationToken ct) =>

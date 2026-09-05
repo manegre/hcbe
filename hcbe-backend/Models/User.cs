@@ -20,6 +20,7 @@ public class User
     public string? MfaSecretProtected { get; set; }
     public string? MfaRecoveryCodesJson { get; set; }
     public DateTime? MfaEnabledAtUtc { get; set; }
+    public string? MfaMethod { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 

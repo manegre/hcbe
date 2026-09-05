@@ -7,6 +7,9 @@ public sealed class MfaChallenge
     public User User { get; set; } = null!;
     public string TokenHash { get; set; } = string.Empty;
     public string AuthenticationMethod { get; set; } = "password";
+    public string DeliveryMethod { get; set; } = "Authenticator";
+    public string? CodeHash { get; set; }
+    public DateTime? LastSentAtUtc { get; set; }
     public string? IpAddress { get; set; }
     public string? UserAgent { get; set; }
     public int FailedAttempts { get; set; }
