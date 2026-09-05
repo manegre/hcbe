@@ -132,6 +132,10 @@ public sealed class FinanceService(
     {
         var card = await GetMembershipCardAsync(userId, cancellationToken);
         if (!card.Success || card.Data is null) return ApiResponse<MembershipWalletDto>.ErrorResponse(card.Message ?? "Membership card unavailable");
+        var enabled = configuration.GetValue<bool>("WalletPasses:Enabled");
+        if (!enabled)
+            return ApiResponse<MembershipWalletDto>.SuccessResponse(new(false, false, null, false, null));
+
         static string? Resolve(string? template, MembershipCardDto value)
         {
             if (string.IsNullOrWhiteSpace(template)) return null;
@@ -141,7 +145,7 @@ public sealed class FinanceService(
         }
         var apple = Resolve(configuration["WalletPasses:AppleAddUrlTemplate"], card.Data);
         var google = Resolve(configuration["WalletPasses:GoogleAddUrlTemplate"], card.Data);
-        return ApiResponse<MembershipWalletDto>.SuccessResponse(new(apple != null, apple, google != null, google));
+        return ApiResponse<MembershipWalletDto>.SuccessResponse(new(true, apple != null, apple, google != null, google));
     }
 
     public async Task<ApiResponse<MembershipStandingDto>> RenewCommunityMembershipAsync(Guid userId, CancellationToken cancellationToken)

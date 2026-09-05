@@ -184,6 +184,8 @@ test('member can register and enter the member portal', async ({ page }) => {
   await expect(page.getByRole('button', { name: /déjà renouvelée|already renewed/i })).toBeDisabled();
   await expect(page.getByRole('button', { name: /télécharger en pdf|download pdf/i })).toBeEnabled();
   await expect(page.getByRole('button', { name: /imprimer la carte|print card/i })).toBeEnabled();
+  await expect(page.getByText('Apple Wallet')).toHaveCount(0);
+  await expect(page.getByText('Google Wallet')).toHaveCount(0);
   await page.getByRole('tab', { name: /^associations$/i }).click();
   await expect(page.getByRole('heading', { name: /votre organisation, au même endroit|your organization, all in one place/i })).toBeVisible();
   await expect(page.getByRole('heading', { name: /rejoindre ou représenter une organisation|join or represent an organization/i })).toBeVisible();

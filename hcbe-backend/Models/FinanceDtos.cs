@@ -52,5 +52,6 @@ public sealed record MembershipCardDto(
     string MemberName, string Email, string Status, string PlanName, string PlanNameEn,
     DateTime? MemberSinceUtc, DateTime? ValidUntilUtc, string VerificationCode, string VerificationUrl);
 public sealed record MembershipWalletDto(
+    bool Enabled,
     bool AppleWalletAvailable, string? AppleWalletUrl,
     bool GoogleWalletAvailable, string? GoogleWalletUrl);

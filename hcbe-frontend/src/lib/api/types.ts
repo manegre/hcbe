@@ -1310,6 +1310,7 @@ export interface MembershipStanding {
   plan?: MembershipPlan; verificationCode?: string; verificationUrl?: string;
 }
 export interface MembershipWallet {
+  enabled: boolean;
   appleWalletAvailable: boolean; appleWalletUrl?: string;
   googleWalletAvailable: boolean; googleWalletUrl?: string;
 }

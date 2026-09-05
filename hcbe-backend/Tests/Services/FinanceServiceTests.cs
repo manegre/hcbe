@@ -53,6 +53,35 @@ public sealed class FinanceServiceTests : IDisposable
         ReceiptPdfRenderer.RenderMembershipCard(result.Data).Should().StartWith(System.Text.Encoding.ASCII.GetBytes("%PDF-1.4"));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task WalletActions_RequireExplicitFeatureFlag(bool enabled)
+    {
+        var member = new Member { FirstName = "Awa", LastName = "Sawadogo", Email = $"wallet-{enabled}@example.com" };
+        var user = new User { Email = member.Email, Member = member, MemberId = member.Id, IsActive = true };
+        var plan = FreeCommunityPlan();
+        context.AddRange(user, plan, CommunityMembership.CreateStanding(user.Id, DateTime.UtcNow));
+        await context.SaveChangesAsync();
+
+        var result = await CreateService(enabled).GetMembershipWalletAsync(user.Id, default);
+
+        result.Success.Should().BeTrue();
+        result.Data!.Enabled.Should().Be(enabled);
+        result.Data.AppleWalletAvailable.Should().Be(enabled);
+        result.Data.GoogleWalletAvailable.Should().Be(enabled);
+        if (enabled)
+        {
+            result.Data.AppleWalletUrl.Should().StartWith("https://wallet.hcbe.test/apple/");
+            result.Data.GoogleWalletUrl.Should().StartWith("https://wallet.hcbe.test/google/");
+        }
+        else
+        {
+            result.Data.AppleWalletUrl.Should().BeNull();
+            result.Data.GoogleWalletUrl.Should().BeNull();
+        }
+    }
+
     [Fact]
     public async Task FreeCommunityMembership_DoesNotCreateStripeCheckout()
     {
@@ -336,13 +365,16 @@ public sealed class FinanceServiceTests : IDisposable
         IsActive = true
     };
 
-    private FinanceService CreateService()
+    private FinanceService CreateService(bool walletsEnabled = false)
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["PublicAppUrl"] = "https://hcbe.ca",
             ["PublicApiUrl"] = "https://api.hcbe.ca",
-            ["JwtSettings:Secret"] = "a-test-signing-secret-longer-than-thirty-two-characters"
+            ["JwtSettings:Secret"] = "a-test-signing-secret-longer-than-thirty-two-characters",
+            ["WalletPasses:Enabled"] = walletsEnabled.ToString(),
+            ["WalletPasses:AppleAddUrlTemplate"] = "https://wallet.hcbe.test/apple/{code}",
+            ["WalletPasses:GoogleAddUrlTemplate"] = "https://wallet.hcbe.test/google/{code}"
         }).Build();
         return new FinanceService(context, gateway, outbox, new StubEmailRenderer(),
             Options.Create(new FinanceOptions { Enabled = true, MinimumDonationCents = 500, MembershipGracePeriodDays = 30, Currency = "cad" }),

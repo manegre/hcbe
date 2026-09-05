@@ -87,7 +87,8 @@ Active members can download a bilingual PDF card, print the responsive card show
 
 Apple Wallet and Google Wallet are intentionally disabled until the organization owns the required issuer accounts and signing credentials. Configure HTTPS provider URLs without storing certificates in source control:
 
+- `WalletPasses__Enabled=true`
 - `WalletPasses__AppleAddUrlTemplate=https://wallet-provider.example/apple/{code}`
 - `WalletPasses__GoogleAddUrlTemplate=https://wallet-provider.example/google/{code}`
 
-`{code}` and `{verificationUrl}` are the only supported placeholders. The API rejects non-HTTPS results and the portal shows a neutral “activation pending” state when a provider is not configured.
+`{code}` and `{verificationUrl}` are the only supported placeholders. The API rejects non-HTTPS results. When the feature flag is false, the portal does not render either Wallet action.
