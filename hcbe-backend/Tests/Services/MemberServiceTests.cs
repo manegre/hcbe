@@ -5,6 +5,7 @@ using HcbeApi.Models;
 using HcbeApi.Services;
 using HcbeApi.Tests.Helpers;
 using Xunit;
+using Microsoft.EntityFrameworkCore;
 
 namespace HcbeApi.Tests.Services;
 
@@ -150,6 +151,41 @@ public class MemberServiceTests : IDisposable
         result.Success.Should().BeFalse();
         result.Data.Should().BeNull();
         result.Message.Should().Be("Member not found");
+    }
+
+    [Fact]
+    public async Task ImportAsync_PreviewsThenImportsOnlyValidUniqueRows()
+    {
+        _context.Members.Add(new Member { FirstName = "Existing", LastName = "Member", Email = "existing@hcbe.ca" });
+        await _context.SaveChangesAsync();
+        var rows = new List<MemberImportRowDto>
+        {
+            new(2, "Awa", "Kaboré", "awa@hcbe.ca", "514 555 0101", "Montréal", "Québec", null, null, null, null, "Zone 2"),
+            new(3, "Existing", "Member", "EXISTING@hcbe.ca", null, null, null, null, null, null, null, null),
+            new(4, "", "Sans courriel", "incorrect", null, null, null, null, null, null, null, null)
+        };
+
+        var preview = await _service.ImportAsync(new MemberImportRequest(rows));
+        preview.Data!.Preview.NewRows.Should().Be(1); preview.Data.Preview.DuplicateRows.Should().Be(1); preview.Data.Preview.InvalidRows.Should().Be(1);
+        _context.Members.Should().HaveCount(1);
+        var committed = await _service.ImportAsync(new MemberImportRequest(rows, true));
+        committed.Data!.ImportedRows.Should().Be(1); _context.Members.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task FindDuplicatesAndMergeAsync_PreservesPrimaryAndMovesRelatedData()
+    {
+        var primary = new Member { FirstName = "Fabrice", LastName = "Ilboudo", Email = "fabrice.one@hcbe.ca", City = "Montréal" };
+        var duplicate = new Member { FirstName = "Fabrice", LastName = "Ilboudo", Email = "fabrice.two@hcbe.ca", Phone = "514-555-0102", City = "Montréal", Profession = "Ingénieur" };
+        _context.Members.AddRange(primary, duplicate); await _context.SaveChangesAsync();
+        _context.ServiceCases.Add(new ServiceCase { MemberId = duplicate.Id, TicketNumber = "HCBE-TEST", Category = "Test", Subject = "Test", Description = "Test" });
+        await _context.SaveChangesAsync();
+
+        (await _service.FindDuplicatesAsync()).Data.Should().ContainSingle(item => item.Primary.Id == primary.Id && item.Duplicate.Id == duplicate.Id);
+        var merged = await _service.MergeAsync(primary.Id, duplicate.Id);
+        merged.Success.Should().BeTrue(); merged.Data!.Profession.Should().Be("Ingénieur");
+        (await _context.ServiceCases.SingleAsync()).MemberId.Should().Be(primary.Id);
+        (await _context.Members.CountAsync()).Should().Be(1);
     }
 
     public void Dispose()

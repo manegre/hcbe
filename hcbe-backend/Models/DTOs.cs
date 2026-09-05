@@ -189,6 +189,17 @@ public record UpdateMemberRequest(
     string? Zone,
     bool? IsAdmin);
 
+public record MemberImportRowDto(
+    int RowNumber, string? FirstName, string? LastName, string? Email,
+    string? Phone, string? City, string? Province, string? Profession,
+    string? Expertise, string? Interests, string? Availability, string? Zone);
+public record MemberImportRowResultDto(int RowNumber, string DisplayName, string? Email, string Status, IReadOnlyList<string> Issues);
+public record MemberImportPreviewDto(int TotalRows, int ValidRows, int NewRows, int DuplicateRows, int InvalidRows, IReadOnlyList<MemberImportRowResultDto> Rows);
+public record MemberImportRequest(IReadOnlyList<MemberImportRowDto> Rows, bool Commit = false);
+public record MemberImportResultDto(MemberImportPreviewDto Preview, int ImportedRows);
+public record MemberDuplicateCandidateDto(MemberDto Primary, MemberDto Duplicate, int Score, IReadOnlyList<string> Reasons);
+public record MergeMembersRequest(Guid PrimaryMemberId, Guid DuplicateMemberId);
+
 // Membership Application DTOs
 public record MembershipApplicationDto(
     Guid Id, string FirstName, string LastName, string Email, string? Phone,

@@ -5,6 +5,7 @@ import { membersApi } from '../../../lib/api/members';
 import type { MemberDto } from '../../../lib/api/types';
 import { AdminListPage } from '../../../components/admin/AdminListPage';
 import { Field, Td, inputClasses } from '../../../components/ui';
+import { MemberDataTools } from '../../../components/admin/MemberDataTools';
 
 const MembersPage: React.FC = () => {
   const [members, setMembers] = useState<MemberDto[]>([]);
@@ -65,6 +66,8 @@ const MembersPage: React.FC = () => {
   }
 
   return (
+    <div className="space-y-5">
+    <MemberDataTools onChanged={loadMembers} />
     <AdminListPage
       title={t('admin.members.title')}
       count={error ? undefined : totalItems}
@@ -140,6 +143,7 @@ const MembersPage: React.FC = () => {
         </tr>
       ))}
     </AdminListPage>
+    </div>
   );
 };
 

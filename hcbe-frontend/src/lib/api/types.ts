@@ -69,6 +69,12 @@ export interface AdminUser {
   lastLoginAtUtc?: string;
 }
 
+export interface MemberImportRow { rowNumber: number; firstName?: string; lastName?: string; email?: string; phone?: string; city?: string; province?: string; profession?: string; expertise?: string; interests?: string; availability?: string; zone?: string; }
+export interface MemberImportRowResult { rowNumber: number; displayName: string; email?: string; status: 'Ready' | 'Duplicate' | 'Invalid'; issues: string[]; }
+export interface MemberImportPreview { totalRows: number; validRows: number; newRows: number; duplicateRows: number; invalidRows: number; rows: MemberImportRowResult[]; }
+export interface MemberImportResult { preview: MemberImportPreview; importedRows: number; }
+export interface MemberDuplicateCandidate { primary: MemberDto; duplicate: MemberDto; score: number; reasons: string[]; }
+
 export interface MemberPreference {
   preferredLanguage: 'fr' | 'en';
   timeZone: string;

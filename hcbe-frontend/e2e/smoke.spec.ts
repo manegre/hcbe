@@ -159,6 +159,13 @@ test('administrator can authenticate and reach the protected dashboard', async (
   await expect(page.getByRole('heading', { name: /du compte à la première participation|from account to first participation/i })).toBeVisible();
   await expect(page.getByRole('button', { name: /exporter les données|export data/i })).toBeEnabled();
 
+  await page.goto('/admin/members');
+  await expect(page.getByRole('heading', { name: /registre fiable et portable|reliable, portable registry/i })).toBeVisible();
+  await expect(page.getByRole('button', { name: /exporter csv|export csv/i })).toBeEnabled();
+  await expect(page.getByRole('button', { name: /importer csv|import csv/i })).toBeEnabled();
+  await page.getByRole('button', { name: /chercher les doublons|find duplicates/i }).click();
+  await expect(page.getByText(/aucun doublon probable détecté|no likely duplicates detected|confiance|confidence/i).first()).toBeVisible();
+
   await page.goto('/admin/newsletter');
   await expect(page.getByRole('heading', { level: 1, name: /^infolettre$|^newsletter$/i })).toBeVisible();
   await expect(page.getByRole('status')).toContainText(/canaux sont opérationnels|channels are operational|requiert votre attention|needs attention/i);

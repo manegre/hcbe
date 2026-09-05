@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { ApiResponse, CreateMemberRequest, MemberDto, PagedResult, UpdateMemberRequest } from './types';
+import type { ApiResponse, CreateMemberRequest, MemberDto, MemberDuplicateCandidate, MemberImportResult, MemberImportRow, PagedResult, UpdateMemberRequest } from './types';
 
 export const membersApi = {
   getAllMembers: (): Promise<ApiResponse<MemberDto[]>> =>
@@ -26,4 +26,12 @@ export const membersApi = {
 
   updateAdminStatus: (id: string, isAdmin: boolean): Promise<ApiResponse<MemberDto>> =>
     apiClient.put<MemberDto>(`/api/members/${id}/admin?isAdmin=${isAdmin}`),
+
+  exportMembers: () => apiClient.download('/api/members/admin/export'),
+  importMembers: (rows: MemberImportRow[], commit = false): Promise<ApiResponse<MemberImportResult>> =>
+    apiClient.post<MemberImportResult>('/api/members/admin/import', { rows, commit }),
+  findDuplicates: (): Promise<ApiResponse<MemberDuplicateCandidate[]>> =>
+    apiClient.get<MemberDuplicateCandidate[]>('/api/members/admin/duplicates'),
+  mergeMembers: (primaryMemberId: string, duplicateMemberId: string): Promise<ApiResponse<MemberDto>> =>
+    apiClient.post<MemberDto>('/api/members/admin/merge', { primaryMemberId, duplicateMemberId }),
 };

@@ -12,5 +12,8 @@ public interface IMemberService
     Task<ApiResponse<MemberDto>> UpdateAsync(Guid id, UpdateMemberRequest request);
     Task<ApiResponse<bool>> DeleteAsync(Guid id);
     Task<ApiResponse<MemberDto>> UpdateAdminStatusAsync(Guid id, bool isAdmin);
+    Task<ApiResponse<MemberImportResultDto>> ImportAsync(MemberImportRequest request);
+    Task<ApiResponse<List<MemberDuplicateCandidateDto>>> FindDuplicatesAsync();
+    Task<ApiResponse<MemberDto>> MergeAsync(Guid primaryMemberId, Guid duplicateMemberId);
 }
 
