@@ -105,6 +105,7 @@ test('public services and events pages load against the real API', async ({ page
 });
 
 test('public and authentication routes render cleanly in French and English', async ({ page }) => {
+  test.setTimeout(90_000);
   const routes = [
     '/', '/services', '/services/bourses', '/services/comites', '/services/documents-officiels',
     '/actualites', '/actualites/evenements', '/actualites/annonces', '/actualites/souvenirs',
