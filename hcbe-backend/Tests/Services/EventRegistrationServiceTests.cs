@@ -4,6 +4,7 @@ using HcbeApi.Models;
 using HcbeApi.Services;
 using HcbeApi.Tests.Helpers;
 using Microsoft.Extensions.Configuration;
+using Moq;
 using Xunit;
 
 namespace HcbeApi.Tests.Services;
@@ -12,6 +13,7 @@ public sealed class EventRegistrationServiceTests : IDisposable
 {
     private readonly ApplicationDbContext _context = TestDbContextFactory.CreateInMemoryContext();
     private readonly EventRegistrationService _service;
+    private readonly Mock<INotificationService> _notifications = new();
     private readonly User _firstUser;
     private readonly User _secondUser;
     private readonly Event _event;
@@ -25,7 +27,8 @@ public sealed class EventRegistrationServiceTests : IDisposable
             _context,
             new EmailOutbox(_context),
             new EmailTemplateRenderer(configuration),
-            configuration);
+            configuration,
+            _notifications.Object);
 
         var firstMember = new Member { FirstName = "Awa", LastName = "Kaboré", Email = "awa@example.com" };
         var secondMember = new Member { FirstName = "Issa", LastName = "Traoré", Email = "issa@example.com" };
@@ -61,6 +64,8 @@ public sealed class EventRegistrationServiceTests : IDisposable
         second.Data.MeetingLink.Should().BeNull();
         second.Data.WaitlistPosition.Should().Be(1);
         _context.EmailOutboxMessages.Should().HaveCount(2);
+        _notifications.Verify(item => item.CreateForUserAsync(_secondUser.Id, "event-registration",
+            It.IsAny<string>(), It.IsAny<string>(), _event.Id, It.IsAny<string>()), Times.Once);
     }
 
     [Fact]

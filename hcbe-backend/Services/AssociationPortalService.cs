@@ -217,6 +217,14 @@ public sealed class AssociationPortalService(
         item.Status = request.IsInternal ? item.Status : "AwaitingMember";
         item.LastResponseAt = item.UpdatedAt = DateTime.UtcNow;
         await context.SaveChangesAsync();
+        if (!request.IsInternal)
+        {
+            var memberUserId = await context.Users.AsNoTracking().Where(candidate => candidate.MemberId == item.MemberId && candidate.IsActive)
+                .Select(candidate => (Guid?)candidate.Id).FirstOrDefaultAsync();
+            if (memberUserId.HasValue)
+                await notifications.CreateForUserAsync(memberUserId.Value, "service-case", "Nouvelle réponse / New reply",
+                    $"{item.TicketNumber} — {item.Subject}", item.Id, $"/espace-membre?section=services&case={item.Id}");
+        }
         return ApiResponse<ServiceCaseDto>.SuccessResponse(MapServiceCase(item, true));
     }
 
@@ -230,6 +238,11 @@ public sealed class AssociationPortalService(
         if (item is null) return ApiResponse<ServiceCaseDto>.ErrorResponse("Service request not found");
         item.Status = status; item.ResolvedAt = status == "Resolved" ? DateTime.UtcNow : null; item.UpdatedAt = DateTime.UtcNow;
         await context.SaveChangesAsync();
+        var memberUserId = await context.Users.AsNoTracking().Where(candidate => candidate.MemberId == item.MemberId && candidate.IsActive)
+            .Select(candidate => (Guid?)candidate.Id).FirstOrDefaultAsync();
+        if (memberUserId.HasValue)
+            await notifications.CreateForUserAsync(memberUserId.Value, "service-case", "Statut mis à jour / Status updated",
+                $"{item.TicketNumber} — {status}", item.Id, $"/espace-membre?section=services&case={item.Id}");
         return ApiResponse<ServiceCaseDto>.SuccessResponse(MapServiceCase(item, true));
     }
 

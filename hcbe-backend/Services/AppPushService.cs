@@ -80,10 +80,10 @@ public sealed class AppPushService(
         return count > 0 ? ApiResponse.CreateSuccess("Test notification sent.") : ApiResponse.CreateError("No active push subscription.");
     }
 
-    public async Task SendToUserAsync(Guid userId, string title, string message, string? link = null, CancellationToken cancellationToken = default)
+    public async Task<int> SendToUserAsync(Guid userId, string title, string message, string? link = null, CancellationToken cancellationToken = default)
     {
-        if (!_options.IsConfigured) return;
-        await SendCoreAsync(userId, title, message, link ?? "/espace-membre?section=notifications", true, cancellationToken);
+        if (!_options.IsConfigured) return 0;
+        return await SendCoreAsync(userId, title, message, link ?? "/espace-membre?section=notifications", true, cancellationToken);
     }
 
     private async Task<int> SendCoreAsync(Guid userId, string title, string message, string link, bool honorPreference, CancellationToken cancellationToken)

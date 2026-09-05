@@ -23,5 +23,5 @@ public interface IAppPushService
     Task<ApiResponse<WebPushSubscriptionStatusDto>> SubscribeAsync(Guid userId, WebPushSubscriptionRequest request, string? userAgent);
     Task<ApiResponse> UnsubscribeAsync(Guid userId, string endpoint);
     Task<ApiResponse> SendTestAsync(Guid userId, string language, CancellationToken cancellationToken = default);
-    Task SendToUserAsync(Guid userId, string title, string message, string? link = null, CancellationToken cancellationToken = default);
+    Task<int> SendToUserAsync(Guid userId, string title, string message, string? link = null, CancellationToken cancellationToken = default);
 }

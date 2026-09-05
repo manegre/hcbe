@@ -1025,9 +1025,20 @@ public record NewsletterCampaignDto(
     Guid Id, string Subject, string? SubjectEn, string Body, string? BodyEn,
     string Status, int RecipientCount, int SentCount, int FailedCount,
     string? LastError, DateTime CreatedAt, DateTime? SentAt,
-    string Audience, string PreferenceCategory, string? TargetProvince,
+    string Audience, string Channels, string PreferenceCategory, string? TargetProvince,
     string? TargetZone, string? TargetLanguage, string? TargetInterest, DateTime? ScheduledAtUtc,
-    int OpenedCount = 0, int UnsubscribedCount = 0, double OpenRate = 0);
+    string? TargetMembershipStatus = null, Guid? TargetAssociationId = null,
+    int OpenedCount = 0, int UnsubscribedCount = 0, double OpenRate = 0,
+    int InAppSentCount = 0, int PushSentCount = 0, int PushFailedCount = 0, int TestSentCount = 0);
+
+public record CampaignAudiencePreviewDto(int UniqueRecipients, int EmailRecipients, int InAppRecipients, int PushReadyRecipients);
+
+public record CampaignDeliveryDto(
+    Guid Id, Guid? UserId, string Recipient, string PreferredLanguage,
+    string EmailStatus, string InAppStatus, string PushStatus, string? FailureReason,
+    DateTime QueuedAtUtc, DateTime? FirstOpenedAtUtc, int OpenCount, DateTime? UnsubscribedAtUtc);
+
+public record SendCampaignTestRequest([Required] [EmailAddress] string Email);
 
 public record CommunicationConsentEventDto(
     Guid Id, Guid? UserId, string Email, string Category, string Action, string Source, DateTime OccurredAtUtc);
@@ -1038,11 +1049,14 @@ public record CreateNewsletterCampaignRequest(
     [Required] [MaxLength(20000)] string Body,
     [MaxLength(20000)] string? BodyEn,
     string Audience = "Newsletter",
+    string Channels = "Email",
     string PreferenceCategory = "newsletter",
     string? TargetProvince = null,
     string? TargetZone = null,
     string? TargetLanguage = null,
     string? TargetInterest = null,
+    string? TargetMembershipStatus = null,
+    Guid? TargetAssociationId = null,
     DateTime? ScheduledAtUtc = null);
 
 // Mentorship and member networking

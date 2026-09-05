@@ -42,6 +42,26 @@ public static class NewsletterEndpoints
             return (await service.GetAllAsync()).HandleServiceResponse();
         }).RequireAuthorization();
 
+        group.MapPost("/campaigns/preview", async (
+            CreateNewsletterCampaignRequest request,
+            HttpContext context,
+            INewsletterCampaignService service,
+            CancellationToken cancellationToken) =>
+        {
+            if (!context.HasPermission(AdminPermissions.CommunicationsManage)) return Results.Forbid();
+            return (await service.PreviewAsync(request, cancellationToken)).HandleServiceResponse();
+        }).RequireAuthorization();
+
+        group.MapGet("/campaigns/{id:guid}/deliveries", async (
+            Guid id,
+            HttpContext context,
+            INewsletterCampaignService service,
+            CancellationToken cancellationToken) =>
+        {
+            if (!context.HasPermission(AdminPermissions.CommunicationsManage)) return Results.Forbid();
+            return (await service.GetDeliveriesAsync(id, cancellationToken)).HandleServiceResponse();
+        }).RequireAuthorization();
+
         group.MapPost("/campaigns", async (
             CreateNewsletterCampaignRequest request,
             HttpContext context,
@@ -62,6 +82,17 @@ public static class NewsletterEndpoints
         {
             if (!context.HasPermission(AdminPermissions.CommunicationsManage)) return Results.Forbid();
             return (await service.SendAsync(id, cancellationToken)).HandleServiceResponse();
+        }).RequireAuthorization();
+
+        group.MapPost("/campaigns/{id:guid}/test", async (
+            Guid id,
+            SendCampaignTestRequest request,
+            HttpContext context,
+            INewsletterCampaignService service,
+            CancellationToken cancellationToken) =>
+        {
+            if (!context.HasPermission(AdminPermissions.CommunicationsManage)) return Results.Forbid();
+            return (await service.SendTestAsync(id, request.Email, cancellationToken)).HandleServiceResponse();
         }).RequireAuthorization();
 
         group.MapGet("/subscriptions", async (

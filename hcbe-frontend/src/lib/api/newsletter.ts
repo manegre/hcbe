@@ -9,6 +9,8 @@ import type {
   CreateNewsletterCampaignRequest,
   PagedResult,
   CommunicationConsentEventDto,
+  CampaignAudiencePreviewDto,
+  CampaignDeliveryDto,
 } from './types';
 
 const getAuthToken = (): string | null => localStorage.getItem('hcbe_token');
@@ -48,6 +50,15 @@ export const newsletterApi = {
 
   createCampaign: (data: CreateNewsletterCampaignRequest): Promise<ApiResponse<NewsletterCampaignDto>> =>
     apiClient.post<NewsletterCampaignDto>('/api/newsletter/campaigns', data),
+
+  previewCampaign: (data: CreateNewsletterCampaignRequest): Promise<ApiResponse<CampaignAudiencePreviewDto>> =>
+    apiClient.post<CampaignAudiencePreviewDto>('/api/newsletter/campaigns/preview', data),
+
+  getCampaignDeliveries: (id: string): Promise<ApiResponse<CampaignDeliveryDto[]>> =>
+    apiClient.get<CampaignDeliveryDto[]>(`/api/newsletter/campaigns/${id}/deliveries`),
+
+  sendCampaignTest: (id: string, email: string): Promise<ApiResponse<unknown>> =>
+    apiClient.post(`/api/newsletter/campaigns/${id}/test`, { email }),
 
   sendCampaign: (id: string): Promise<ApiResponse<NewsletterCampaignDto>> =>
     apiClient.post<NewsletterCampaignDto>(`/api/newsletter/campaigns/${id}/send`, {}),

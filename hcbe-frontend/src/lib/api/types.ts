@@ -768,15 +768,32 @@ export interface NewsletterCampaignDto {
   createdAt: string;
   sentAt?: string;
   audience: 'Newsletter' | 'Members' | 'All';
+  channels: string;
   preferenceCategory: 'newsletter' | 'events' | 'opportunities' | 'mentorship' | 'service';
   targetProvince?: string;
   targetZone?: string;
   targetLanguage?: string;
   targetInterest?: string;
+  targetMembershipStatus?: string;
+  targetAssociationId?: string;
   scheduledAtUtc?: string;
   openedCount: number;
   unsubscribedCount: number;
   openRate: number;
+  inAppSentCount: number;
+  pushSentCount: number;
+  pushFailedCount: number;
+  testSentCount: number;
+}
+
+export interface CampaignAudiencePreviewDto {
+  uniqueRecipients: number; emailRecipients: number; inAppRecipients: number; pushReadyRecipients: number;
+}
+
+export interface CampaignDeliveryDto {
+  id: string; userId?: string; recipient: string; preferredLanguage: string;
+  emailStatus: string; inAppStatus: string; pushStatus: string; failureReason?: string;
+  queuedAtUtc: string; firstOpenedAtUtc?: string; openCount: number; unsubscribedAtUtc?: string;
 }
 
 export interface CommunicationConsentEventDto {
@@ -789,11 +806,14 @@ export interface CreateNewsletterCampaignRequest {
   body: string;
   bodyEn?: string;
   audience?: 'Newsletter' | 'Members' | 'All';
+  channels?: string;
   preferenceCategory?: 'newsletter' | 'events' | 'opportunities' | 'mentorship' | 'service';
   targetProvince?: string;
   targetZone?: string;
   targetLanguage?: string;
   targetInterest?: string;
+  targetMembershipStatus?: string;
+  targetAssociationId?: string;
   scheduledAtUtc?: string;
 }
 

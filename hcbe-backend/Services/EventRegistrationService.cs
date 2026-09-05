@@ -12,7 +12,8 @@ public sealed class EventRegistrationService(
     ApplicationDbContext context,
     IEmailOutbox emailOutbox,
     IEmailTemplateRenderer emailTemplates,
-    IConfiguration configuration) : IEventRegistrationService
+    IConfiguration configuration,
+    INotificationService notifications) : IEventRegistrationService
 {
     private static readonly HashSet<string> AdminStatuses = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -87,6 +88,7 @@ public sealed class EventRegistrationService(
 
         await context.SaveChangesAsync();
         QueueStatusEmail(registration, eventEntity, member, status);
+        await QueueStatusNotificationAsync(userId, registration, eventEntity, status);
         await context.SaveChangesAsync();
 
         var waitlistPosition = await WaitlistPositionAsync(registration);
@@ -139,7 +141,12 @@ public sealed class EventRegistrationService(
         await context.SaveChangesAsync();
 
         QueueStatusEmail(registration, registration.Event, registration.Member!, "Cancelled");
-        if (promoted is not null) QueueStatusEmail(promoted, registration.Event, promoted.Member!, "Confirmed");
+        await QueueStatusNotificationAsync(userId, registration, registration.Event, "Cancelled");
+        if (promoted is not null)
+        {
+            QueueStatusEmail(promoted, registration.Event, promoted.Member!, "Confirmed");
+            await QueueStatusNotificationForMemberAsync(promoted.MemberId, promoted, registration.Event, "Confirmed");
+        }
         await context.SaveChangesAsync();
         return ApiResponse<EventRegistrationDto>.SuccessResponse(Map(registration, registration.Event));
     }
@@ -207,8 +214,16 @@ public sealed class EventRegistrationService(
         }
 
         await context.SaveChangesAsync();
-        if (previousStatus != normalizedStatus) QueueStatusEmail(registration, registration.Event!, registration.Member!, normalizedStatus);
-        if (promoted is not null) QueueStatusEmail(promoted, registration.Event!, promoted.Member!, "Confirmed");
+        if (previousStatus != normalizedStatus)
+        {
+            QueueStatusEmail(registration, registration.Event!, registration.Member!, normalizedStatus);
+            await QueueStatusNotificationForMemberAsync(registration.MemberId, registration, registration.Event!, normalizedStatus);
+        }
+        if (promoted is not null)
+        {
+            QueueStatusEmail(promoted, registration.Event!, promoted.Member!, "Confirmed");
+            await QueueStatusNotificationForMemberAsync(promoted.MemberId, promoted, registration.Event!, "Confirmed");
+        }
         await context.SaveChangesAsync();
         var position = await WaitlistPositionAsync(registration);
         return ApiResponse<EventRegistrationDto>.SuccessResponse(Map(registration, registration.Event!, position));
@@ -398,6 +413,28 @@ public sealed class EventRegistrationService(
             registration.ConfirmationCode,
             eventUrl);
         emailOutbox.Enqueue(member.Email, email.Subject, email.HtmlBody, nameof(EventRegistration), registration.Id);
+    }
+
+    private Task QueueStatusNotificationAsync(Guid userId, EventRegistration registration, Event eventEntity, string status)
+    {
+        var label = status switch
+        {
+            "Confirmed" => "Inscription confirmée / Registration confirmed",
+            "Waitlisted" => "Liste d’attente / Waiting list",
+            "Cancelled" => "Inscription annulée / Registration cancelled",
+            "Attended" => "Présence confirmée / Attendance confirmed",
+            _ => "Inscription mise à jour / Registration updated"
+        };
+        return notifications.CreateForUserAsync(userId, "event-registration", label,
+            $"{eventEntity.Title} — {registration.ConfirmationCode}", eventEntity.Id,
+            $"/actualites/evenements/{eventEntity.Id}");
+    }
+
+    private async Task QueueStatusNotificationForMemberAsync(Guid memberId, EventRegistration registration, Event eventEntity, string status)
+    {
+        var userId = await context.Users.AsNoTracking().Where(user => user.MemberId == memberId && user.IsActive)
+            .Select(user => (Guid?)user.Id).FirstOrDefaultAsync();
+        if (userId.HasValue) await QueueStatusNotificationAsync(userId.Value, registration, eventEntity, status);
     }
 
     private EventRegistrationDto Map(EventRegistration item, Event eventEntity, int? knownWaitlistPosition = null)

@@ -13,6 +13,7 @@ public sealed class ServiceCaseServiceTests : IDisposable
 {
     private readonly ApplicationDbContext _context = TestDbContextFactory.CreateInMemoryContext();
     private readonly ServiceCaseService _service;
+    private readonly Mock<INotificationService> _notifications = new();
     private readonly User _memberUser;
     private readonly User _adminUser;
 
@@ -23,7 +24,7 @@ public sealed class ServiceCaseServiceTests : IDisposable
         files.Setup(item => item.IsAllowedExtension(It.IsAny<string>())).Returns(true);
         _service = new ServiceCaseService(
             _context,
-            Mock.Of<INotificationService>(),
+            _notifications.Object,
             files.Object,
             new EmailOutbox(_context),
             new EmailTemplateRenderer(configuration),
@@ -63,6 +64,8 @@ public sealed class ServiceCaseServiceTests : IDisposable
         memberView.Data!.Messages.Should().ContainSingle().Which.IsInternal.Should().BeFalse();
         adminView.Data!.Messages.Should().HaveCount(2);
         memberView.Data.Status.Should().Be("AwaitingMember");
+        _notifications.Verify(item => item.CreateForUserAsync(_memberUser.Id, "service-case",
+            It.IsAny<string>(), It.IsAny<string>(), created.Data.Id, It.IsAny<string>()), Times.Once);
     }
 
     [Fact]

@@ -145,7 +145,7 @@ test('admin login page exposes an accessible sign-in form', async ({ page }) => 
 });
 
 test('administrator can authenticate and reach the protected dashboard', async ({ page }) => {
-  test.setTimeout(45_000);
+  test.setTimeout(90_000);
   test.skip(!process.env.E2E_ADMIN_EMAIL || !process.env.E2E_ADMIN_PASSWORD, 'Admin E2E credentials are not configured');
   await page.goto('/admin/login', { waitUntil: 'domcontentloaded' });
   await page.locator('input[name="email"]').fill(process.env.E2E_ADMIN_EMAIL!);
@@ -157,6 +157,23 @@ test('administrator can authenticate and reach the protected dashboard', async (
   await page.goto('/admin/impact');
   await expect(page.getByRole('heading', { name: /du compte à la première participation|from account to first participation/i })).toBeVisible();
   await expect(page.getByRole('button', { name: /exporter les données|export data/i })).toBeEnabled();
+
+  await page.goto('/admin/newsletter');
+  await expect(page.getByRole('heading', { level: 1, name: /^infolettre$|^newsletter$/i })).toBeVisible();
+  await expect(page.getByRole('status')).toContainText(/canaux sont opérationnels|channels are operational|requiert votre attention|needs attention/i);
+  await expect(page.getByRole('button', { name: /courriel|email/i }).first()).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('button', { name: /dans l.application|in the app/i }).click();
+  await page.getByRole('button', { name: /notification poussée|push notification/i }).click();
+  await expect(page.locator('#campaign-body')).toBeVisible();
+  expect((await page.locator('#campaign-body').boundingBox())?.height).toBeGreaterThanOrEqual(200);
+  await page.getByRole('button', { name: /calculer|calculate/i }).click();
+  await expect(page.getByText(/^destinataires$|^recipients$/i)).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
+  if (process.env.E2E_CAPTURE_VISUALS) {
+    await page.screenshot({ path: 'test-results/admin-newsletter-mobile.png', fullPage: true });
+  }
+  await page.setViewportSize({ width: 1280, height: 900 });
 
   await page.goto('/admin/security');
   await expect(page.getByRole('heading', { level: 1, name: /centre de sécurité|security centre/i })).toBeVisible();

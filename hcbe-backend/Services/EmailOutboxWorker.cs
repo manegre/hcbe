@@ -91,6 +91,14 @@ public sealed class EmailOutboxWorker(
         var campaign = await context.NewsletterCampaigns.FindAsync([message.RelatedEntityId.Value], cancellationToken);
         if (campaign == null) return;
 
+        var delivery = await context.NewsletterDeliveries.FirstOrDefaultAsync(item =>
+            item.CampaignId == campaign.Id && item.Recipient == message.Recipient, cancellationToken);
+        if (delivery is not null)
+        {
+            delivery.EmailStatus = message.Status;
+            delivery.FailureReason = message.Status == "DeadLetter" ? message.LastError : null;
+        }
+
         var messages = context.EmailOutboxMessages.Where(item =>
             item.RelatedEntityType == nameof(NewsletterCampaign) && item.RelatedEntityId == campaign.Id);
         campaign.SentCount = await messages.CountAsync(item => item.Status == "Sent", cancellationToken);

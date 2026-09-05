@@ -6,8 +6,11 @@ namespace HcbeApi.Services;
 public interface INewsletterCampaignService
 {
     Task<ApiResponse<List<NewsletterCampaignDto>>> GetAllAsync();
+    Task<ApiResponse<CampaignAudiencePreviewDto>> PreviewAsync(CreateNewsletterCampaignRequest request, CancellationToken cancellationToken);
+    Task<ApiResponse<List<CampaignDeliveryDto>>> GetDeliveriesAsync(Guid id, CancellationToken cancellationToken);
     Task<ApiResponse<NewsletterCampaignDto>> CreateAsync(CreateNewsletterCampaignRequest request, Guid userId);
     Task<ApiResponse<NewsletterCampaignDto>> SendAsync(Guid id, CancellationToken cancellationToken);
+    Task<ApiResponse> SendTestAsync(Guid id, string email, CancellationToken cancellationToken);
     Task<int> ProcessDueAsync(CancellationToken cancellationToken);
     Task TrackOpenAsync(string token, CancellationToken cancellationToken);
 }

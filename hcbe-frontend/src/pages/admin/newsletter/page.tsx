@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { newsletterApi } from '../../../lib/api/newsletter';
-import type { CommunicationConsentEventDto, CreateNewsletterCampaignRequest, NewsletterCampaignDto, NewsletterSubscriptionDto } from '../../../lib/api/types';
-import { Button, DataTable, EmptyState, Field, StatusChip, Td, inputClasses } from '../../../components/ui';
+import { associationsApi } from '../../../lib/api/associations';
+import type { Association, CampaignAudiencePreviewDto, CampaignDeliveryDto, CommunicationConsentEventDto, CreateNewsletterCampaignRequest, NewsletterCampaignDto, NewsletterSubscriptionDto } from '../../../lib/api/types';
+import { Button, DataTable, EmptyState, Field, RichTextEditor, StatusChip, Td, inputClasses } from '../../../components/ui';
 import { AdminPageHeader } from '../../../components/admin/AdminPageHeader';
 import { AdminStatCard } from '../../../components/admin/AdminStatCard';
 
@@ -21,8 +22,14 @@ const NewsletterAdminPage: React.FC = () => {
   const [campaigns, setCampaigns] = useState<NewsletterCampaignDto[]>([]);
   const [campaignBusy, setCampaignBusy] = useState(false);
   const [consentHistory, setConsentHistory] = useState<CommunicationConsentEventDto[]>([]);
-  const emptyCampaign: CreateNewsletterCampaignRequest = { subject: '', subjectEn: '', body: '', bodyEn: '', audience: 'Newsletter', preferenceCategory: 'newsletter' };
+  const emptyCampaign: CreateNewsletterCampaignRequest = { subject: '', subjectEn: '', body: '', bodyEn: '', audience: 'Newsletter', channels: 'Email', preferenceCategory: 'newsletter' };
   const [campaignForm, setCampaignForm] = useState<CreateNewsletterCampaignRequest>(emptyCampaign);
+  const [audiencePreview, setAudiencePreview] = useState<CampaignAudiencePreviewDto | null>(null);
+  const [previewBusy, setPreviewBusy] = useState(false);
+  const [associations, setAssociations] = useState<Association[]>([]);
+  const [deliveryCampaignId, setDeliveryCampaignId] = useState<string | null>(null);
+  const [deliveries, setDeliveries] = useState<CampaignDeliveryDto[]>([]);
+  const [testEmail, setTestEmail] = useState('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
@@ -67,7 +74,42 @@ const NewsletterAdminPage: React.FC = () => {
   useEffect(() => {
     loadCampaigns().catch((err) => console.error('Error loading campaigns:', err));
     newsletterApi.getConsentHistory(30).then((response) => { if (response.success && response.data) setConsentHistory(response.data); }).catch(() => undefined);
+    associationsApi.getAssociationsForAdmin().then((response) => { if (response.success && response.data) setAssociations(response.data); }).catch(() => undefined);
   }, []);
+
+  const selectedChannels = new Set((campaignForm.channels || 'Email').split(',').filter(Boolean));
+  const toggleChannel = (channel: 'Email' | 'InApp' | 'Push') => {
+    const next = new Set(selectedChannels);
+    if (next.has(channel)) next.delete(channel); else next.add(channel);
+    if (next.size === 0) return;
+    setCampaignForm({ ...campaignForm, channels: Array.from(next).join(','), audience: channel !== 'Email' && campaignForm.audience === 'Newsletter' ? 'Members' : campaignForm.audience });
+    setAudiencePreview(null);
+  };
+
+  const handlePreviewAudience = async () => {
+    setPreviewBusy(true); setAudiencePreview(null);
+    try {
+      const response = await newsletterApi.previewCampaign(campaignForm);
+      if (response.success && response.data) setAudiencePreview(response.data);
+      else setError(response.message || t('admin.newsletter.campaignError'));
+    } finally { setPreviewBusy(false); }
+  };
+
+  const handleDeliveries = async (id: string) => {
+    if (deliveryCampaignId === id) { setDeliveryCampaignId(null); setDeliveries([]); return; }
+    const response = await newsletterApi.getCampaignDeliveries(id);
+    if (response.success && response.data) { setDeliveryCampaignId(id); setDeliveries(response.data); }
+  };
+
+  const handleTestCampaign = async (id: string) => {
+    if (!testEmail.trim()) return;
+    setCampaignBusy(true);
+    try {
+      const response = await newsletterApi.sendCampaignTest(id, testEmail.trim());
+      if (!response.success) setError(response.message || t('admin.newsletter.campaignError'));
+      else await loadCampaigns();
+    } finally { setCampaignBusy(false); }
+  };
 
   const handleCreateCampaign = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -167,6 +209,7 @@ const NewsletterAdminPage: React.FC = () => {
   const deliveredTotal = sentCampaigns.reduce((sum, item) => sum + item.sentCount, 0);
   const openedTotal = sentCampaigns.reduce((sum, item) => sum + item.openedCount, 0);
   const averageOpenRate = deliveredTotal ? Math.round(openedTotal * 1000 / deliveredTotal) / 10 : 0;
+  const deliveryAlerts = campaigns.filter((item) => item.failedCount > 0 || item.pushFailedCount > 0 || item.status === 'Failed' || item.status === 'PartiallySent');
 
   const toolbar = (
     <>
@@ -214,6 +257,20 @@ const NewsletterAdminPage: React.FC = () => {
           </Button>
         )}
       />
+
+      <div className={`admin-panel flex flex-col gap-4 border-l-4 p-5 sm:flex-row sm:items-center sm:justify-between ${deliveryAlerts.length ? 'border-l-error bg-error/[.035]' : 'border-l-green bg-green/[.025]'}`} role="status" aria-live="polite">
+        <div className="flex min-w-0 items-start gap-3">
+          <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${deliveryAlerts.length ? 'bg-error/10 text-error' : 'bg-green/10 text-green'}`}>
+            <i className={deliveryAlerts.length ? 'ri-alarm-warning-line' : 'ri-shield-check-line'} aria-hidden="true" />
+          </span>
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-[.14em] text-ink-variant">{t('admin.newsletter.deliveryMonitoring')}</p>
+            <h2 className="mt-1 font-display text-title-lg text-green-deep">{deliveryAlerts.length ? t('admin.newsletter.deliveryAlertTitle', { count: deliveryAlerts.length }) : t('admin.newsletter.deliveryHealthy')}</h2>
+            <p className="mt-1 text-xs leading-relaxed text-ink-variant">{deliveryAlerts.length ? t('admin.newsletter.deliveryAlertHint') : t('admin.newsletter.deliveryHealthyHint')}</p>
+          </div>
+        </div>
+        {deliveryAlerts.length > 0 && <div className="flex flex-wrap gap-2 sm:max-w-md sm:justify-end">{deliveryAlerts.slice(0, 3).map((campaign) => <button key={campaign.id} type="button" onClick={() => handleDeliveries(campaign.id)} className="min-h-10 rounded-full border border-error/20 bg-surface px-3 text-[9px] font-bold uppercase tracking-wide text-error hover:border-error/50">{campaign.subject} · {campaign.failedCount + campaign.pushFailedCount} {t('admin.newsletter.failed')}</button>)}</div>}
+      </div>
 
       <div className="admin-panel overflow-hidden">
         <div className="flex items-center gap-2 border-b border-line/50 bg-surface-container/60 px-5 py-3">
@@ -331,25 +388,37 @@ const NewsletterAdminPage: React.FC = () => {
                   </select>
                 </Field>
               </div>
-              {campaignForm.audience !== 'Newsletter' && <div className="rounded-xl border border-line bg-canvas/45 p-3"><p className="mb-3 text-[9px] font-bold uppercase tracking-[.14em] text-green">{t('admin.newsletter.segmentation')}</p><div className="grid gap-3 sm:grid-cols-2"><input aria-label={t('admin.members.province')} placeholder={t('admin.members.province')} className={inputClasses} value={campaignForm.targetProvince ?? ''} onChange={(e) => setCampaignForm({ ...campaignForm, targetProvince: e.target.value })} /><input aria-label={t('admin.common.zone')} placeholder={t('admin.newsletter.zonePlaceholder')} className={inputClasses} value={campaignForm.targetZone ?? ''} onChange={(e) => setCampaignForm({ ...campaignForm, targetZone: e.target.value })} /><select aria-label={t('admin.common.language')} className={inputClasses} value={campaignForm.targetLanguage ?? ''} onChange={(e) => setCampaignForm({ ...campaignForm, targetLanguage: e.target.value })}><option value="">{t('admin.newsletter.bothLanguages')}</option><option value="fr">{t('admin.newsletter.filterLanguageFr')}</option><option value="en">{t('admin.newsletter.filterLanguageEn')}</option></select><input aria-label={t('admin.newsletter.interest')} placeholder={t('admin.newsletter.interestPlaceholder')} className={inputClasses} value={campaignForm.targetInterest ?? ''} onChange={(e) => setCampaignForm({ ...campaignForm, targetInterest: e.target.value })} /></div></div>}
+              <fieldset className="rounded-2xl border border-line bg-canvas/45 p-4">
+                <legend className="px-2 text-[9px] font-bold uppercase tracking-[.14em] text-green">{t('admin.newsletter.channels')}</legend>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {([['Email', 'ri-mail-send-line'], ['InApp', 'ri-notification-3-line'], ['Push', 'ri-smartphone-line']] as const).map(([channel, icon]) => (
+                    <button key={channel} type="button" aria-pressed={selectedChannels.has(channel)} onClick={() => toggleChannel(channel)} className={`flex min-h-14 items-center gap-3 rounded-xl border px-3 text-left transition ${selectedChannels.has(channel) ? 'border-green bg-green text-white shadow-sm' : 'border-line bg-surface text-ink hover:border-green/35'}`}>
+                      <i className={`${icon} text-lg`} aria-hidden="true" /><span className="text-xs font-bold">{t(`admin.newsletter.channel.${channel}`)}</span>
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+              {campaignForm.audience !== 'Newsletter' && <div className="rounded-2xl border border-line bg-canvas/45 p-4"><p className="mb-3 text-[9px] font-bold uppercase tracking-[.14em] text-green">{t('admin.newsletter.segmentation')}</p><div className="grid gap-3 sm:grid-cols-2"><input aria-label={t('admin.members.province')} placeholder={t('admin.members.province')} className={inputClasses} value={campaignForm.targetProvince ?? ''} onChange={(e) => setCampaignForm({ ...campaignForm, targetProvince: e.target.value })} /><input aria-label={t('admin.common.zone')} placeholder={t('admin.newsletter.zonePlaceholder')} className={inputClasses} value={campaignForm.targetZone ?? ''} onChange={(e) => setCampaignForm({ ...campaignForm, targetZone: e.target.value })} /><select aria-label={t('admin.common.language')} className={inputClasses} value={campaignForm.targetLanguage ?? ''} onChange={(e) => setCampaignForm({ ...campaignForm, targetLanguage: e.target.value })}><option value="">{t('admin.newsletter.bothLanguages')}</option><option value="fr">{t('admin.newsletter.filterLanguageFr')}</option><option value="en">{t('admin.newsletter.filterLanguageEn')}</option></select><input aria-label={t('admin.newsletter.interest')} placeholder={t('admin.newsletter.interestPlaceholder')} className={inputClasses} value={campaignForm.targetInterest ?? ''} onChange={(e) => setCampaignForm({ ...campaignForm, targetInterest: e.target.value })} /><select aria-label={t('admin.newsletter.membershipStatus')} className={inputClasses} value={campaignForm.targetMembershipStatus ?? ''} onChange={(e) => setCampaignForm({ ...campaignForm, targetMembershipStatus: e.target.value || undefined })}><option value="">{t('admin.newsletter.allMembershipStatuses')}</option>{['Active', 'GracePeriod', 'Inactive', 'Expired'].map((status) => <option key={status} value={status}>{t(`admin.newsletter.membership.${status}`)}</option>)}</select><select aria-label={t('admin.newsletter.association')} className={inputClasses} value={campaignForm.targetAssociationId ?? ''} onChange={(e) => setCampaignForm({ ...campaignForm, targetAssociationId: e.target.value || undefined })}><option value="">{t('admin.newsletter.allAssociations')}</option>{associations.map((association) => <option key={association.id} value={association.id}>{association.name}</option>)}</select></div></div>}
               <Field label={t('admin.newsletter.subjectFr')} htmlFor="campaign-subject" required>
                 <input id="campaign-subject" className={inputClasses} required value={campaignForm.subject} onChange={(e) => setCampaignForm({ ...campaignForm, subject: e.target.value })} />
               </Field>
               <Field label={t('admin.newsletter.bodyFr')} htmlFor="campaign-body" required>
-                <textarea id="campaign-body" className={`${inputClasses} min-h-28 resize-y`} required value={campaignForm.body} onChange={(e) => setCampaignForm({ ...campaignForm, body: e.target.value })} />
+                <RichTextEditor id="campaign-body" value={campaignForm.body} onChange={(body) => setCampaignForm({ ...campaignForm, body })} minHeight={220} required />
               </Field>
               <Field label={t('admin.newsletter.subjectEn')} htmlFor="campaign-subject-en">
                 <input id="campaign-subject-en" className={inputClasses} value={campaignForm.subjectEn} onChange={(e) => setCampaignForm({ ...campaignForm, subjectEn: e.target.value })} />
               </Field>
               <Field label={t('admin.newsletter.bodyEn')} htmlFor="campaign-body-en">
-                <textarea id="campaign-body-en" className={`${inputClasses} min-h-24 resize-y`} value={campaignForm.bodyEn} onChange={(e) => setCampaignForm({ ...campaignForm, bodyEn: e.target.value })} />
+                <RichTextEditor id="campaign-body-en" value={campaignForm.bodyEn ?? ''} onChange={(bodyEn) => setCampaignForm({ ...campaignForm, bodyEn })} minHeight={200} />
               </Field>
               <Field label={t('admin.newsletter.schedule')} htmlFor="campaign-schedule">
                 <input id="campaign-schedule" type="datetime-local" className={inputClasses} value={campaignForm.scheduledAtUtc ? new Date(campaignForm.scheduledAtUtc).toISOString().slice(0, 16) : ''} onChange={(e) => setCampaignForm({ ...campaignForm, scheduledAtUtc: e.target.value ? new Date(e.target.value).toISOString() : undefined })} />
               </Field>
-              <Button type="submit" variant="primary" className="w-full" disabled={campaignBusy}>
-                {t('admin.newsletter.saveDraft')}
-              </Button>
+              <div className="rounded-2xl border border-green/15 bg-green/[.035] p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-[9px] font-bold uppercase tracking-[.14em] text-green">{t('admin.newsletter.audiencePreview')}</p><p className="mt-1 text-xs text-ink-variant">{t('admin.newsletter.audiencePreviewHint')}</p></div><Button type="button" variant="tertiary" disabled={previewBusy} onClick={handlePreviewAudience}>{previewBusy ? <i className="ri-loader-4-line animate-spin" /> : <i className="ri-radar-line" />}{t('admin.newsletter.calculateAudience')}</Button></div>
+                {audiencePreview && <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">{([['uniqueRecipients', 'ri-group-line'], ['emailRecipients', 'ri-mail-line'], ['inAppRecipients', 'ri-notification-line'], ['pushReadyRecipients', 'ri-smartphone-line']] as const).map(([key, icon]) => <div key={key} className="rounded-xl bg-surface p-3 text-center"><i className={`${icon} text-green`} /><strong className="mt-1 block font-display text-xl text-green-deep">{audiencePreview[key]}</strong><span className="text-[8px] font-bold uppercase tracking-wide text-ink-variant">{t(`admin.newsletter.preview.${key}`)}</span></div>)}</div>}
+              </div>
+              <Button type="submit" variant="primary" className="w-full" disabled={campaignBusy}><i className="ri-draft-line" />{t('admin.newsletter.saveDraft')}</Button>
             </div>
           </form>
 
@@ -363,13 +432,16 @@ const NewsletterAdminPage: React.FC = () => {
                     <p className="font-medium text-ink">{campaign.subject}</p>
                     <span className="text-[10px] font-bold uppercase tracking-wide text-ink-variant">{t(`admin.newsletter.status.${campaign.status}`, { defaultValue: campaign.status })}</span>
                   </div>
-                  <p className="mt-1 text-xs text-ink-variant">{t(`admin.newsletter.audience${campaign.audience}`)} · {t(`admin.newsletter.category.${campaign.preferenceCategory}`, { defaultValue: campaign.preferenceCategory })} · {campaign.sentCount}/{campaign.recipientCount} · {campaign.failedCount} {t('admin.newsletter.failed')}</p>
-                  <div className="mt-3 grid grid-cols-3 divide-x divide-line rounded-lg bg-canvas/60 py-2 text-center"><div><strong className="block text-sm text-green-deep">{campaign.openedCount}</strong><span className="text-[8px] uppercase text-ink-variant">{t('admin.newsletter.opened')}</span></div><div><strong className="block text-sm text-green-deep">{campaign.openRate}%</strong><span className="text-[8px] uppercase text-ink-variant">{t('admin.newsletter.rate')}</span></div><div><strong className="block text-sm text-green-deep">{campaign.unsubscribedCount}</strong><span className="text-[8px] uppercase text-ink-variant">{t('admin.newsletter.optOuts')}</span></div></div>
-                  {campaign.status === 'Draft' && (
-                    <button type="button" className="mt-3 text-label-md uppercase text-green" disabled={campaignBusy} onClick={() => handleSendCampaign(campaign.id)}>
-                      {t('admin.newsletter.sendNow')}
-                    </button>
-                  )}
+                  <p className="mt-1 text-xs text-ink-variant">{t(`admin.newsletter.audience${campaign.audience}`)} · {t(`admin.newsletter.category.${campaign.preferenceCategory}`, { defaultValue: campaign.preferenceCategory })}</p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">{campaign.channels.split(',').map((channel) => <span key={channel} className="rounded-full border border-green/15 bg-green/5 px-2 py-1 text-[8px] font-bold uppercase tracking-wide text-green">{t(`admin.newsletter.channel.${channel}`)}</span>)}</div>
+                  <div className="mt-3 grid grid-cols-2 divide-x divide-y divide-line rounded-lg bg-canvas/60 py-2 text-center sm:grid-cols-4 sm:divide-y-0"><div className="py-1"><strong className="block text-sm text-green-deep">{campaign.sentCount}</strong><span className="text-[8px] uppercase text-ink-variant">{t('admin.newsletter.channel.Email')}</span></div><div className="py-1"><strong className="block text-sm text-green-deep">{campaign.inAppSentCount}</strong><span className="text-[8px] uppercase text-ink-variant">{t('admin.newsletter.channel.InApp')}</span></div><div className="py-1"><strong className="block text-sm text-green-deep">{campaign.pushSentCount}</strong><span className="text-[8px] uppercase text-ink-variant">{t('admin.newsletter.channel.Push')}</span></div><div className="py-1"><strong className="block text-sm text-green-deep">{campaign.openRate}%</strong><span className="text-[8px] uppercase text-ink-variant">{t('admin.newsletter.rate')}</span></div></div>
+                  {(campaign.failedCount > 0 || campaign.pushFailedCount > 0) && <p className="mt-2 rounded-lg bg-error/8 px-3 py-2 text-[10px] font-semibold text-error">{t('admin.newsletter.deliveryFailures', { email: campaign.failedCount, push: campaign.pushFailedCount })}</p>}
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
+                    {campaign.status === 'Draft' && <button type="button" className="text-label-md uppercase text-green" disabled={campaignBusy} onClick={() => handleSendCampaign(campaign.id)}>{t('admin.newsletter.sendNow')}</button>}
+                    <button type="button" className="text-label-md uppercase text-green" onClick={() => handleDeliveries(campaign.id)}>{deliveryCampaignId === campaign.id ? t('admin.newsletter.hideDeliveries') : t('admin.newsletter.showDeliveries')}</button>
+                  </div>
+                  {campaign.status === 'Draft' && <div className="mt-3 flex gap-2"><input type="email" aria-label={t('admin.newsletter.testEmail')} placeholder={t('admin.newsletter.testEmail')} className={`${inputClasses} min-w-0 flex-1`} value={testEmail} onChange={(event) => setTestEmail(event.target.value)} /><Button type="button" variant="tertiary" disabled={!testEmail.trim() || campaignBusy} onClick={() => handleTestCampaign(campaign.id)}>{t('admin.newsletter.sendTest')}</Button></div>}
+                  {deliveryCampaignId === campaign.id && <div className="mt-3 max-h-64 space-y-2 overflow-y-auto rounded-xl border border-line bg-canvas/40 p-2">{deliveries.length === 0 ? <p className="p-2 text-xs text-ink-variant">{t('admin.newsletter.noDeliveries')}</p> : deliveries.map((delivery) => <div key={delivery.id} className="rounded-lg bg-surface p-2.5"><p className="truncate text-xs font-semibold text-ink">{delivery.recipient}</p><div className="mt-1 flex flex-wrap gap-2 text-[8px] font-bold uppercase text-ink-variant"><span>Email: {delivery.emailStatus}</span><span>In-app: {delivery.inAppStatus}</span><span>Push: {delivery.pushStatus}</span><span>{delivery.openCount} {t('admin.newsletter.opens')}</span></div>{delivery.failureReason && <p className="mt-1 text-[10px] text-error">{delivery.failureReason}</p>}</div>)}</div>}
                 </div>
               ))}
             </div>

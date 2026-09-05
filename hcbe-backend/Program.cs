@@ -1538,12 +1538,25 @@ static void EnsureSqliteSecuritySchema(ApplicationDbContext context)
     context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_MemberBlocks_BlockerMemberId_BlockedMemberId ON MemberBlocks(BlockerMemberId, BlockedMemberId)");
     try { context.Database.ExecuteSqlRaw("ALTER TABLE CmsContentItems ADD COLUMN ScheduledPublishAtUtc TEXT"); } catch { }
     try { context.Database.ExecuteSqlRaw("ALTER TABLE NewsletterCampaigns ADD COLUMN Audience TEXT NOT NULL DEFAULT 'Newsletter'"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE NewsletterCampaigns ADD COLUMN Channels TEXT NOT NULL DEFAULT 'Email'"); } catch { }
     try { context.Database.ExecuteSqlRaw("ALTER TABLE NewsletterCampaigns ADD COLUMN PreferenceCategory TEXT NOT NULL DEFAULT 'newsletter'"); } catch { }
     try { context.Database.ExecuteSqlRaw("ALTER TABLE NewsletterCampaigns ADD COLUMN TargetProvince TEXT"); } catch { }
     try { context.Database.ExecuteSqlRaw("ALTER TABLE NewsletterCampaigns ADD COLUMN TargetZone TEXT"); } catch { }
     try { context.Database.ExecuteSqlRaw("ALTER TABLE NewsletterCampaigns ADD COLUMN TargetLanguage TEXT"); } catch { }
     try { context.Database.ExecuteSqlRaw("ALTER TABLE NewsletterCampaigns ADD COLUMN TargetInterest TEXT"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE NewsletterCampaigns ADD COLUMN TargetMembershipStatus TEXT"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE NewsletterCampaigns ADD COLUMN TargetAssociationId TEXT"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE NewsletterCampaigns ADD COLUMN InAppSentCount INTEGER NOT NULL DEFAULT 0"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE NewsletterCampaigns ADD COLUMN PushSentCount INTEGER NOT NULL DEFAULT 0"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE NewsletterCampaigns ADD COLUMN PushFailedCount INTEGER NOT NULL DEFAULT 0"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE NewsletterCampaigns ADD COLUMN TestSentCount INTEGER NOT NULL DEFAULT 0"); } catch { }
     try { context.Database.ExecuteSqlRaw("ALTER TABLE NewsletterCampaigns ADD COLUMN ScheduledAtUtc TEXT"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE NewsletterDeliveries ADD COLUMN UserId TEXT"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE NewsletterDeliveries ADD COLUMN PreferredLanguage TEXT NOT NULL DEFAULT 'fr'"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE NewsletterDeliveries ADD COLUMN EmailStatus TEXT NOT NULL DEFAULT 'Sent'"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE NewsletterDeliveries ADD COLUMN InAppStatus TEXT NOT NULL DEFAULT 'Skipped'"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE NewsletterDeliveries ADD COLUMN PushStatus TEXT NOT NULL DEFAULT 'Skipped'"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE NewsletterDeliveries ADD COLUMN FailureReason TEXT"); } catch { }
     try { context.Database.ExecuteSqlRaw("ALTER TABLE Associations ADD COLUMN OwnerMemberId TEXT"); } catch { }
     try { context.Database.ExecuteSqlRaw("ALTER TABLE Associations ADD COLUMN OrganizationType TEXT NOT NULL DEFAULT 'Association'"); } catch { }
     try { context.Database.ExecuteSqlRaw("ALTER TABLE ServiceCases ADD COLUMN AssignedAssociationId TEXT"); } catch { }

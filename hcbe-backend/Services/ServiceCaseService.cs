@@ -152,6 +152,7 @@ public sealed class ServiceCaseService(
         if (previousStatus != item.Status)
         {
             QueueEmail(item, item.Member!, item.Status, null);
+            await NotifyMemberAsync(item, $"Statut mis à jour / Status updated: {item.Status}");
             await context.SaveChangesAsync();
         }
         return ApiResponse<ServiceCaseDto>.SuccessResponse(Map(item, true));
@@ -175,6 +176,7 @@ public sealed class ServiceCaseService(
         if (!request.IsInternal)
         {
             QueueEmail(item, item.Member!, item.Status, message.Body);
+            await NotifyMemberAsync(item, "Nouvelle réponse / New reply");
             await context.SaveChangesAsync();
         }
         return ApiResponse<ServiceCaseDto>.SuccessResponse(Map(item, true));
@@ -249,6 +251,15 @@ public sealed class ServiceCaseService(
     {
         var email = emailTemplates.ServiceCaseUpdate(member.FirstName, item.TicketNumber, item.Subject, status, message, $"{PublicAppUrl()}/espace-membre?section=services&case={item.Id}");
         emailOutbox.Enqueue(member.Email, email.Subject, email.HtmlBody, nameof(ServiceCase), item.Id);
+    }
+    private async Task NotifyMemberAsync(ServiceCase item, string title)
+    {
+        var userId = await context.Users.AsNoTracking().Where(user => user.MemberId == item.MemberId && user.IsActive)
+            .Select(user => (Guid?)user.Id).FirstOrDefaultAsync();
+        if (userId.HasValue)
+            await notifications.CreateForUserAsync(userId.Value, "service-case", title,
+                $"{item.TicketNumber} — {item.Subject}", item.Id,
+                $"/espace-membre?section=services&case={item.Id}");
     }
     private static string? Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

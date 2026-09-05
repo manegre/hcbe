@@ -5,7 +5,13 @@ public sealed class NewsletterDelivery
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid CampaignId { get; set; }
     public NewsletterCampaign Campaign { get; set; } = null!;
+    public Guid? UserId { get; set; }
     public string Recipient { get; set; } = string.Empty;
+    public string PreferredLanguage { get; set; } = "fr";
+    public string EmailStatus { get; set; } = "Skipped";
+    public string InAppStatus { get; set; } = "Skipped";
+    public string PushStatus { get; set; } = "Skipped";
+    public string? FailureReason { get; set; }
     public string TrackingToken { get; set; } = string.Empty;
     public DateTime QueuedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime? FirstOpenedAtUtc { get; set; }
