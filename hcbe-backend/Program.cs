@@ -340,6 +340,7 @@ else
     builder.Services.AddSingleton<IFileStorageService, FileStorageService>();
 }
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ISecurityService, SecurityService>();
 builder.Services.AddSingleton<IGoogleIdentityTokenValidator, GoogleIdentityTokenValidator>();
 builder.Services.AddScoped<IMemberService, MemberService>();
 builder.Services.AddScoped<IEventService, EventService>();
@@ -1306,6 +1307,7 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
 
 // Map all API endpoints
 app.MapAuthEndpoints();
+app.MapSecurityEndpoints();
 app.MapMemberEndpoints();
 app.MapMembershipApplicationEndpoints();
 app.MapNewsletterEndpoints();
@@ -1481,6 +1483,9 @@ static void EnsureSqliteSecuritySchema(ApplicationDbContext context)
     try { context.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN MustChangePassword INTEGER NOT NULL DEFAULT 0"); } catch { }
     try { context.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN AdminRole TEXT NOT NULL DEFAULT 'super-admin'"); } catch { }
     try { context.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN AdminPermissions TEXT"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN MfaSecretProtected TEXT"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN MfaRecoveryCodesJson TEXT"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN MfaEnabledAtUtc TEXT"); } catch { }
     context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS MemberPreferences (
         UserId TEXT NOT NULL PRIMARY KEY, PreferredLanguage TEXT NOT NULL DEFAULT 'fr', TimeZone TEXT NOT NULL DEFAULT 'America/Toronto',
         EmailEvents INTEGER NOT NULL DEFAULT 0, EmailOpportunities INTEGER NOT NULL DEFAULT 0,
@@ -1663,6 +1668,35 @@ static void EnsureSqliteSecuritySchema(ApplicationDbContext context)
     )");
     context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_RefreshTokens_TokenHash ON RefreshTokens(TokenHash)");
     context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_RefreshTokens_UserId_ExpiresAtUtc ON RefreshTokens(UserId, ExpiresAtUtc)");
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE RefreshTokens ADD COLUMN UserAgent TEXT"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE RefreshTokens ADD COLUMN DeviceName TEXT"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE RefreshTokens ADD COLUMN LastUsedAtUtc TEXT"); } catch { }
+
+    context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS MfaChallenges (
+        Id TEXT PRIMARY KEY, UserId TEXT NOT NULL, TokenHash TEXT NOT NULL, AuthenticationMethod TEXT NOT NULL,
+        IpAddress TEXT, UserAgent TEXT, FailedAttempts INTEGER NOT NULL DEFAULT 0, ExpiresAtUtc TEXT NOT NULL,
+        ConsumedAtUtc TEXT, CreatedAtUtc TEXT NOT NULL,
+        FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE CASCADE
+    )");
+    context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_MfaChallenges_TokenHash ON MfaChallenges(TokenHash)");
+    context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_MfaChallenges_UserId_ExpiresAtUtc ON MfaChallenges(UserId, ExpiresAtUtc)");
+
+    context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS SecurityIncidents (
+        Id TEXT PRIMARY KEY, ReferenceNumber TEXT NOT NULL, Title TEXT NOT NULL, Description TEXT NOT NULL,
+        Severity TEXT NOT NULL, Status TEXT NOT NULL, AssignedTo TEXT, ContainmentActions TEXT, RootCause TEXT,
+        CorrectiveActions TEXT, PersonalDataInvolved INTEGER NOT NULL DEFAULT 0, EstimatedPeopleAffected INTEGER,
+        HarmRiskAssessment TEXT, CaiNotificationRequired INTEGER NOT NULL DEFAULT 0, CaiNotifiedAtUtc TEXT,
+        IndividualsNotifiedAtUtc TEXT, ReportedByUserId TEXT NOT NULL, LastUpdatedByUserId TEXT,
+        ReportedAtUtc TEXT NOT NULL, UpdatedAtUtc TEXT NOT NULL, ContainedAtUtc TEXT, ResolvedAtUtc TEXT
+    )");
+    context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_SecurityIncidents_ReferenceNumber ON SecurityIncidents(ReferenceNumber)");
+    context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_SecurityIncidents_Status_ReportedAtUtc ON SecurityIncidents(Status, ReportedAtUtc)");
+
+    context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS AdminAccessReviews (
+        Id TEXT PRIMARY KEY, ReviewedUserId TEXT NOT NULL, ReviewedByUserId TEXT NOT NULL, Decision TEXT NOT NULL,
+        Notes TEXT, ReviewedAtUtc TEXT NOT NULL, NextReviewAtUtc TEXT NOT NULL
+    )");
+    context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_AdminAccessReviews_ReviewedUserId_NextReviewAtUtc ON AdminAccessReviews(ReviewedUserId, NextReviewAtUtc)");
 
     context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS AuditLogs (
         Id TEXT PRIMARY KEY,

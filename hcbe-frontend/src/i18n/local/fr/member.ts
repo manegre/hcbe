@@ -1,4 +1,10 @@
 export default {
+  'public.member.login.mfaTitle': 'Vérification en deux étapes',
+  'public.member.login.mfaHint': 'Entrez le code de votre application d’authentification ou un code de récupération.',
+  'public.member.login.mfaCode': 'Code de sécurité',
+  'public.member.login.mfaVerify': 'Vérifier mon identité',
+  'public.member.login.mfaBack': 'Revenir à la connexion',
+  'public.member.login.mfaInvalid': 'Le code est invalide ou expiré.',
   'public.member.login.editProfile': 'Modifier mon profil',
   'public.member.login.saveProfile': 'Enregistrer le profil',
   'public.member.login.profileSaved': 'Votre profil a été mis à jour.',

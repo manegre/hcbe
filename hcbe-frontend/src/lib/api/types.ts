@@ -9,12 +9,30 @@ export interface User {
   mustChangePassword: boolean;
   adminRole?: string;
   permissions?: string[];
+  mfaEnabled: boolean;
 }
 
 export interface AuthResponse {
-  token: string;
-  user: User;
+  token?: string;
+  user?: User;
+  mfaRequired: boolean;
+  mfaChallengeToken?: string;
 }
+
+export interface MfaStatus { enabled: boolean; enabledAtUtc?: string; recoveryCodesRemaining: number; }
+export interface MfaEnrollment { secret: string; otpAuthUri: string; }
+export interface MfaConfirmation { status: MfaStatus; recoveryCodes: string[]; }
+export interface AccountSession { id: string; deviceName: string; ipAddress?: string; createdAtUtc: string; lastUsedAtUtc?: string; expiresAtUtc: string; isCurrent: boolean; }
+export interface SecurityPosture { activeAdmins: number; adminsWithMfa: number; activeSessions: number; openIncidents: number; overdueAccessReviews: number; oldestOpenIncidentAtUtc?: string; }
+export interface SecurityIncident {
+  id: string; referenceNumber: string; title: string; description: string; severity: string; status: string;
+  assignedTo?: string; containmentActions?: string; rootCause?: string; correctiveActions?: string;
+  personalDataInvolved: boolean; estimatedPeopleAffected?: number; harmRiskAssessment?: string;
+  caiNotificationRequired: boolean; caiNotifiedAtUtc?: string; individualsNotifiedAtUtc?: string;
+  reportedByUserId: string; lastUpdatedByUserId?: string; reportedAtUtc: string; updatedAtUtc: string;
+  containedAtUtc?: string; resolvedAtUtc?: string;
+}
+export interface AuditLog { id: string; userEmail?: string; action: string; entityType: string; entityId?: string; ipAddress?: string; traceId?: string; createdAtUtc: string; }
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -46,6 +64,8 @@ export interface AdminUser {
   createdAt: string;
   adminRole: string;
   permissions: string[];
+  mfaEnabled: boolean;
+  lastLoginAtUtc?: string;
 }
 
 export interface MemberPreference {
@@ -121,6 +141,7 @@ export interface PrivacyRequest {
 export interface AdminRole {
   key: string;
   name: string;
+  nameEn: string;
   permissions: string[];
 }
 

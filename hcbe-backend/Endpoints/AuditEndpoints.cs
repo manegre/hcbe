@@ -1,5 +1,6 @@
 using HcbeApi.Data;
 using Microsoft.EntityFrameworkCore;
+using HcbeApi.Helpers;
 
 namespace HcbeApi.Endpoints;
 
@@ -12,8 +13,10 @@ public static class AuditEndpoints
             int? pageSize,
             string? entityType,
             ApplicationDbContext context,
+            HttpContext http,
             CancellationToken cancellationToken) =>
         {
+            if (!http.HasPermission(AdminPermissions.SecurityManage)) return Results.Forbid();
             var safePage = Math.Max(page ?? 1, 1);
             var safePageSize = Math.Clamp(pageSize ?? 50, 1, 100);
             var query = context.AuditLogs.AsNoTracking();

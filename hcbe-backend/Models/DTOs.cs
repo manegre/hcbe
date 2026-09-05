@@ -22,14 +22,53 @@ public record ConfirmPasswordResetRequest(
 public record ChangeRequiredPasswordRequest(
     [Required] [MinLength(12)] string Password);
 
-public record AuthResponse(string Token, UserDto User);
+public record AuthResponse(
+    string? Token,
+    UserDto? User,
+    bool MfaRequired = false,
+    string? MfaChallengeToken = null);
 
 public sealed record AuthSession(string AccessToken, string RefreshToken, DateTime RefreshTokenExpiresAtUtc, User User);
 
 public record UserDto(
     Guid Id, string Email, string? FirstName, string? LastName, bool IsAdmin,
     Guid? MemberId, bool MustChangePassword, string? AdminRole = null,
-    IReadOnlyList<string>? Permissions = null);
+    IReadOnlyList<string>? Permissions = null,
+    bool MfaEnabled = false);
+
+public record VerifyMfaRequest([Required] string ChallengeToken, [Required] string Code);
+public record ConfirmMfaEnrollmentRequest([Required] string Code);
+public record DisableMfaRequest([Required] string Code);
+public record MfaEnrollmentDto(string Secret, string OtpAuthUri);
+public record MfaStatusDto(bool Enabled, DateTime? EnabledAtUtc, int RecoveryCodesRemaining);
+public record MfaConfirmationDto(MfaStatusDto Status, IReadOnlyList<string> RecoveryCodes);
+public record AccountSessionDto(
+    Guid Id, string DeviceName, string? IpAddress, DateTime CreatedAtUtc,
+    DateTime? LastUsedAtUtc, DateTime ExpiresAtUtc, bool IsCurrent);
+
+public record CreateSecurityIncidentRequest(
+    [Required][MaxLength(200)] string Title,
+    [Required][MaxLength(5000)] string Description,
+    [Required] string Severity,
+    bool PersonalDataInvolved,
+    int? EstimatedPeopleAffected,
+    string? HarmRiskAssessment);
+
+public record UpdateSecurityIncidentRequest(
+    string? Status,
+    string? Severity,
+    string? AssignedTo,
+    string? ContainmentActions,
+    string? RootCause,
+    string? CorrectiveActions,
+    bool? CaiNotificationRequired,
+    DateTime? CaiNotifiedAtUtc,
+    DateTime? IndividualsNotifiedAtUtc);
+
+public record AdminAccessReviewRequest([Required] string Decision, string? Notes);
+public record SecurityPostureDto(
+    int ActiveAdmins, int AdminsWithMfa, int ActiveSessions, int OpenIncidents,
+    int OverdueAccessReviews, DateTime? OldestOpenIncidentAtUtc);
 
 public record MemberPreferenceDto(
     string PreferredLanguage, string TimeZone, bool EmailEvents, bool EmailOpportunities,
@@ -80,9 +119,10 @@ public record PrivacyRequestDto(
 public record AdminUserDto(
     Guid Id, string Email, string? FirstName, string? LastName, bool IsAdmin,
     bool MustChangePassword, Guid? MemberId, DateTime CreatedAt,
-    string AdminRole, IReadOnlyList<string> Permissions);
+    string AdminRole, IReadOnlyList<string> Permissions,
+    bool MfaEnabled = false, DateTime? LastLoginAtUtc = null);
 
-public record AdminRoleDto(string Key, string Name, IReadOnlyCollection<string> Permissions);
+public record AdminRoleDto(string Key, string Name, string NameEn, IReadOnlyCollection<string> Permissions);
 
 public record CreateAdminUserRequest(
     [Required][EmailAddress] string Email,

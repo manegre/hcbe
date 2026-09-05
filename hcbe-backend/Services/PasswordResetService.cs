@@ -59,6 +59,8 @@ public class PasswordResetService : IPasswordResetService
 
         reset.User.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
         reset.User.MustChangePassword = false;
+        foreach (var token in await _context.RefreshTokens.Where(item => item.UserId == reset.UserId && item.RevokedAtUtc == null).ToListAsync(cancellationToken))
+            token.RevokedAtUtc = DateTime.UtcNow;
         reset.UsedAt = DateTime.UtcNow;
         var publicUrl = (_configuration["PublicAppUrl"] ?? "http://localhost:3000").TrimEnd('/');
         var confirmation = _emailTemplates.PasswordChanged(reset.User.FirstName, $"{publicUrl}/espace-membre");

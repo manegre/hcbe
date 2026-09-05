@@ -17,7 +17,7 @@ public static class UserEndpoints
         {
             if (!context.HasPermission(AdminPermissions.UsersManage)) return Results.Forbid();
             var roles = AdminAccess.Roles
-                .Select(role => new AdminRoleDto(role.Key, role.Name, role.Permissions))
+                .Select(role => new AdminRoleDto(role.Key, role.Name, role.NameEn, role.Permissions))
                 .ToList();
             return Results.Ok(ApiResponse<List<AdminRoleDto>>.SuccessResponse(roles));
         })

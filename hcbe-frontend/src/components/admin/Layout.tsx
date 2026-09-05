@@ -88,6 +88,7 @@ export const AdminLayout = () => {
         { nameKey: 'admin.nav.dashboard', href: '/admin/dashboard', icon: 'ri-dashboard-line', permission: 'dashboard.view' },
         { nameKey: 'admin.nav.impact', href: '/admin/impact', icon: 'ri-line-chart-line', permission: 'analytics.view' },
         { nameKey: 'admin.nav.monitoring', href: '/admin/monitoring', icon: 'ri-pulse-line', permission: 'analytics.view' },
+        { nameKey: 'admin.nav.security', href: '/admin/security', icon: 'ri-shield-keyhole-line', permission: 'security.manage' },
         {
           nameKey: 'admin.nav.news',
           icon: 'ri-newspaper-line',

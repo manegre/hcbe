@@ -16,6 +16,9 @@ const permissionLabels: Record<string, { fr: string; en: string }> = {
   'analytics.view': { fr: 'Voir les analyses et rapports', en: 'View analytics and reports' },
   'users.manage': { fr: 'Gérer les administrateurs', en: 'Manage administrators' },
   'settings.manage': { fr: 'Gérer les paramètres techniques', en: 'Manage technical settings' },
+  'finance.manage': { fr: 'Gérer les finances', en: 'Manage finance' },
+  'security.manage': { fr: 'Gérer la sécurité et les incidents', en: 'Manage security and incidents' },
+  'privacy.manage': { fr: 'Superviser les contrôles Loi 25', en: 'Oversee Law 25 controls' },
 };
 
 interface AdminRoleFieldsProps {
@@ -67,7 +70,7 @@ export function AdminRoleFields({ role, permissions, onChange }: AdminRoleFields
 
       <Field label={language === 'fr' ? 'Rôle principal' : 'Primary role'} htmlFor="adminRole" required>
         <select id="adminRole" value={role} onChange={(event) => changeRole(event.target.value)} className={inputClasses}>
-          {roles.map((item) => <option key={item.key} value={item.key}>{item.name}</option>)}
+          {roles.map((item) => <option key={item.key} value={item.key}>{language === 'en' ? item.nameEn : item.name}</option>)}
         </select>
       </Field>
 
@@ -81,7 +84,7 @@ export function AdminRoleFields({ role, permissions, onChange }: AdminRoleFields
               ? (language === 'fr' ? 'Le super administrateur possède tous les accès.' : 'The super administrator has full access.')
               : (language === 'fr' ? 'Personnalisez ce que cette personne peut gérer.' : 'Customize what this person can manage.')}</p>
           </div>
-          {selected && <span className="rounded-full bg-green/8 px-3 py-1 text-[9px] font-bold uppercase tracking-[.12em] text-green">{selected.name}</span>}
+          {selected && <span className="rounded-full bg-green/8 px-3 py-1 text-[9px] font-bold uppercase tracking-[.12em] text-green">{language === 'en' ? selected.nameEn : selected.name}</span>}
         </div>
         <div className="mt-4 grid gap-2 sm:grid-cols-2">
           {availablePermissions.map((permission) => {

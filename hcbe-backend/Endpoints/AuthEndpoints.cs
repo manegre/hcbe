@@ -18,17 +18,22 @@ public static class AuthEndpoints
             LoginRequest request,
             HttpContext context,
             IAuthService authService,
+            ISecurityService securityService,
             IWebHostEnvironment environment) =>
         {
             var session = await authService.CreateSessionAsync(
                 request.Email,
                 request.Password,
-                context.Connection.RemoteIpAddress?.ToString());
+                context.Connection.RemoteIpAddress?.ToString(),
+                context.Request.Headers.UserAgent.ToString());
             if (session == null)
             {
                 return Results.Json(ApiResponse<AuthResponse>.ErrorResponse("Invalid email or password"), statusCode: 401);
             }
 
+            var secured = await securityService.CompleteOrChallengeAsync(session, "password", context.Connection.RemoteIpAddress?.ToString(), context.Request.Headers.UserAgent.ToString());
+            if (secured.RequiresMfa) return Results.Ok(ApiResponse<AuthResponse>.SuccessResponse(new AuthResponse(null, null, true, secured.ChallengeToken)));
+            session = secured.Session!;
             SetRefreshCookie(context, environment, session.RefreshToken, session.RefreshTokenExpiresAtUtc);
             var user = session.User;
             var authResponse = new AuthResponse(session.AccessToken, MapUser(user));
@@ -45,6 +50,7 @@ public static class AuthEndpoints
             HttpContext context,
             IGoogleIdentityTokenValidator googleTokenValidator,
             IAuthService authService,
+            ISecurityService securityService,
             IWebHostEnvironment environment,
             CancellationToken cancellationToken) =>
         {
@@ -68,7 +74,8 @@ public static class AuthEndpoints
                 identity.FirstName,
                 identity.LastName,
                 requireAdmin: true,
-                context.Connection.RemoteIpAddress?.ToString());
+                context.Connection.RemoteIpAddress?.ToString(),
+                context.Request.Headers.UserAgent.ToString());
             if (session == null)
             {
                 return Results.Json(
@@ -76,6 +83,9 @@ public static class AuthEndpoints
                     statusCode: StatusCodes.Status401Unauthorized);
             }
 
+            var secured = await securityService.CompleteOrChallengeAsync(session, "google", context.Connection.RemoteIpAddress?.ToString(), context.Request.Headers.UserAgent.ToString(), cancellationToken);
+            if (secured.RequiresMfa) return Results.Ok(ApiResponse<AuthResponse>.SuccessResponse(new AuthResponse(null, null, true, secured.ChallengeToken)));
+            session = secured.Session!;
             SetRefreshCookie(context, environment, session.RefreshToken, session.RefreshTokenExpiresAtUtc);
             var user = session.User;
             return Results.Ok(ApiResponse<AuthResponse>.SuccessResponse(new AuthResponse(
@@ -94,6 +104,7 @@ public static class AuthEndpoints
             HttpContext context,
             IGoogleIdentityTokenValidator googleTokenValidator,
             IAuthService authService,
+            ISecurityService securityService,
             IWebHostEnvironment environment,
             CancellationToken cancellationToken) =>
         {
@@ -116,7 +127,8 @@ public static class AuthEndpoints
                 identity.Email,
                 identity.FirstName,
                 identity.LastName,
-                context.Connection.RemoteIpAddress?.ToString());
+                context.Connection.RemoteIpAddress?.ToString(),
+                context.Request.Headers.UserAgent.ToString());
             if (session == null)
             {
                 return Results.Json(
@@ -125,6 +137,9 @@ public static class AuthEndpoints
                     statusCode: StatusCodes.Status403Forbidden);
             }
 
+            var secured = await securityService.CompleteOrChallengeAsync(session, "google", context.Connection.RemoteIpAddress?.ToString(), context.Request.Headers.UserAgent.ToString(), cancellationToken);
+            if (secured.RequiresMfa) return Results.Ok(ApiResponse<AuthResponse>.SuccessResponse(new AuthResponse(null, null, true, secured.ChallengeToken)));
+            session = secured.Session!;
             SetRefreshCookie(context, environment, session.RefreshToken, session.RefreshTokenExpiresAtUtc);
             var user = session.User;
             return Results.Ok(ApiResponse<AuthResponse>.SuccessResponse(new AuthResponse(
@@ -151,7 +166,8 @@ public static class AuthEndpoints
 
             var session = await authService.RotateRefreshTokenAsync(
                 refreshToken,
-                context.Connection.RemoteIpAddress?.ToString());
+                context.Connection.RemoteIpAddress?.ToString(),
+                context.Request.Headers.UserAgent.ToString());
             if (session == null)
             {
                 DeleteRefreshCookie(context, environment);
@@ -184,6 +200,27 @@ public static class AuthEndpoints
         })
         .WithName("Logout")
         .AllowAnonymous();
+
+        group.MapPost("/mfa/verify", async (
+            VerifyMfaRequest request,
+            HttpContext context,
+            ISecurityService securityService,
+            IWebHostEnvironment environment,
+            CancellationToken cancellationToken) =>
+        {
+            var session = await securityService.VerifyChallengeAsync(
+                request.ChallengeToken,
+                request.Code,
+                context.Connection.RemoteIpAddress?.ToString(),
+                context.Request.Headers.UserAgent.ToString(),
+                cancellationToken);
+            if (session is null) return Results.Json(ApiResponse<AuthResponse>.ErrorResponse("Invalid or expired verification code"), statusCode: StatusCodes.Status401Unauthorized);
+            SetRefreshCookie(context, environment, session.RefreshToken, session.RefreshTokenExpiresAtUtc);
+            return Results.Ok(ApiResponse<AuthResponse>.SuccessResponse(new AuthResponse(session.AccessToken, MapUser(session.User))));
+        })
+        .WithName("VerifyMfaChallenge")
+        .AllowAnonymous()
+        .RequireRateLimiting("Authentication");
 
         group.MapPost("/password-reset/request", async (
             RequestPasswordResetRequest request,
@@ -263,7 +300,7 @@ public static class AuthEndpoints
         HttpOnly = true,
         Secure = environment.IsProduction(),
         SameSite = environment.IsProduction() ? SameSiteMode.None : SameSiteMode.Lax,
-        Path = "/api/auth",
+        Path = "/api",
         Expires = new DateTimeOffset(DateTime.SpecifyKind(expiresAtUtc, DateTimeKind.Utc)),
         IsEssential = true
     };
@@ -272,5 +309,6 @@ public static class AuthEndpoints
         new(user.Id, user.Email, user.FirstName, user.LastName, user.IsAdmin,
             user.MemberId, user.MustChangePassword,
             user.IsAdmin ? user.AdminRole : null,
-            user.IsAdmin ? AdminAccess.EffectivePermissions(user.AdminRole, user.AdminPermissions) : []);
+            user.IsAdmin ? AdminAccess.EffectivePermissions(user.AdminRole, user.AdminPermissions) : [],
+            user.MfaEnabledAtUtc is not null);
 }

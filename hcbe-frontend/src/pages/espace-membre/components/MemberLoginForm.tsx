@@ -9,6 +9,7 @@ import MemberCommunityWorkspace from './MemberCommunityWorkspace';
 import { GoogleSignInButton } from '../../../components/auth/GoogleSignInButton';
 import { memberProfessionalDomains, memberProvinces } from '../memberProfileOptions';
 import { useNavigate } from 'react-router-dom';
+import { AccountSecurityPanel } from '../../../components/security/AccountSecurityPanel';
 
 const isMemberProfileComplete = (member: MemberDto) => [
   member.firstName,
@@ -27,13 +28,15 @@ interface MemberLoginFormProps {
 const MemberLoginForm = ({ mode = 'login', embedded = false }: MemberLoginFormProps) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { user, login, googleMemberLogin, logout } = useAuth();
+  const { user, login, googleMemberLogin, verifyMfa, logout } = useAuth();
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [member, setMember] = useState<MemberDto | null>(null);
   const [memberLoading, setMemberLoading] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [resetPassword, setResetPassword] = useState('');
+  const [mfaChallenge, setMfaChallenge] = useState('');
+  const [mfaCode, setMfaCode] = useState('');
   const [profileData, setProfileData] = useState({
     firstName: '', lastName: '', phone: '', city: '', province: '', profession: '',
     expertise: '', interests: '', availability: '',
@@ -82,7 +85,9 @@ const MemberLoginForm = ({ mode = 'login', embedded = false }: MemberLoginFormPr
     setStatus(null);
     const result = await login(loginData.email.trim(), loginData.password);
     const storedUser = JSON.parse(localStorage.getItem('hcbe_user') || 'null');
-    if (!result.success) {
+    if (result.mfaRequired && result.challengeToken) {
+      setMfaChallenge(result.challengeToken);
+    } else if (!result.success) {
       setStatus(result.message || t('public.member.login.error'));
     } else if (storedUser?.mustChangePassword) {
       navigate('/admin/change-password');
@@ -99,7 +104,9 @@ const MemberLoginForm = ({ mode = 'login', embedded = false }: MemberLoginFormPr
     setSubmitting(true);
     setStatus(null);
     const result = await googleMemberLogin(credential);
-    if (!result.success) {
+    if (result.mfaRequired && result.challengeToken) {
+      setMfaChallenge(result.challengeToken);
+    } else if (!result.success) {
       const normalized = (result.message ?? '').toLowerCase();
       setStatus(
         normalized.includes('could not be activated') || normalized.includes('403')
@@ -115,6 +122,14 @@ const MemberLoginForm = ({ mode = 'login', embedded = false }: MemberLoginFormPr
     }
     setSubmitting(false);
   }, [googleMemberLogin, navigate, safeReturnTo, t]);
+
+  const handleMfaSubmit = async (event: React.FormEvent) => {
+    event.preventDefault(); setSubmitting(true); setStatus(null);
+    const result = await verifyMfa(mfaChallenge, mfaCode);
+    if (!result.success) setStatus(t('public.member.login.mfaInvalid'));
+    else if (safeReturnTo) navigate(safeReturnTo);
+    setSubmitting(false);
+  };
 
   const handleGoogleUnavailable = useCallback(() => {
     setStatus(t('public.member.login.googleUnavailable'));
@@ -296,6 +311,7 @@ const MemberLoginForm = ({ mode = 'login', embedded = false }: MemberLoginFormPr
     }
 
     const accountPanel = (
+      <div className="space-y-6">
       <form className="overflow-hidden rounded-[24px] border border-line bg-surface shadow-[0_14px_40px_rgba(0,59,27,.06)]" onSubmit={handleProfileSave}>
         <div className="flex flex-col gap-4 border-b border-line bg-green/[0.045] px-6 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-7">
           <div className="flex items-center gap-3">
@@ -323,6 +339,8 @@ const MemberLoginForm = ({ mode = 'login', embedded = false }: MemberLoginFormPr
           </div>
         </div>
       </form>
+      <AccountSecurityPanel />
+      </div>
     );
 
     return <MemberCommunityWorkspace member={member} accountPanel={accountPanel} onLogout={logout} />;
@@ -338,19 +356,19 @@ const MemberLoginForm = ({ mode = 'login', embedded = false }: MemberLoginFormPr
         <p className="mt-2 max-w-xl text-body-md leading-7 text-ink-variant">{t(signupMode ? 'public.member.gateway.signupIntro' : 'public.member.login.subtitle')}</p>
       </div>
 
-      <GoogleSignInButton
+      {!mfaChallenge && <GoogleSignInButton
         disabled={submitting}
         onCredential={handleGoogleCredential}
         onUnavailable={handleGoogleUnavailable}
-      />
+      />}
 
-      {import.meta.env.VITE_GOOGLE_CLIENT_ID && (
+      {!mfaChallenge && import.meta.env.VITE_GOOGLE_CLIENT_ID && (
         <p className="mt-3 text-center text-xs leading-5 text-ink-variant">
           {t(signupMode ? 'public.member.gateway.googleSignupHint' : 'public.member.login.googleSignupHint')}
         </p>
       )}
 
-      {!signupMode && import.meta.env.VITE_GOOGLE_CLIENT_ID && (
+      {!mfaChallenge && !signupMode && import.meta.env.VITE_GOOGLE_CLIENT_ID && (
         <div className="my-5 flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.14em] text-ink-variant/65">
           <span className="h-px flex-1 bg-line" aria-hidden="true" />
           <span>{t('public.member.login.orEmail')}</span>
@@ -358,7 +376,15 @@ const MemberLoginForm = ({ mode = 'login', embedded = false }: MemberLoginFormPr
         </div>
       )}
 
-      {!signupMode && <form className="space-y-5" onSubmit={handleSubmit}>
+      {mfaChallenge && <form className="space-y-5" onSubmit={handleMfaSubmit}>
+        <div className="rounded-2xl border border-green/15 bg-green/[.04] p-5"><i className="ri-shield-keyhole-line text-2xl text-green" /><h3 className="mt-3 font-display text-xl font-bold text-green-deep">{t('public.member.login.mfaTitle')}</h3><p className="mt-2 text-sm leading-6 text-ink-variant">{t('public.member.login.mfaHint')}</p></div>
+        <Field label={t('public.member.login.mfaCode')} htmlFor="member-mfa-code" required><input id="member-mfa-code" value={mfaCode} onChange={e => setMfaCode(e.target.value)} inputMode="numeric" autoComplete="one-time-code" className={inputClasses} autoFocus required placeholder="000 000" /></Field>
+        {status && <p className="border border-error/30 bg-error/5 p-3 text-sm text-error">{status}</p>}
+        <Button type="submit" variant="secondary" className="w-full" disabled={submitting || mfaCode.trim().length < 6}><i className="ri-shield-check-line" />{t('public.member.login.mfaVerify')}</Button>
+        <button type="button" className="min-h-11 w-full text-sm font-semibold text-green" onClick={() => { setMfaChallenge(''); setMfaCode(''); }}>{t('public.member.login.mfaBack')}</button>
+      </form>}
+
+      {!mfaChallenge && !signupMode && <form className="space-y-5" onSubmit={handleSubmit}>
         <Field label={t('public.member.login.email')} htmlFor="login-email">
           <input
             type="email"

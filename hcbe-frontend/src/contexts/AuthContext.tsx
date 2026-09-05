@@ -7,13 +7,16 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isAdmin: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
-  googleAdminLogin: (credential: string) => Promise<{ success: boolean; message?: string }>;
-  googleMemberLogin: (credential: string) => Promise<{ success: boolean; message?: string }>;
+  login: (email: string, password: string) => Promise<LoginResult>;
+  googleAdminLogin: (credential: string) => Promise<LoginResult>;
+  googleMemberLogin: (credential: string) => Promise<LoginResult>;
+  verifyMfa: (challengeToken: string, code: string) => Promise<LoginResult>;
   completeRequiredPasswordChange: (password: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
   checkAuth: () => Promise<void>;
 }
+
+interface LoginResult { success: boolean; message?: string; mfaRequired?: boolean; challengeToken?: string; }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -65,7 +68,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const googleAdminLogin = async (credential: string) => {
     try {
       const response = await authApi.googleAdminLogin(credential);
-      if (response.success && response.data) {
+      if (response.success && response.data?.mfaRequired) {
+        return { success: false, mfaRequired: true, challengeToken: response.data.mfaChallengeToken };
+      }
+      if (response.success && response.data?.token && response.data.user) {
         storeSession(response.data.token, response.data.user);
         return { success: true };
       }
@@ -83,7 +89,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const googleMemberLogin = async (credential: string) => {
     try {
       const response = await authApi.googleMemberLogin(credential);
-      if (response.success && response.data) {
+      if (response.success && response.data?.mfaRequired) return { success: false, mfaRequired: true, challengeToken: response.data.mfaChallengeToken };
+      if (response.success && response.data?.token && response.data.user) {
         storeSession(response.data.token, response.data.user);
         return { success: true };
       }
@@ -101,7 +108,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const completeRequiredPasswordChange = async (password: string) => {
     try {
       const response = await authApi.completeRequiredPasswordChange(password);
-      if (response.success && response.data) {
+      if (response.success && response.data?.mfaRequired) return { success: false, mfaRequired: true, challengeToken: response.data.mfaChallengeToken };
+      if (response.success && response.data?.token && response.data.user) {
         localStorage.setItem('hcbe_user', JSON.stringify(response.data));
         setUser(response.data);
         return { success: true };
@@ -112,6 +120,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         success: false,
         message: error instanceof Error ? error.message : 'Password change failed',
       };
+    }
+  };
+
+  const verifyMfa = async (challengeToken: string, code: string): Promise<LoginResult> => {
+    try {
+      const response = await authApi.verifyMfa(challengeToken, code);
+      if (response.success && response.data?.token && response.data.user) {
+        storeSession(response.data.token, response.data.user);
+        return { success: true };
+      }
+      return { success: false, message: response.message || 'Verification failed' };
+    } catch (error) {
+      return { success: false, message: error instanceof Error ? error.message : 'Verification failed' };
     }
   };
 
@@ -171,6 +192,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login,
     googleAdminLogin,
     googleMemberLogin,
+    verifyMfa,
     completeRequiredPasswordChange,
     logout,
     checkAuth

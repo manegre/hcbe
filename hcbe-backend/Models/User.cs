@@ -17,6 +17,9 @@ public class User
     public int FailedLoginAttempts { get; set; }
     public DateTime? LockoutEndUtc { get; set; }
     public DateTime? LastLoginAtUtc { get; set; }
+    public string? MfaSecretProtected { get; set; }
+    public string? MfaRecoveryCodesJson { get; set; }
+    public DateTime? MfaEnabledAtUtc { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 

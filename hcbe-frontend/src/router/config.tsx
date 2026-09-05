@@ -82,6 +82,7 @@ const AdminAssociationRequestsPage = lazy(() => import('../pages/admin/associati
 const AdminOpportunitiesPage = lazy(() => import('../pages/admin/opportunities/page'));
 const AdminImpactPage = lazy(() => import('../pages/admin/impact/page'));
 const AdminMonitoringPage = lazy(() => import('../pages/admin/monitoring/page'));
+const AdminSecurityPage = lazy(() => import('../pages/admin/security/page'));
 const AdminFinancePage = lazy(() => import('../pages/admin/finance/page'));
 
 // Admin Grants Pages
@@ -369,6 +370,10 @@ const routes: RouteObject[] = [
       {
         path: 'monitoring',
         element: <AdminMonitoringPage />,
+      },
+      {
+        path: 'security',
+        element: <AdminSecurityPage />,
       },
       {
         path: 'finance',

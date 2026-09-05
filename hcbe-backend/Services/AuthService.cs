@@ -64,7 +64,7 @@ public class AuthService : IAuthService
         var normalizedEmail = email.Trim().ToLowerInvariant();
 
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == normalizedEmail);
-        if (user == null)
+        if (user == null || !user.IsActive)
         {
             return null; // User not found
         }
@@ -98,13 +98,13 @@ public class AuthService : IAuthService
         return CreateToken(user);
     }
 
-    public async Task<AuthSession?> CreateSessionAsync(string email, string password, string? ipAddress)
+    public async Task<AuthSession?> CreateSessionAsync(string email, string password, string? ipAddress, string? userAgent = null)
     {
         var accessToken = await LoginAsync(email, password);
         if (accessToken == null) return null;
 
         var user = await GetUserByEmailAsync(email.Trim().ToLowerInvariant());
-        return user == null ? null : await CreateRefreshSessionAsync(user, accessToken, ipAddress);
+        return user == null ? null : await CreateRefreshSessionAsync(user, accessToken, ipAddress, userAgent);
     }
 
     public async Task<AuthSession?> CreateExternalSessionAsync(
@@ -112,7 +112,8 @@ public class AuthService : IAuthService
         string? firstName,
         string? lastName,
         bool requireAdmin,
-        string? ipAddress)
+        string? ipAddress,
+        string? userAgent = null)
     {
         var normalizedEmail = email.Trim().ToLowerInvariant();
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == normalizedEmail);
@@ -136,14 +137,15 @@ public class AuthService : IAuthService
         user.LastLoginAtUtc = DateTime.UtcNow;
         await EnsureAdminMemberProfileAsync(user);
 
-        return await CreateRefreshSessionAsync(user, CreateToken(user), ipAddress);
+        return await CreateRefreshSessionAsync(user, CreateToken(user), ipAddress, userAgent);
     }
 
     public async Task<AuthSession?> CreateOrLinkMemberExternalSessionAsync(
         string email,
         string? firstName,
         string? lastName,
-        string? ipAddress)
+        string? ipAddress,
+        string? userAgent = null)
     {
         var normalizedEmail = email.Trim().ToLowerInvariant();
         var user = await _context.Users
@@ -218,23 +220,24 @@ public class AuthService : IAuthService
             _emailOutbox.Enqueue(user.Email, renderedEmail.Subject, renderedEmail.HtmlBody, nameof(User), user.Id);
         }
 
-        return await CreateRefreshSessionAsync(user, CreateToken(user), ipAddress);
+        return await CreateRefreshSessionAsync(user, CreateToken(user), ipAddress, userAgent);
     }
 
-    public async Task<AuthSession?> RotateRefreshTokenAsync(string refreshToken, string? ipAddress)
+    public async Task<AuthSession?> RotateRefreshTokenAsync(string refreshToken, string? ipAddress, string? userAgent = null)
     {
         if (string.IsNullOrWhiteSpace(refreshToken)) return null;
         var hash = HashToken(refreshToken);
         var existing = await _context.RefreshTokens
             .Include(token => token.User)
             .SingleOrDefaultAsync(token => token.TokenHash == hash);
-        if (existing == null || !existing.IsActive(DateTime.UtcNow)) return null;
+        if (existing == null || !existing.User.IsActive || !existing.IsActive(DateTime.UtcNow)) return null;
 
         var newRawToken = CreateSecureToken();
         var newHash = HashToken(newRawToken);
         existing.RevokedAtUtc = DateTime.UtcNow;
         existing.RevokedByIp = ipAddress;
         existing.ReplacedByTokenHash = newHash;
+        existing.LastUsedAtUtc = DateTime.UtcNow;
 
         var expiresAt = DateTime.UtcNow.AddDays(GetRefreshTokenLifetimeDays());
         _context.RefreshTokens.Add(new RefreshToken
@@ -242,7 +245,10 @@ public class AuthService : IAuthService
             UserId = existing.UserId,
             TokenHash = newHash,
             ExpiresAtUtc = expiresAt,
-            CreatedByIp = ipAddress
+            CreatedByIp = ipAddress,
+            UserAgent = TrimUserAgent(userAgent),
+            DeviceName = DescribeDevice(userAgent),
+            LastUsedAtUtc = DateTime.UtcNow
         });
         await _context.SaveChangesAsync();
 
@@ -260,7 +266,10 @@ public class AuthService : IAuthService
         await _context.SaveChangesAsync();
     }
 
-    private async Task<AuthSession> CreateRefreshSessionAsync(User user, string accessToken, string? ipAddress)
+    public Task<AuthSession> CreateSessionForUserAsync(User user, string? ipAddress, string? userAgent = null) =>
+        CreateRefreshSessionAsync(user, CreateToken(user), ipAddress, userAgent);
+
+    private async Task<AuthSession> CreateRefreshSessionAsync(User user, string accessToken, string? ipAddress, string? userAgent)
     {
         var rawToken = CreateSecureToken();
         var expiresAt = DateTime.UtcNow.AddDays(GetRefreshTokenLifetimeDays());
@@ -269,7 +278,10 @@ public class AuthService : IAuthService
             UserId = user.Id,
             TokenHash = HashToken(rawToken),
             ExpiresAtUtc = expiresAt,
-            CreatedByIp = ipAddress
+            CreatedByIp = ipAddress,
+            UserAgent = TrimUserAgent(userAgent),
+            DeviceName = DescribeDevice(userAgent),
+            LastUsedAtUtc = DateTime.UtcNow
         });
         await _context.SaveChangesAsync();
         return new AuthSession(accessToken, rawToken, expiresAt, user);
@@ -295,6 +307,18 @@ public class AuthService : IAuthService
     private static string HashToken(string token) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
 
+    private static string? TrimUserAgent(string? userAgent) =>
+        string.IsNullOrWhiteSpace(userAgent) ? null : userAgent.Trim()[..Math.Min(userAgent.Trim().Length, 500)];
+
+    private static string DescribeDevice(string? userAgent)
+    {
+        if (string.IsNullOrWhiteSpace(userAgent)) return "Unknown device";
+        var value = userAgent.ToLowerInvariant();
+        var browser = value.Contains("edg/") ? "Edge" : value.Contains("firefox/") ? "Firefox" : value.Contains("chrome/") ? "Chrome" : value.Contains("safari/") ? "Safari" : "Navigateur";
+        var platform = value.Contains("iphone") ? "iPhone" : value.Contains("ipad") ? "iPad" : value.Contains("android") ? "Android" : value.Contains("windows") ? "Windows" : value.Contains("mac os") ? "macOS" : value.Contains("linux") ? "Linux" : "appareil";
+        return $"{browser} · {platform}";
+    }
+
     public async Task<User?> GetUserByIdAsync(Guid userId)
     {
         var user = await _context.Users.FindAsync(userId);
@@ -318,6 +342,8 @@ public class AuthService : IAuthService
         user.MustChangePassword = false;
         user.FailedLoginAttempts = 0;
         user.LockoutEndUtc = null;
+        foreach (var token in await _context.RefreshTokens.Where(item => item.UserId == userId && item.RevokedAtUtc == null).ToListAsync())
+            token.RevokedAtUtc = DateTime.UtcNow;
         await EnsureAdminMemberProfileAsync(user);
         await _context.SaveChangesAsync();
         return user;

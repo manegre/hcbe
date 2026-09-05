@@ -78,7 +78,8 @@ public class AuthEndpointsTests : IClassFixture<CustomWebApplicationFactory>, ID
         apiResponse!.Success.Should().BeTrue();
         apiResponse.Data.Should().NotBeNull();
         apiResponse.Data!.Token.Should().NotBeNullOrEmpty();
-        apiResponse.Data.User.Email.Should().Be(email);
+        apiResponse.Data.User.Should().NotBeNull();
+        apiResponse.Data.User!.Email.Should().Be(email);
         response.Headers.GetValues("Set-Cookie").Single().Should().ContainEquivalentOf("HttpOnly");
 
         var refreshResponse = await _client.PostAsync("/api/auth/refresh", content: null);

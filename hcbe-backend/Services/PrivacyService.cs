@@ -264,6 +264,7 @@ public sealed class PrivacyService(
         var notifications = await context.Notifications.Where(item => item.CreatedAt < now.AddDays(-365)).ToListAsync(cancellationToken);
         var communicationConsents = await context.CommunicationConsentEvents.Where(item => item.OccurredAtUtc < now.AddDays(-auditDays)).ToListAsync(cancellationToken);
         var campaignDeliveries = await context.NewsletterDeliveries.Where(item => item.QueuedAtUtc < now.AddDays(-auditDays)).ToListAsync(cancellationToken);
+        var mfaChallenges = await context.MfaChallenges.Where(item => item.ExpiresAtUtc < now.AddDays(-7)).ToListAsync(cancellationToken);
 
         context.RemoveRange(passwordTokens);
         context.RemoveRange(refreshTokens);
@@ -273,7 +274,8 @@ public sealed class PrivacyService(
         context.RemoveRange(notifications);
         context.RemoveRange(communicationConsents);
         context.RemoveRange(campaignDeliveries);
-        var total = passwordTokens.Count + refreshTokens.Count + sentOutbox.Count + deadOutbox.Count + auditLogs.Count + notifications.Count + communicationConsents.Count + campaignDeliveries.Count;
+        context.RemoveRange(mfaChallenges);
+        var total = passwordTokens.Count + refreshTokens.Count + sentOutbox.Count + deadOutbox.Count + auditLogs.Count + notifications.Count + communicationConsents.Count + campaignDeliveries.Count + mfaChallenges.Count;
         if (total > 0) await context.SaveChangesAsync(cancellationToken);
         return total;
     }
@@ -311,6 +313,7 @@ public sealed class PrivacyService(
         }
 
         context.RemoveRange(await context.RefreshTokens.Where(item => item.UserId == user.Id).ToListAsync(cancellationToken));
+        context.RemoveRange(await context.MfaChallenges.Where(item => item.UserId == user.Id).ToListAsync(cancellationToken));
         context.RemoveRange(await context.PasswordResetTokens.Where(item => item.UserId == user.Id).ToListAsync(cancellationToken));
         context.RemoveRange(await context.Notifications.Where(item => item.UserId == user.Id).ToListAsync(cancellationToken));
 
@@ -321,6 +324,9 @@ public sealed class PrivacyService(
         user.IsAdmin = false;
         user.IsActive = false;
         user.MemberId = null;
+        user.MfaSecretProtected = null;
+        user.MfaRecoveryCodesJson = null;
+        user.MfaEnabledAtUtc = null;
 
         if (memberId != null)
         {

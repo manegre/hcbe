@@ -12,6 +12,9 @@ public sealed class RefreshToken
     public string? ReplacedByTokenHash { get; set; }
     public string? CreatedByIp { get; set; }
     public string? RevokedByIp { get; set; }
+    public string? UserAgent { get; set; }
+    public string? DeviceName { get; set; }
+    public DateTime? LastUsedAtUtc { get; set; }
 
     public bool IsActive(DateTime utcNow) => RevokedAtUtc == null && ExpiresAtUtc > utcNow;
 }

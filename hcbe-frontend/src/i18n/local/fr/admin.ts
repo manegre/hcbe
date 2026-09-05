@@ -93,6 +93,13 @@ export default {
 
   'admin.nav.dashboard': 'Tableau de bord',
   'admin.nav.monitoring': 'Surveillance',
+  'admin.nav.security': 'Centre de sécurité',
+  'admin.login.mfaTitle': 'Vérification en deux étapes',
+  'admin.login.mfaHint': 'Entrez le code de votre application d’authentification ou un code de récupération.',
+  'admin.login.mfaCode': 'Code de sécurité',
+  'admin.login.mfaVerify': 'Vérifier mon identité',
+  'admin.login.mfaBack': 'Revenir à la connexion',
+  'admin.login.mfaInvalid': 'Le code est invalide ou expiré. Veuillez réessayer.',
   'admin.nav.impact': 'Impact',
   'admin.nav.news': 'Actualités',
   'admin.nav.events': 'Événements',

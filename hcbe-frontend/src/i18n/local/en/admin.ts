@@ -93,6 +93,13 @@ export default {
 
   'admin.nav.dashboard': 'Dashboard',
   'admin.nav.monitoring': 'Monitoring',
+  'admin.nav.security': 'Security centre',
+  'admin.login.mfaTitle': 'Two-step verification',
+  'admin.login.mfaHint': 'Enter the code from your authenticator app or a recovery code.',
+  'admin.login.mfaCode': 'Security code',
+  'admin.login.mfaVerify': 'Verify my identity',
+  'admin.login.mfaBack': 'Back to sign in',
+  'admin.login.mfaInvalid': 'The code is invalid or expired. Please try again.',
   'admin.nav.impact': 'Impact',
   'admin.nav.news': 'News',
   'admin.nav.events': 'Events',

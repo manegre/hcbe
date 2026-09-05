@@ -96,6 +96,9 @@ public class ApplicationDbContext : DbContext
     public DbSet<DonationCampaign> DonationCampaigns { get; set; }
     public DbSet<FinancialTransaction> FinancialTransactions { get; set; }
     public DbSet<PaymentWebhookEvent> PaymentWebhookEvents { get; set; }
+    public DbSet<MfaChallenge> MfaChallenges { get; set; }
+    public DbSet<SecurityIncident> SecurityIncidents { get; set; }
+    public DbSet<AdminAccessReview> AdminAccessReviews { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -125,6 +128,8 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<User>().Property(u => u.AdminRole).HasMaxLength(50).HasDefaultValue("super-admin");
         modelBuilder.Entity<User>().Property(u => u.AdminPermissions).HasMaxLength(1000);
+        modelBuilder.Entity<User>().Property(u => u.MfaSecretProtected).HasMaxLength(2000);
+        modelBuilder.Entity<User>().Property(u => u.MfaRecoveryCodesJson).HasMaxLength(4000);
 
         modelBuilder.Entity<MemberPreference>().HasKey(item => item.UserId);
         modelBuilder.Entity<MemberPreference>()
@@ -156,6 +161,29 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<RefreshToken>()
             .HasIndex(token => new { token.UserId, token.ExpiresAtUtc });
+        modelBuilder.Entity<RefreshToken>().Property(token => token.UserAgent).HasMaxLength(500);
+        modelBuilder.Entity<RefreshToken>().Property(token => token.DeviceName).HasMaxLength(120);
+
+        modelBuilder.Entity<MfaChallenge>().HasOne(item => item.User).WithMany().HasForeignKey(item => item.UserId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<MfaChallenge>().HasIndex(item => item.TokenHash).IsUnique();
+        modelBuilder.Entity<MfaChallenge>().HasIndex(item => new { item.UserId, item.ExpiresAtUtc });
+        modelBuilder.Entity<MfaChallenge>().Property(item => item.TokenHash).HasMaxLength(64);
+        modelBuilder.Entity<MfaChallenge>().Property(item => item.AuthenticationMethod).HasMaxLength(30);
+        modelBuilder.Entity<MfaChallenge>().Property(item => item.IpAddress).HasMaxLength(100);
+        modelBuilder.Entity<MfaChallenge>().Property(item => item.UserAgent).HasMaxLength(500);
+
+        modelBuilder.Entity<SecurityIncident>().HasIndex(item => item.ReferenceNumber).IsUnique();
+        modelBuilder.Entity<SecurityIncident>().HasIndex(item => new { item.Status, item.ReportedAtUtc });
+        modelBuilder.Entity<SecurityIncident>().Property(item => item.ReferenceNumber).HasMaxLength(40);
+        modelBuilder.Entity<SecurityIncident>().Property(item => item.Title).HasMaxLength(200);
+        modelBuilder.Entity<SecurityIncident>().Property(item => item.Description).HasMaxLength(5000);
+        modelBuilder.Entity<SecurityIncident>().Property(item => item.Severity).HasMaxLength(20);
+        modelBuilder.Entity<SecurityIncident>().Property(item => item.Status).HasMaxLength(30);
+        modelBuilder.Entity<SecurityIncident>().Property(item => item.AssignedTo).HasMaxLength(200);
+        modelBuilder.Entity<SecurityIncident>().Property(item => item.HarmRiskAssessment).HasMaxLength(4000);
+
+        modelBuilder.Entity<AdminAccessReview>().HasIndex(item => new { item.ReviewedUserId, item.NextReviewAtUtc });
+        modelBuilder.Entity<AdminAccessReview>().Property(item => item.Decision).HasMaxLength(30);
 
         modelBuilder.Entity<AuditLog>()
             .HasIndex(log => log.CreatedAtUtc);
@@ -715,7 +743,7 @@ public class ApplicationDbContext : DbContext
     {
         ChangeTracker.DetectChanges();
         var changedEntries = ChangeTracker.Entries()
-            .Where(entry => entry.Entity is not AuditLog and not RefreshToken and not EmailOutboxMessage &&
+            .Where(entry => entry.Entity is not AuditLog and not RefreshToken and not MfaChallenge and not EmailOutboxMessage &&
                 entry.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
             .ToList();
         if (changedEntries.Count == 0) return;

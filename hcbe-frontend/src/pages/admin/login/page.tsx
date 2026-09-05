@@ -38,9 +38,11 @@ export const AdminLoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [mfaChallenge, setMfaChallenge] = useState('');
+  const [mfaCode, setMfaCode] = useState('');
   const { t } = useTranslation();
 
-  const { login, googleAdminLogin, logout } = useAuth();
+  const { login, googleAdminLogin, verifyMfa, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -71,7 +73,9 @@ export const AdminLoginPage = () => {
     try {
       const result = await login(email.trim(), password);
 
-      if (result.success) {
+      if (result.mfaRequired && result.challengeToken) {
+        setMfaChallenge(result.challengeToken);
+      } else if (result.success) {
         finishAdminLogin();
       } else {
         setError(mapLoginError(result.message, t));
@@ -88,7 +92,8 @@ export const AdminLoginPage = () => {
     setIsGoogleLoading(true);
     try {
       const result = await googleAdminLogin(credential);
-      if (result.success) finishAdminLogin();
+      if (result.mfaRequired && result.challengeToken) setMfaChallenge(result.challengeToken);
+      else if (result.success) finishAdminLogin();
       else setError(mapGoogleLoginError(result.message, t));
     } catch {
       setError(t('admin.login.googleFailed'));
@@ -100,6 +105,16 @@ export const AdminLoginPage = () => {
   const handleGoogleUnavailable = useCallback(() => {
     setError(t('admin.login.googleUnavailable'));
   }, [t]);
+
+  const handleMfaSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError('');
+    setIsLoading(true);
+    const result = await verifyMfa(mfaChallenge, mfaCode);
+    if (result.success) finishAdminLogin();
+    else setError(t('admin.login.mfaInvalid'));
+    setIsLoading(false);
+  };
 
   return (
     <div className="min-h-screen bg-surface-container lg:grid lg:grid-cols-[minmax(0,1.08fr)_minmax(480px,0.92fr)]">
@@ -198,7 +213,7 @@ export const AdminLoginPage = () => {
               </h2>
               <p className="mt-3 max-w-sm text-body-md leading-6 text-ink-variant">{t('admin.login.formHint')}</p>
 
-              <form className="mt-8 flex flex-col gap-6" onSubmit={handleSubmit}>
+              <form className="mt-8 flex flex-col gap-6" onSubmit={mfaChallenge ? handleMfaSubmit : handleSubmit}>
                 {error && (
                   <div role="alert" aria-live="polite" className="flex items-start gap-3 rounded-xl border border-error/25 bg-error/5 p-4 text-body-md text-error">
                     <i className="ri-error-warning-line mt-0.5 shrink-0 text-lg" aria-hidden="true" />
@@ -206,6 +221,23 @@ export const AdminLoginPage = () => {
                   </div>
                 )}
 
+                {mfaChallenge ? (
+                  <>
+                    <div className="rounded-2xl border border-green/15 bg-green/[.035] p-5">
+                      <span className="flex h-11 w-11 items-center justify-center rounded-full bg-green text-gold"><i className="ri-shield-keyhole-line text-xl" aria-hidden="true" /></span>
+                      <h3 className="mt-4 font-display text-xl font-bold text-green-deep">{t('admin.login.mfaTitle')}</h3>
+                      <p className="mt-2 text-sm leading-6 text-ink-variant">{t('admin.login.mfaHint')}</p>
+                    </div>
+                    <Field label={t('admin.login.mfaCode')} htmlFor="mfa-code" required>
+                      <input id="mfa-code" value={mfaCode} onChange={(event) => setMfaCode(event.target.value)} inputMode="numeric" autoComplete="one-time-code" required autoFocus className={loginInputClasses.replace('pl-12', 'pl-4')} placeholder="000 000" />
+                    </Field>
+                    <Button type="submit" variant="primary" disabled={isLoading || mfaCode.trim().length < 6} className="w-full py-3.5">
+                      {isLoading ? <i className="ri-loader-4-line animate-spin" aria-hidden="true" /> : <i className="ri-shield-check-line" aria-hidden="true" />}
+                      {t('admin.login.mfaVerify')}
+                    </Button>
+                    <button type="button" onClick={() => { setMfaChallenge(''); setMfaCode(''); }} className="min-h-11 text-sm font-semibold text-green hover:text-red-link">{t('admin.login.mfaBack')}</button>
+                  </>
+                ) : <>
                 <GoogleSignInButton
                   disabled={isLoading || isGoogleLoading}
                   onCredential={handleGoogleCredential}
@@ -276,6 +308,7 @@ export const AdminLoginPage = () => {
                     </>
                   )}
                 </Button>
+                </>}
               </form>
             </div>
 

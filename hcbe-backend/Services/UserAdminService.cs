@@ -165,7 +165,7 @@ public class UserAdminService : IUserAdminService
                     FirstName = member.FirstName,
                     LastName = member.LastName,
                     IsAdmin = true,
-                    AdminRole = AdminAccess.SuperAdmin,
+                    AdminRole = "community-manager",
                     MustChangePassword = true,
                     MemberId = member.Id,
                     CreatedAt = DateTime.UtcNow
@@ -182,7 +182,7 @@ public class UserAdminService : IUserAdminService
             else
             {
                 user.IsAdmin = true;
-                user.AdminRole = string.IsNullOrWhiteSpace(user.AdminRole) ? AdminAccess.SuperAdmin : user.AdminRole;
+                user.AdminRole = string.IsNullOrWhiteSpace(user.AdminRole) ? "community-manager" : user.AdminRole;
                 user.MemberId = member.Id;
 
                 var promotion = _emailTemplates.AdminPromotion(user.FirstName ?? member.FirstName, $"{publicUrl}/admin/login");
@@ -236,8 +236,24 @@ public class UserAdminService : IUserAdminService
             if (request.AdminRole is not null || request.Permissions is not null)
             {
                 var role = request.AdminRole is null ? user.AdminRole : NormalizeRole(request.AdminRole);
+                var normalizedPermissions = NormalizePermissions(role, request.Permissions);
+                var effectivePermissions = AdminAccess.EffectivePermissions(role, normalizedPermissions);
+                if (id == currentUserId && (!effectivePermissions.Contains(AdminPermissions.UsersManage) || !effectivePermissions.Contains(AdminPermissions.SecurityManage)))
+                {
+                    return ApiResponse<AdminUserDto>.ErrorResponse("You cannot remove your own user-management or security access");
+                }
+
+                var currentlyManagesSecurity = AdminAccess.EffectivePermissions(user.AdminRole, user.AdminPermissions).Contains(AdminPermissions.SecurityManage);
+                if (currentlyManagesSecurity && !effectivePermissions.Contains(AdminPermissions.SecurityManage))
+                {
+                    var otherSecurityManagers = await _context.Users.AsNoTracking()
+                        .Where(item => item.IsAdmin && item.IsActive && item.Id != id)
+                        .ToListAsync();
+                    if (!otherSecurityManagers.Any(item => AdminAccess.EffectivePermissions(item.AdminRole, item.AdminPermissions).Contains(AdminPermissions.SecurityManage)))
+                        return ApiResponse<AdminUserDto>.ErrorResponse("At least one active security administrator is required");
+                }
                 user.AdminRole = role;
-                user.AdminPermissions = NormalizePermissions(role, request.Permissions);
+                user.AdminPermissions = normalizedPermissions;
             }
 
             if (request.FirstName != null) user.FirstName = string.IsNullOrWhiteSpace(request.FirstName) ? null : request.FirstName.Trim();
@@ -245,6 +261,8 @@ public class UserAdminService : IUserAdminService
             if (!string.IsNullOrWhiteSpace(request.Password))
             {
                 user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+                foreach (var token in await _context.RefreshTokens.Where(item => item.UserId == user.Id && item.RevokedAtUtc == null).ToListAsync())
+                    token.RevokedAtUtc = DateTime.UtcNow;
             }
 
             await _context.SaveChangesAsync();
@@ -301,11 +319,12 @@ public class UserAdminService : IUserAdminService
     private static AdminUserDto MapToDto(User user) =>
         new(user.Id, user.Email, user.FirstName, user.LastName, user.IsAdmin,
             user.MustChangePassword, user.MemberId, user.CreatedAt, user.AdminRole,
-            AdminAccess.EffectivePermissions(user.AdminRole, user.AdminPermissions));
+            AdminAccess.EffectivePermissions(user.AdminRole, user.AdminPermissions),
+            user.MfaEnabledAtUtc is not null, user.LastLoginAtUtc);
 
     private static string NormalizeRole(string? role)
     {
-        var normalized = string.IsNullOrWhiteSpace(role) ? AdminAccess.SuperAdmin : role.Trim().ToLowerInvariant();
+        var normalized = string.IsNullOrWhiteSpace(role) ? "community-manager" : role.Trim().ToLowerInvariant();
         if (!AdminAccess.IsValidRole(normalized)) throw new ArgumentException("Unsupported administrator role");
         return normalized;
     }
