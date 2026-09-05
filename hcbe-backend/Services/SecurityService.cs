@@ -13,6 +13,7 @@ namespace HcbeApi.Services;
 public sealed class SecurityService : ISecurityService
 {
     private const int ChallengeLifetimeMinutes = 5;
+    private const int StaleAdminSessionDays = 30;
     private readonly ApplicationDbContext _db;
     private readonly IAuthService _auth;
     private readonly IDataProtector _protector;
@@ -205,7 +206,7 @@ public sealed class SecurityService : ISecurityService
         var openIncidents = await _db.SecurityIncidents.CountAsync(item => item.ResolvedAtUtc == null, cancellationToken);
         var oldest = await _db.SecurityIncidents.Where(item => item.ResolvedAtUtc == null).MinAsync(item => (DateTime?)item.ReportedAtUtc, cancellationToken);
         var overdue = await _db.Users.CountAsync(user => user.IsAdmin && user.IsActive && !_db.AdminAccessReviews.Any(review => review.ReviewedUserId == user.Id && review.NextReviewAtUtc > now), cancellationToken);
-        var staleCutoff = now.AddDays(-30);
+        var staleCutoff = now.AddDays(-StaleAdminSessionDays);
         var staleAdminSessions = await _db.RefreshTokens.CountAsync(item => item.User.IsAdmin && item.User.IsActive && item.RevokedAtUtc == null && item.ExpiresAtUtc > now && (item.LastUsedAtUtc ?? item.CreatedAtUtc) < staleCutoff, cancellationToken);
         return ApiResponse<SecurityPostureDto>.SuccessResponse(new(activeAdmins, mfaAdmins, sessions, openIncidents, overdue, oldest, activeAdmins - mfaAdmins, staleAdminSessions));
     }
