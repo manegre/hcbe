@@ -6,7 +6,7 @@ import {
   isEnglishContentIncomplete,
 } from '../../../../../components/admin/AdminLanguageTabs';
 import { AdminFormLayout } from '../../../../../components/admin/AdminFormLayout';
-import { Button, Field, inputClasses } from '../../../../../components/ui';
+import { Button, Field, inputClasses, RichTextEditor } from '../../../../../components/ui';
 import { grantsApi } from '../../../../../lib/api/grants';
 import type { UpdateGrantProgramRequest } from '../../../../../lib/api/types';
 import { GRANT_ICON_OPTIONS, formatCriteriaText, parseCriteriaText } from '../../grant-form-utils';
@@ -175,14 +175,13 @@ const GrantEditPage: React.FC = () => {
                 </div>
                 <div className="md:col-span-2">
                   <Field label={t('admin.common.description')} htmlFor="description" required>
-                    <textarea
+                    <RichTextEditor
                       id="description"
-                      name="description"
                       value={formData.description}
-                      onChange={handleChange}
+                      onChange={(description) => setFormData((current) => ({ ...current, description }))}
                       required
-                      rows={4}
-                      className={inputClasses}
+                      minHeight={280}
+                      label={t('admin.common.description')}
                     />
                   </Field>
                 </div>
@@ -242,13 +241,12 @@ const GrantEditPage: React.FC = () => {
                 </div>
                 <div className="md:col-span-2">
                   <Field label={t('admin.common.description')} htmlFor="descriptionEn">
-                    <textarea
+                    <RichTextEditor
                       id="descriptionEn"
-                      name="descriptionEn"
                       value={formData.descriptionEn || ''}
-                      onChange={handleChange}
-                      rows={4}
-                      className={inputClasses}
+                      onChange={(descriptionEn) => setFormData((current) => ({ ...current, descriptionEn }))}
+                      minHeight={280}
+                      label={t('admin.common.description')}
                     />
                   </Field>
                 </div>

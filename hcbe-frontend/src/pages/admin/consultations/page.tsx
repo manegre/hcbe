@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { consultationsApi } from '../../../lib/api/consultations';
 import type { Consultation } from '../../../lib/api/types';
 import { AdminListPage } from '../../../components/admin/AdminListPage';
-import { StatusChip, Td } from '../../../components/ui';
+import { StatusChip, Td, plainTextFromRichText } from '../../../components/ui';
 
 const ConsultationsAdminPage: React.FC = () => {
   const { t } = useTranslation();
@@ -91,7 +91,7 @@ const ConsultationsAdminPage: React.FC = () => {
               <i className={`${item.icon} text-lg text-ink-variant`} aria-hidden="true" />
               <div>
                 <div className="font-medium">{item.title}</div>
-                <div className="max-w-xs truncate text-body-md text-ink-variant">{item.description}</div>
+                <div className="max-w-xs truncate text-body-md text-ink-variant">{plainTextFromRichText(item.description)}</div>
               </div>
             </div>
           </Td>

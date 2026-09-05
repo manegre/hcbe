@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { grantsApi } from '../../../../lib/api/grants';
 import type { GrantProgram } from '../../../../lib/api/types';
 import { AdminDetailLayout, DetailList, DetailRow } from '../../../../components/admin/AdminDetailLayout';
-import { Button, EmptyState } from '../../../../components/ui';
+import { Button, EmptyState, RichTextContent } from '../../../../components/ui';
 
 const GrantViewPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -91,7 +91,7 @@ const GrantViewPage: React.FC = () => {
       }
       main={
         <>
-          <p className="text-body-md text-ink-variant">{grant.description}</p>
+          <RichTextContent value={grant.description} className="text-body-md text-ink-variant" />
           <DetailList>
             <DetailRow label={t('admin.grants.colAmount')} value={grant.amount} />
             <DetailRow label={t('admin.grants.colDuration')} value={grant.duration} />

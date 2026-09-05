@@ -43,13 +43,14 @@ export const AdminFormLayout = ({
   const { t } = useTranslation();
 
   return (
-    <div className={`flex flex-col gap-6 ${isDirty ? 'pb-24' : ''}`}>
-      <div className="admin-page-header flex flex-wrap items-center justify-between gap-4">
-        <div className="min-w-0">
+    <div className={`admin-form-workspace flex flex-col gap-6 ${isDirty ? 'pb-24' : ''}`}>
+      <div className="admin-page-header flex flex-wrap items-center justify-between gap-5">
+        <div className="min-w-0 max-w-3xl">
           <AdminBackButton to={backPath} label={backLabel} />
-          <h1 className="mt-1 font-display text-headline-lg text-green-deep">{title}</h1>
+          <p className="mt-4 flex items-center gap-2 text-[9px] font-bold uppercase tracking-[.19em] text-red-link"><span className="h-px w-6 bg-gold" />{t('admin.list.workspace')}</p>
+          <h1 className="mt-2 font-display text-[30px] font-bold leading-tight tracking-[-.02em] text-green-deep sm:text-[38px]">{title}</h1>
         </div>
-        <div className="flex flex-wrap items-center gap-4">
+        <div className="flex w-full flex-wrap items-center gap-3 border-t border-line/60 pt-4 sm:w-auto sm:border-0 sm:pt-0">
           {secondaryActions}
           {actions}
         </div>
@@ -57,9 +58,9 @@ export const AdminFormLayout = ({
 
       {languageTabs}
 
-      <div className="grid grid-cols-1 gap-gutter lg:grid-cols-[1fr_320px]">
-        <div className="min-w-0 space-y-8 [&>section]:admin-panel [&>section]:p-5 sm:[&>section]:p-7">{main}</div>
-        {aside && <div className="flex min-w-0 flex-col gap-6">{aside}</div>}
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="admin-form-main min-w-0 space-y-6">{main}</div>
+        {aside && <aside className="admin-form-aside flex min-w-0 flex-col gap-5 xl:sticky xl:top-24">{aside}</aside>}
       </div>
 
       {isDirty && (

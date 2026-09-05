@@ -5,7 +5,7 @@ import { associationsApi } from '../../../../lib/api/associations';
 import type { Association } from '../../../../lib/api/types';
 import { resolveMediaUrl } from '../../../../lib/api/media-url';
 import { AdminDetailLayout, DetailList, DetailRow } from '../../../../components/admin/AdminDetailLayout';
-import { Button, EmptyState, Tag } from '../../../../components/ui';
+import { Button, EmptyState, RichTextContent, Tag } from '../../../../components/ui';
 import { OrganizationWorkspaceAdmin } from './OrganizationWorkspaceAdmin';
 
 export const ViewAssociationPage: React.FC = () => {
@@ -133,7 +133,7 @@ export const ViewAssociationPage: React.FC = () => {
           {association.description && (
             <div>
               <h2 className="font-display text-headline-sm text-green">{t('admin.associations.description')}</h2>
-              <p className="mt-3 text-body-md text-ink-variant">{association.description}</p>
+              <RichTextContent value={association.description} className="mt-3 text-body-md text-ink-variant" />
             </div>
           )}
 

@@ -6,7 +6,7 @@ import {
   isEnglishContentIncomplete,
 } from '../../../../components/admin/AdminLanguageTabs';
 import { AdminFormLayout } from '../../../../components/admin/AdminFormLayout';
-import { Button, Field, inputClasses } from '../../../../components/ui';
+import { Button, Field, inputClasses, RichTextEditor } from '../../../../components/ui';
 import { buildApiUrl } from '../../../../lib/api/base-url';
 
 export const CreateDocumentPage: React.FC = () => {
@@ -133,13 +133,13 @@ export const CreateDocumentPage: React.FC = () => {
                   />
                 </Field>
                 <Field label={t('admin.common.description')} htmlFor="description">
-                  <textarea
+                  <RichTextEditor
                     id="description"
-                    rows={3}
                     value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className={inputClasses}
+                    onChange={(description) => setFormData((current) => ({ ...current, description }))}
                     placeholder="Description du document..."
+                    minHeight={240}
+                    label={t('admin.common.description')}
                   />
                 </Field>
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -179,12 +179,12 @@ export const CreateDocumentPage: React.FC = () => {
                   />
                 </Field>
                 <Field label={t('admin.common.description')} htmlFor="descriptionEn">
-                  <textarea
+                  <RichTextEditor
                     id="descriptionEn"
-                    rows={3}
                     value={formData.descriptionEn}
-                    onChange={(e) => setFormData({ ...formData, descriptionEn: e.target.value })}
-                    className={inputClasses}
+                    onChange={(descriptionEn) => setFormData((current) => ({ ...current, descriptionEn }))}
+                    minHeight={240}
+                    label={t('admin.common.description')}
                   />
                 </Field>
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">

@@ -2,7 +2,7 @@ import { projectsApi } from '../../../lib/api/projects';
 import { resolveMediaUrl } from '../../../lib/api/media-url';
 import type { Project } from '../../../lib/api/types';
 import { localized } from '../../../lib/i18n/localized';
-import { EmptyState, StatusChip, Tag, ArrowLink } from '../../../components/ui';
+import { EmptyState, StatusChip, Tag, ArrowLink, plainTextFromRichText } from '../../../components/ui';
 
 const statusToneMap: Record<string, 'approved' | 'pending' | 'past'> = {
   'En cours': 'approved',
@@ -157,7 +157,7 @@ const ProjetsSection = () => {
             <div className="space-y-5">
               {filteredProjets.map((projet) => {
                 const title = localized(projet.title, projet.titleEn, i18n.language);
-                const description = localized(projet.description, projet.descriptionEn, i18n.language);
+                const description = plainTextFromRichText(localized(projet.description, projet.descriptionEn, i18n.language));
                 const beneficiaries = localized(
                   projet.beneficiaries,
                   projet.beneficiariesEn,

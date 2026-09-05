@@ -6,7 +6,7 @@ import {
   isEnglishContentIncomplete,
 } from '../../../components/admin/AdminLanguageTabs';
 import { AdminFormLayout } from '../../../components/admin/AdminFormLayout';
-import { Button, Field, inputClasses } from '../../../components/ui';
+import { Button, Field, RichTextEditor, inputClasses } from '../../../components/ui';
 import { NEWS_CATEGORIES, getNewsCategoryLabelKey } from '../../../lib/news/category-styles';
 import {
   NEWS_IMAGE_POSITIONS,
@@ -168,14 +168,7 @@ export const NewsForm: React.FC<NewsFormProps> = ({
                   />
                 </Field>
                 <Field label={t('admin.news.content')} htmlFor="content" required>
-                  <textarea
-                    id="content"
-                    value={formData.content}
-                    onChange={(e) => updateField('content', e.target.value)}
-                    required
-                    rows={10}
-                    className={inputClasses}
-                  />
+                  <RichTextEditor id="content" value={formData.content} onChange={(value) => updateField('content', value)} required label={t('admin.news.content')} minHeight={360} />
                 </Field>
               </div>
             }
@@ -202,14 +195,7 @@ export const NewsForm: React.FC<NewsFormProps> = ({
                   />
                 </Field>
                 <Field label={t('admin.news.content')} htmlFor="contentEn">
-                  <textarea
-                    id="contentEn"
-                    value={formData.contentEn || ''}
-                    onChange={(e) => updateField('contentEn', e.target.value)}
-                    rows={10}
-                    className={inputClasses}
-                    placeholder={t('admin.news.contentEnPlaceholder')}
-                  />
+                  <RichTextEditor id="contentEn" value={formData.contentEn || ''} onChange={(value) => updateField('contentEn', value)} label={t('admin.news.content')} placeholder={t('admin.news.contentEnPlaceholder')} minHeight={360} />
                 </Field>
               </div>
             }

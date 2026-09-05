@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AdminFormLayout } from '../../../../../components/admin/AdminFormLayout';
-import { Button, Field, inputClasses } from '../../../../../components/ui';
+import { Button, Field, inputClasses, RichTextEditor } from '../../../../../components/ui';
 import { teamMembersApi } from '../../../../../lib/api/team-members';
 import type { UpdateTeamMemberRequest } from '../../../../../lib/api/types';
 
@@ -219,18 +219,17 @@ const TeamMemberEditPage: React.FC = () => {
 
               <div className="md:col-span-2">
                 <Field label={t('admin.team.biographyFr')} htmlFor="bio">
-                  <textarea
+                  <RichTextEditor
                     id="bio"
-                    name="bio"
                     value={formData.bio}
-                    onChange={handleChange}
-                    rows={4}
-                    className={inputClasses}
+                    onChange={(bio) => setFormData((current) => ({ ...current, bio }))}
+                    minHeight={260}
+                    label={t('admin.team.biographyFr')}
                   />
                 </Field>
               </div>
 
-              <div className="md:col-span-2"><Field label={t('admin.team.biographyEn')} htmlFor="bioEn"><textarea id="bioEn" name="bioEn" value={formData.bioEn} onChange={handleChange} rows={4} className={inputClasses} /></Field></div>
+              <div className="md:col-span-2"><Field label={t('admin.team.biographyEn')} htmlFor="bioEn"><RichTextEditor id="bioEn" value={formData.bioEn} onChange={(bioEn) => setFormData((current) => ({ ...current, bioEn }))} minHeight={260} label={t('admin.team.biographyEn')} /></Field></div>
 
               <Field label={t('admin.common.order')} htmlFor="order" required>
                 <input

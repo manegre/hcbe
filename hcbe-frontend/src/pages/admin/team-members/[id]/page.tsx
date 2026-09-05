@@ -5,7 +5,7 @@ import { teamMembersApi } from '../../../../lib/api/team-members';
 import type { TeamMemberDto } from '../../../../lib/api/types';
 import { buildApiUrl } from '../../../../lib/api/base-url';
 import { AdminDetailLayout, DetailList, DetailRow } from '../../../../components/admin/AdminDetailLayout';
-import { Button, EmptyState } from '../../../../components/ui';
+import { Button, EmptyState, RichTextContent } from '../../../../components/ui';
 
 const TeamMemberDetailPage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -119,10 +119,10 @@ const TeamMemberDetailPage: React.FC = () => {
           {member.bio && (
             <div>
               <h2 className="font-display text-headline-sm text-green">{t('admin.team.biographyFr')}</h2>
-              <p className="mt-3 text-body-md text-ink-variant">{member.bio}</p>
+              <RichTextContent value={member.bio} className="mt-3 text-body-md text-ink-variant" />
             </div>
           )}
-          {member.bioEn && <div><h2 className="font-display text-headline-sm text-green">{t('admin.team.biographyEn')}</h2><p className="mt-3 text-body-md text-ink-variant">{member.bioEn}</p></div>}
+          {member.bioEn && <div><h2 className="font-display text-headline-sm text-green">{t('admin.team.biographyEn')}</h2><RichTextContent value={member.bioEn} className="mt-3 text-body-md text-ink-variant" /></div>}
         </>
       }
     />

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { consultationsApi } from '../../../../lib/api/consultations';
 import type { Consultation, ConsultationAuditEvent } from '../../../../lib/api/types';
 import { AdminDetailLayout, DetailList, DetailRow } from '../../../../components/admin/AdminDetailLayout';
-import { Button, EmptyState } from '../../../../components/ui';
+import { Button, EmptyState, RichTextContent } from '../../../../components/ui';
 
 const ConsultationViewPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -114,7 +114,7 @@ const ConsultationViewPage: React.FC = () => {
       }
       main={
         <>
-          <p className="text-body-md text-ink-variant">{item.description}</p>
+          <RichTextContent value={item.description} className="text-body-md text-ink-variant" />
           <DetailList>
             <DetailRow label={t('admin.consultations.governance.type')} value={t(`admin.consultations.governance.typeValue.${item.governanceType}`)} />
             <DetailRow label={t('admin.consultations.governance.mode')} value={t(`admin.consultations.governance.modeValue.${item.votingMode}`)} />

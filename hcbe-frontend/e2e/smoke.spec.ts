@@ -157,6 +157,43 @@ test('administrator can authenticate and reach the protected dashboard', async (
   await page.goto('/admin/impact');
   await expect(page.getByRole('heading', { name: /du compte à la première participation|from account to first participation/i })).toBeVisible();
   await expect(page.getByRole('button', { name: /exporter les données|export data/i })).toBeEnabled();
+
+  await page.goto('/admin/security');
+  await expect(page.getByRole('heading', { level: 1, name: /centre de sécurité|security centre/i })).toBeVisible();
+  await page.getByRole('button', { name: /signaler un incident|report an incident/i }).click();
+  const editor = page.locator('#incident-description');
+  await expect(editor).toBeVisible();
+  expect((await editor.boundingBox())?.height).toBeGreaterThanOrEqual(260);
+  await expect(page.getByRole('toolbar', { name: /mise en forme du texte|text formatting/i }).first()).toBeVisible();
+  await editor.fill('**Résumé professionnel**\n\n- Première mesure\n- Deuxième mesure');
+  await page.getByRole('button', { name: /aperçu|preview/i }).first().click();
+  await expect(page.locator('strong').filter({ hasText: /résumé professionnel/i })).toBeVisible();
+  if (process.env.E2E_CAPTURE_VISUALS) {
+    await page.screenshot({ path: 'test-results/admin-security-desktop.png', fullPage: true });
+  }
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
+  await page.evaluate(() => localStorage.setItem('hcbe-theme', 'dark'));
+  await page.reload();
+  await page.getByRole('button', { name: /signaler un incident|report an incident/i }).click();
+  await expect(page.locator('html')).toHaveClass(/dark/);
+  await expect.poll(() => page.locator('.rich-text-editor').first().evaluate((node) => getComputedStyle(node).backgroundColor)).not.toBe('rgb(255, 255, 255)');
+  if (process.env.E2E_CAPTURE_VISUALS) {
+    await page.screenshot({ path: 'test-results/admin-security-mobile-dark.png', fullPage: true });
+  }
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  for (const route of [
+    '/admin/events/create', '/admin/news/create', '/admin/projects/create',
+    '/admin/documents/create', '/admin/associations/create', '/admin/grants/create',
+    '/admin/consultations/create', '/admin/team-members/create',
+  ]) {
+    await page.goto(route);
+    await expect(page.locator('.rich-text-editor').first()).toBeVisible();
+    await expect(page.locator('body')).not.toHaveText(/unexpected application error/i);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
+  }
 });
 
 test('member can register and enter the member portal', async ({ page }) => {

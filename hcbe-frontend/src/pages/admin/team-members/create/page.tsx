@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { AdminFormLayout } from '../../../../components/admin/AdminFormLayout';
-import { Button, Field, inputClasses } from '../../../../components/ui';
+import { Button, Field, inputClasses, RichTextEditor } from '../../../../components/ui';
 import { teamMembersApi } from '../../../../lib/api/team-members';
 import type { CreateTeamMemberRequest } from '../../../../lib/api/types';
 
@@ -180,21 +180,20 @@ const TeamMemberCreatePage: React.FC = () => {
 
               <div className="md:col-span-2">
                 <Field label={t('admin.team.biographyFr')} htmlFor="bio">
-                  <textarea
+                  <RichTextEditor
                     id="bio"
-                    name="bio"
                     value={formData.bio}
-                    onChange={handleChange}
-                    rows={4}
-                    className={inputClasses}
+                    onChange={(bio) => setFormData((current) => ({ ...current, bio }))}
                     placeholder={t('admin.team.biographyFrPlaceholder')}
+                    minHeight={260}
+                    label={t('admin.team.biographyFr')}
                   />
                 </Field>
               </div>
 
               <div className="md:col-span-2">
                 <Field label={t('admin.team.biographyEn')} htmlFor="bioEn">
-                  <textarea id="bioEn" name="bioEn" value={formData.bioEn} onChange={handleChange} rows={4} className={inputClasses} placeholder={t('admin.team.biographyEnPlaceholder')} />
+                  <RichTextEditor id="bioEn" value={formData.bioEn} onChange={(bioEn) => setFormData((current) => ({ ...current, bioEn }))} placeholder={t('admin.team.biographyEnPlaceholder')} minHeight={260} label={t('admin.team.biographyEn')} />
                 </Field>
               </div>
 

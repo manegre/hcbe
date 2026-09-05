@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { buildApiUrl } from '../../../lib/api/base-url';
 import { AdminListPage } from '../../../components/admin/AdminListPage';
-import { Field, StatusChip, Td, inputClasses } from '../../../components/ui';
+import { Field, StatusChip, Td, inputClasses, plainTextFromRichText } from '../../../components/ui';
 
 interface Document {
   id: string;
@@ -173,7 +173,7 @@ export const AdminDocumentsList: React.FC = () => {
                 <div>
                   <div className="font-medium">{doc.name}</div>
                   {doc.description && (
-                    <div className="mt-1 max-w-xs truncate text-body-md text-ink-variant">{doc.description}</div>
+                    <div className="mt-1 max-w-xs truncate text-body-md text-ink-variant">{plainTextFromRichText(doc.description)}</div>
                   )}
                 </div>
               </div>

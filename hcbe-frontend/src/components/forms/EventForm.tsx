@@ -9,7 +9,7 @@ import {
   isEnglishContentIncomplete,
 } from '../admin/AdminLanguageTabs';
 import { AdminFormLayout } from '../admin/AdminFormLayout';
-import { ArrowLink, Button, Field, inputClasses } from '../ui';
+import { ArrowLink, Button, Field, RichTextEditor, inputClasses } from '../ui';
 import { formatFileSize, resolveMediaUrl } from '../../lib/api/media-url';
 import { eventCategoriesApi } from '../../lib/api/event-categories';
 import {
@@ -365,15 +365,7 @@ export const EventForm: React.FC<EventFormProps> = ({
 
                 <div className="md:col-span-2">
                   <Field label={t('admin.common.description')} htmlFor="description">
-                    <textarea
-                      id="description"
-                      name="description"
-                      rows={4}
-                      value={formData.description}
-                      onChange={handleChange}
-                      className={inputClasses}
-                      placeholder={t('admin.events.form.descriptionPlaceholder')}
-                    />
+                    <RichTextEditor id="description" value={formData.description} onChange={(description) => setFormData((current) => ({ ...current, description }))} label={t('admin.common.description')} placeholder={t('admin.events.form.descriptionPlaceholder')} minHeight={260} />
                   </Field>
                 </div>
 
@@ -442,15 +434,7 @@ export const EventForm: React.FC<EventFormProps> = ({
 
                 <div className="md:col-span-2">
                   <Field label={t('admin.common.description')} htmlFor="descriptionEn">
-                    <textarea
-                      id="descriptionEn"
-                      name="descriptionEn"
-                      rows={4}
-                      value={formData.descriptionEn}
-                      onChange={handleChange}
-                      className={inputClasses}
-                      placeholder={t('admin.events.form.descriptionEnPlaceholder')}
-                    />
+                    <RichTextEditor id="descriptionEn" value={formData.descriptionEn || ''} onChange={(descriptionEn) => setFormData((current) => ({ ...current, descriptionEn }))} label={t('admin.common.description')} placeholder={t('admin.events.form.descriptionEnPlaceholder')} minHeight={260} />
                   </Field>
                 </div>
 

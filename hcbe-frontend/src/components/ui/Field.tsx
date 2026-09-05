@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 // décalait le contenu du champ d'un pixel. Le liseré vient désormais d'un
 // `outline` posé en retrait : même emphase, aucun déplacement.
 export const inputClasses =
-  'w-full min-h-[44px] rounded-control border border-outline bg-surface px-4 py-2 text-body-md text-ink transition-colors duration-200 placeholder:text-ink-variant/60 hover:border-ink-variant focus:border-green focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-green disabled:cursor-not-allowed disabled:opacity-60';
+  'w-full min-h-[48px] rounded-[14px] border border-outline/85 bg-surface px-4 py-2.5 text-body-md text-ink shadow-[0_1px_2px_rgba(0,59,27,.025)] transition-[border-color,box-shadow,background-color] duration-200 placeholder:text-ink-variant/55 hover:border-green/45 focus:border-green focus:outline-none focus:ring-2 focus:ring-green/15 disabled:cursor-not-allowed disabled:bg-surface-container disabled:opacity-65';
 
 interface FieldProps {
   label: string;
@@ -12,17 +12,18 @@ interface FieldProps {
   required?: boolean;
   error?: string;
   hint?: string;
+  className?: string;
   children: ReactNode;
 }
 
-export const Field = ({ label, htmlFor, required, error, hint, children }: FieldProps) => (
-  <div className="flex flex-col gap-2">
-    <label htmlFor={htmlFor} className="text-label-md uppercase text-ink-variant">
+export const Field = ({ label, htmlFor, required, error, hint, className = '', children }: FieldProps) => (
+  <div className={`admin-field flex min-w-0 flex-col gap-2.5 ${className}`}>
+    <label htmlFor={htmlFor} className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[.13em] text-green-deep/75 dark:text-green-dim">
       {label}
       {required && <span className="ml-1 text-red-link">*</span>}
     </label>
     {children}
-    {hint && !error && <p className="text-body-md text-ink-variant">{hint}</p>}
-    {error && <p className="text-body-md text-error">{error}</p>}
+    {hint && !error && <p className="flex items-start gap-1.5 text-xs leading-5 text-ink-variant"><i className="ri-information-line mt-0.5 shrink-0 text-green/70" aria-hidden="true" />{hint}</p>}
+    {error && <p className="flex items-start gap-1.5 text-xs leading-5 text-error" role="alert"><i className="ri-error-warning-line mt-0.5 shrink-0" aria-hidden="true" />{error}</p>}
   </div>
 );

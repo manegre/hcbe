@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { resolveMediaUrl } from '../../../lib/api/media-url';
 import { AdminFormLayout } from '../../../components/admin/AdminFormLayout';
-import { Button, Field, inputClasses } from '../../../components/ui';
+import { Button, Field, inputClasses, RichTextEditor } from '../../../components/ui';
 
 export const CANADA_PROVINCES = [
   'Alberta',
@@ -222,21 +222,20 @@ export const AssociationForm: React.FC<AssociationFormProps> = ({
 
                 <div className="md:col-span-2">
                   <Field label={t('admin.associations.description')} htmlFor="description">
-                    <textarea
+                    <RichTextEditor
                       id="description"
-                      name="description"
                       value={formData.description}
-                      onChange={handleInputChange}
-                      rows={3}
-                      className={inputClasses}
+                      onChange={(description) => setFormData((current) => ({ ...current, description }))}
                       placeholder={t('admin.associations.descriptionPlaceholder')}
+                      minHeight={260}
+                      label={t('admin.associations.description')}
                     />
                   </Field>
                 </div>
 
                 <div className="md:col-span-2">
                   <Field label={t('admin.associations.descriptionEn')} htmlFor="descriptionEn">
-                    <textarea id="descriptionEn" name="descriptionEn" value={formData.descriptionEn} onChange={handleInputChange} rows={3} className={inputClasses} placeholder={t('admin.associations.descriptionEnPlaceholder')} />
+                    <RichTextEditor id="descriptionEn" value={formData.descriptionEn} onChange={(descriptionEn) => setFormData((current) => ({ ...current, descriptionEn }))} placeholder={t('admin.associations.descriptionEnPlaceholder')} minHeight={260} label={t('admin.associations.descriptionEn')} />
                   </Field>
                 </div>
 

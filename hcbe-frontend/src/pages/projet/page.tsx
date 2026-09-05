@@ -5,7 +5,7 @@ import { projectsApi } from '../../lib/api/projects';
 import { resolveMediaUrl } from '../../lib/api/media-url';
 import type { Project } from '../../lib/api/types';
 import { localized } from '../../lib/i18n/localized';
-import { ArrowLink, Button, EmptyState, Tag } from '../../components/ui';
+import { ArrowLink, Button, EmptyState, RichTextContent, Tag } from '../../components/ui';
 
 const ProjectDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -146,9 +146,7 @@ const ProjectDetailPage = () => {
               <h2 className="border-b border-line pb-4 font-display text-headline-md text-green">
                 {t('public.engagement.projets.descriptionTitle')}
               </h2>
-              <p className="mt-6 max-w-[65ch] whitespace-pre-line text-[17px] leading-8 text-ink-variant">
-                {description}
-              </p>
+              <RichTextContent value={description} className="mt-6 max-w-[65ch] text-[17px] leading-8 text-ink-variant" />
 
               <h2 className="mt-16 border-b border-line pb-4 font-display text-headline-md text-green">
                 {t('public.engagement.projets.keyFigures')}

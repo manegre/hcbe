@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
 import { buildApiUrl } from '../../../../lib/api/base-url';
 import { AdminDetailLayout, DetailList, DetailRow } from '../../../../components/admin/AdminDetailLayout';
-import { Button, EmptyState, Tag } from '../../../../components/ui';
+import { Button, EmptyState, RichTextContent, Tag } from '../../../../components/ui';
 import { AdminStatCard } from '../../../../components/admin/AdminStatCard';
 
 interface Document {
@@ -159,7 +159,7 @@ export const ViewDocumentPage: React.FC = () => {
           {document.description && (
             <div>
               <h2 className="font-display text-headline-sm text-green">{t('admin.common.description')}</h2>
-              <p className="mt-3 text-body-md text-ink-variant">{document.description}</p>
+              <RichTextContent value={document.description} className="mt-3 text-body-md text-ink-variant" />
             </div>
           )}
 

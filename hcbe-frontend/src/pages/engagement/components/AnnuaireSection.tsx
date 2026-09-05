@@ -1,6 +1,6 @@
 import { associationsApi } from '../../../lib/api/associations';
 import type { Association } from '../../../lib/api/types';
-import { Card, Tag, EmptyState, inputClasses } from '../../../components/ui';
+import { Card, Tag, EmptyState, inputClasses, plainTextFromRichText } from '../../../components/ui';
 import { localized, localizedOptional } from '../../../lib/i18n/localized';
 
 const AnnuaireSection = () => {
@@ -122,7 +122,7 @@ const AnnuaireSection = () => {
             <div className="grid grid-cols-1 gap-gutter md:grid-cols-2">
               {filteredAssociations.map((assoc) => {
                 const name = localized(assoc.name, assoc.nameEn, i18n.language);
-                const description = localizedOptional(assoc.description, assoc.descriptionEn, i18n.language);
+                const description = plainTextFromRichText(localizedOptional(assoc.description, assoc.descriptionEn, i18n.language));
                 const domains = i18n.language.startsWith('en') && assoc.domainsEn?.length ? assoc.domainsEn : assoc.domains;
                 const email = assoc.contact?.trim() || '';
                 const phone = assoc.phone?.trim() || '';

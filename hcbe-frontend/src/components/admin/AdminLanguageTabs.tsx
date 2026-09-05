@@ -28,18 +28,18 @@ export const AdminLanguageTabs = ({
 
   const tabClass = (lang: AdminContentLanguage) =>
     [
-      'flex min-h-[44px] items-center gap-2 border-b-[3px] px-1 text-label-md uppercase transition-colors',
+      'flex min-h-[40px] items-center gap-2 rounded-lg border px-4 text-[10px] font-bold uppercase tracking-[.12em] transition-all',
       active === lang
-        ? 'border-gold text-green'
-        : 'border-transparent text-ink-variant hover:text-green',
+        ? 'border-green/15 bg-surface text-green shadow-sm'
+        : 'border-transparent text-ink-variant hover:bg-surface/70 hover:text-green',
     ].join(' ');
 
   return (
-    <div className={`min-w-0 ${className}`}>
+    <div className={`admin-language-studio min-w-0 rounded-[18px] border border-line/70 bg-surface p-3 shadow-[0_10px_28px_rgba(0,59,27,.045)] sm:p-4 ${className}`}>
       <div
         role="tablist"
         aria-label={t('admin.content.lang.tabsLabel')}
-        className="mb-5 flex gap-8 overflow-x-auto border-b border-line"
+        className="mb-4 flex gap-2 overflow-x-auto rounded-xl bg-surface-container/70 p-1"
       >
         <button
           type="button"

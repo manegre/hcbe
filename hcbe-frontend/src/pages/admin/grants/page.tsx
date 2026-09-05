@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { grantsApi } from '../../../lib/api/grants';
 import type { GrantProgram } from '../../../lib/api/types';
 import { AdminListPage } from '../../../components/admin/AdminListPage';
-import { StatusChip, Td } from '../../../components/ui';
+import { StatusChip, Td, plainTextFromRichText } from '../../../components/ui';
 
 const GrantsAdminPage: React.FC = () => {
   const { t } = useTranslation();
@@ -91,7 +91,7 @@ const GrantsAdminPage: React.FC = () => {
               <i className={`${grant.icon} text-lg text-ink-variant`} aria-hidden="true" />
               <div>
                 <div className="font-medium">{grant.title}</div>
-                <div className="max-w-xs truncate text-body-md text-ink-variant">{grant.description}</div>
+                <div className="max-w-xs truncate text-body-md text-ink-variant">{plainTextFromRichText(grant.description)}</div>
               </div>
             </div>
           </Td>

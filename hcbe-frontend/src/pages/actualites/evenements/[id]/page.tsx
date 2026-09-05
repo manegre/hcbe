@@ -5,7 +5,7 @@ import Navbar from '../../../../components/feature/Navbar';
 import Footer from '../../../../components/feature/Footer';
 import { EventMediaGallery } from '../../../../components/events/EventMediaGallery';
 import ImageCarousel from '../../../../components/media/ImageCarousel';
-import { ArrowLink, EmptyState, StatusChip } from '../../../../components/ui';
+import { ArrowLink, EmptyState, RichTextContent, StatusChip } from '../../../../components/ui';
 import { buildApiUrl } from '../../../../lib/api/base-url';
 import { formatFileSize, resolveMediaUrl } from '../../../../lib/api/media-url';
 import type { Event } from '../../../../lib/api/types';
@@ -333,7 +333,7 @@ export const EventDetailPage: React.FC = () => {
               <p className="mt-7 text-[10px] font-bold uppercase tracking-[0.18em] text-red-link">{typeLabel || t('public.news.evenements.detail.communityEvent')}</p>
               <h2 id="event-about-title" className="mt-2 font-display text-[32px] font-bold leading-tight text-green sm:text-[40px]">{t('public.news.evenements.detail.about')}</h2>
               {description ? (
-                <div className="mt-6 max-w-[68ch] whitespace-pre-line text-[17px] leading-8 text-ink-variant">{description}</div>
+                <RichTextContent value={description} className="mt-6 max-w-[68ch] !text-[17px] !leading-8" />
               ) : (
                 <p className="mt-6 text-ink-variant">{t('public.news.evenements.detail.noDescription')}</p>
               )}

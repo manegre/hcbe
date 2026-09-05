@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AdminPageHeader } from '../../../components/admin/AdminPageHeader';
-import { Button, Field, StatusChip, inputClasses } from '../../../components/ui';
+import { Button, Field, RichTextEditor, StatusChip, inputClasses, plainTextFromRichText } from '../../../components/ui';
 import { partnersApi } from '../../../lib/api/partners';
 import { resolveMediaUrl } from '../../../lib/api/media-url';
 import type { CreatePartnerRequest, PartnerDto } from '../../../lib/api/types';
@@ -260,7 +260,7 @@ const AdminPartnersPage = () => {
                     <StatusChip status={partner.isActive ? 'published' : 'draft'} label={partner.isActive ? t('admin.common.active') : t('admin.common.inactive')} />
                     {partner.isFeatured && <span className="rounded-full bg-gold/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-gold-ink">{t('admin.partners.featured')}</span>}
                   </div>
-                  <p className="mt-1 truncate text-sm text-ink-variant">{partner.description || partner.websiteUrl || t('admin.partners.noDescription')}</p>
+                  <p className="mt-1 truncate text-sm text-ink-variant">{partner.description ? plainTextFromRichText(partner.description) : partner.websiteUrl || t('admin.partners.noDescription')}</p>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-ink-variant">
                   <span className="rounded-lg border border-line px-2.5 py-1.5 tabular-nums">#{index + 1}</span>
@@ -295,8 +295,8 @@ const AdminPartnersPage = () => {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field label={t('admin.partners.nameFr')} htmlFor="partner-name"><input id="partner-name" autoFocus required maxLength={160} className={inputClasses} value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} /></Field>
                   <Field label={t('admin.partners.nameEn')} htmlFor="partner-name-en"><input id="partner-name-en" maxLength={160} className={inputClasses} value={form.nameEn} onChange={(event) => setForm((current) => ({ ...current, nameEn: event.target.value }))} /></Field>
-                  <Field label={t('admin.partners.descriptionFr')} htmlFor="partner-description"><textarea id="partner-description" maxLength={600} className={`${inputClasses} min-h-24 resize-y`} value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} /></Field>
-                  <Field label={t('admin.partners.descriptionEn')} htmlFor="partner-description-en"><textarea id="partner-description-en" maxLength={600} className={`${inputClasses} min-h-24 resize-y`} value={form.descriptionEn} onChange={(event) => setForm((current) => ({ ...current, descriptionEn: event.target.value }))} /></Field>
+                  <Field label={t('admin.partners.descriptionFr')} htmlFor="partner-description"><RichTextEditor id="partner-description" maxLength={600} minHeight={220} value={form.description} onChange={(description) => setForm((current) => ({ ...current, description }))} label={t('admin.partners.descriptionFr')} /></Field>
+                  <Field label={t('admin.partners.descriptionEn')} htmlFor="partner-description-en"><RichTextEditor id="partner-description-en" maxLength={600} minHeight={220} value={form.descriptionEn} onChange={(descriptionEn) => setForm((current) => ({ ...current, descriptionEn }))} label={t('admin.partners.descriptionEn')} /></Field>
                 </div>
               </section>
 

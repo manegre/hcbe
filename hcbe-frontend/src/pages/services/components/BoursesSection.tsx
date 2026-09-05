@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { grantsApi } from '../../../lib/api/grants';
 import type { GrantProgram } from '../../../lib/api/types';
 import { localized } from '../../../lib/i18n/localized';
-import { Button, SectionHeading, EmptyState } from '../../../components/ui';
+import { Button, SectionHeading, EmptyState, plainTextFromRichText } from '../../../components/ui';
 
 const pickCriteria = (grant: GrantProgram, language: string): string[] => {
   const isEnglish = language.toLowerCase().startsWith('en');
@@ -71,7 +71,7 @@ const BoursesSection = () => {
           <div className="grid gap-6 lg:grid-cols-2">
             {grants.map((grant) => {
               const title = localized(grant.title, grant.titleEn, i18n.language);
-              const description = localized(grant.description, grant.descriptionEn, i18n.language);
+              const description = plainTextFromRichText(localized(grant.description, grant.descriptionEn, i18n.language));
               const amount = localized(grant.amount, grant.amountEn, i18n.language);
               const duration = localized(grant.duration, grant.durationEn, i18n.language);
               const criteria = pickCriteria(grant, i18n.language);

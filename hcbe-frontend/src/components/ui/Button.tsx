@@ -5,9 +5,9 @@ type Variant = 'primary' | 'secondary' | 'tertiary' | 'destructive';
 
 const variants: Record<Variant, string> = {
   primary:
-    'bg-gold text-green-deep hover:bg-gold-dim border border-transparent px-6 py-3 focus-visible:outline-green',
+    'bg-gold text-green-deep hover:bg-gold-dim border border-transparent px-6 py-3 shadow-[0_8px_20px_rgba(255,205,0,.16)] hover:shadow-[0_10px_24px_rgba(255,205,0,.24)] focus-visible:outline-green',
   secondary:
-    'bg-transparent text-green border-2 border-green hover:bg-green hover:text-white px-6 py-3 focus-visible:outline-green',
+    'bg-surface text-green border border-green/70 hover:bg-green hover:text-white px-6 py-3 shadow-[0_5px_16px_rgba(0,59,27,.06)] focus-visible:outline-green',
   tertiary: 'bg-transparent text-red-link hover:text-green border-0 focus-visible:outline-red-link',
   destructive:
     'bg-error text-white hover:bg-error-deep border border-transparent px-6 py-3 focus-visible:outline-error',
@@ -37,7 +37,7 @@ export const Button = ({
   // `active:translate-y-px` donne le retour d'enfoncement sans ombre ni
   // changement de taille ; `motion-reduce` le neutralise.
   const base =
-    'inline-flex min-h-[44px] items-center justify-center gap-2 rounded-control text-label-md uppercase transition-[background-color,border-color,color,transform] duration-200 active:translate-y-px motion-reduce:transform-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50 disabled:pointer-events-none';
+    'inline-flex min-h-[46px] items-center justify-center gap-2 rounded-[13px] text-[10px] font-bold uppercase tracking-[.12em] transition-[background-color,border-color,color,transform,box-shadow] duration-200 active:translate-y-px motion-reduce:transform-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50 disabled:pointer-events-none';
   const classes = `${base} ${variants[variant]} ${className}`;
 
   if (to) return <Link to={to} className={classes}>{children}</Link>;

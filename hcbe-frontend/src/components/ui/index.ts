@@ -8,3 +8,4 @@ export { EmptyState } from './EmptyState';
 export { Field, inputClasses } from './Field';
 export { DataTable, Td } from './DataTable';
 export { Reveal } from './Reveal';
+export { RichTextEditor, RichTextContent, plainTextFromRichText } from './RichText';

@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Navbar from '../../../../components/feature/Navbar';
 import Footer from '../../../../components/feature/Footer';
-import { Button, EmptyState, PageHeader } from '../../../../components/ui';
+import { Button, EmptyState, PageHeader, RichTextContent, plainTextFromRichText } from '../../../../components/ui';
 import { consultationsApi } from '../../../../lib/api/consultations';
 import type { Consultation } from '../../../../lib/api/types';
 import { localized } from '../../../../lib/i18n/localized';
@@ -75,11 +75,15 @@ const ConsultationDetailPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <PageHeader variant="hero" title={title} description={description} />
+      <PageHeader variant="hero" title={title} description={plainTextFromRichText(description)} />
       <main className="bg-surface-container py-10 md:py-16">
         <div className="container-page grid gap-8 lg:grid-cols-[minmax(0,1fr)_21rem]">
           <div className="space-y-8">
             {notice && <div role="status" className={`rounded-[14px] border px-5 py-4 text-body-md ${notice.tone === 'success' ? 'border-green/20 bg-green/5 text-green' : 'border-error/25 bg-error/5 text-error'}`}>{notice.text}</div>}
+
+            <section className="rounded-[22px] border border-green/10 bg-white p-6 shadow-[0_18px_50px_rgba(0,59,27,.08)] md:p-9">
+              <RichTextContent value={description} className="text-body-lg leading-8 text-ink-variant" />
+            </section>
 
             {item.options.length > 0 && (
               <section className="rounded-[22px] border border-green/10 bg-white p-6 shadow-[0_18px_50px_rgba(0,59,27,.08)] md:p-9">

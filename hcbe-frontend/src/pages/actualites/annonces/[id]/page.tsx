@@ -11,7 +11,7 @@ import { isImageFile } from '../../../../lib/media/is-image-file';
 import { getNewsCategoryLabelKey } from '../../../../lib/news/category-styles';
 import { newsImageObjectPositionClass } from '../../../../lib/news/image-position';
 import { localized } from '../../../../lib/i18n/localized';
-import { ArrowLink, Button, EmptyState, Tag } from '../../../../components/ui';
+import { ArrowLink, Button, EmptyState, RichTextContent, Tag } from '../../../../components/ui';
 
 const formatDate = (dateString: string, locale: string) =>
   new Intl.DateTimeFormat(locale.startsWith('en') ? 'en-CA' : 'fr-CA', {
@@ -169,9 +169,7 @@ const AnnonceDetailPage = () => {
           )}
 
           <article className={`max-w-4xl rounded-[20px] border border-green/10 bg-white p-6 shadow-[0_18px_48px_rgba(0,59,27,.07)] md:p-10 ${showCover ? 'mt-8' : ''}`}>
-            <div className="max-w-[65ch] whitespace-pre-line text-[17px] leading-8 text-ink-variant">
-              {localized(article.content, article.contentEn, i18n.language)}
-            </div>
+            <RichTextContent value={localized(article.content, article.contentEn, i18n.language)} className="max-w-[65ch] !text-[17px] !leading-8" />
 
             {(imageAttachments.length > 0 || fileAttachments.length > 0) && (
               <section className="mt-16">
