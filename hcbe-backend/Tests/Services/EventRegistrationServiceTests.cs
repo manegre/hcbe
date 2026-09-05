@@ -106,5 +106,40 @@ public sealed class EventRegistrationServiceTests : IDisposable
         result.Data.CheckedInAt.Should().NotBeNull();
     }
 
+    [Fact]
+    public async Task Attendee_CanSubmitSurveyAndDownloadCertificate()
+    {
+        var registration = (await _service.RegisterAsync(_firstUser.Id, _event.Id, new CreateEventRegistrationRequest())).Data!;
+        await _service.CheckInByCodeAsync(_event.Id, registration.ConfirmationCode);
+        _event.Date = DateTime.UtcNow.AddMinutes(-5);
+        await _context.SaveChangesAsync();
+
+        var survey = await _service.SubmitSurveyAsync(_firstUser.Id, _event.Id, new SubmitEventSurveyRequest(5, "Excellent accueil", true));
+        var stats = await _service.GetStatsAsync(_event.Id);
+        var certificate = await _service.BuildCertificateAsync(_firstUser.Id, _event.Id);
+
+        survey.Success.Should().BeTrue();
+        survey.Data!.Rating.Should().Be(5);
+        stats.Data!.AttendanceRate.Should().Be(100);
+        stats.Data.AverageRating.Should().Be(5);
+        System.Text.Encoding.ASCII.GetString(certificate.Content![..4]).Should().Be("%PDF");
+        certificate.FileName.Should().EndWith(".pdf");
+    }
+
+    [Fact]
+    public async Task AdminCommunication_QueuesOnlySelectedAudience()
+    {
+        await _service.RegisterAsync(_firstUser.Id, _event.Id, new CreateEventRegistrationRequest());
+        await _service.RegisterAsync(_secondUser.Id, _event.Id, new CreateEventRegistrationRequest());
+
+        var result = await _service.SendCommunicationAsync(_firstUser.Id, _event.Id,
+            new SendEventCommunicationRequest("Waitlisted", "Mise à jour", "Une place pourrait bientôt se libérer."));
+
+        result.Success.Should().BeTrue();
+        result.Data!.RecipientCount.Should().Be(1);
+        (await _service.GetCommunicationsAsync(_event.Id)).Data.Should().ContainSingle();
+        _context.EmailOutboxMessages.Should().HaveCount(3);
+    }
+
     public void Dispose() => _context.Dispose();
 }

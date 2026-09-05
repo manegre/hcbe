@@ -31,6 +31,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<EventMedia> EventMedia { get; set; }
     public DbSet<EventAttachment> EventAttachments { get; set; }
     public DbSet<EventRegistration> EventRegistrations { get; set; }
+    public DbSet<EventSurveyResponse> EventSurveyResponses { get; set; }
+    public DbSet<EventCommunication> EventCommunications { get; set; }
     public DbSet<News> News { get; set; }
     public DbSet<NewsAttachment> NewsAttachments { get; set; }
     public DbSet<Project> Projects { get; set; }
@@ -322,6 +324,22 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<EventRegistration>()
             .HasIndex(registration => registration.ConfirmationCode)
             .IsUnique();
+
+        modelBuilder.Entity<EventSurveyResponse>()
+            .HasOne(item => item.EventRegistration)
+            .WithOne(item => item.SurveyResponse)
+            .HasForeignKey<EventSurveyResponse>(item => item.EventRegistrationId)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<EventSurveyResponse>()
+            .HasIndex(item => item.EventRegistrationId)
+            .IsUnique();
+        modelBuilder.Entity<EventCommunication>()
+            .HasOne(item => item.Event)
+            .WithMany(item => item.Communications)
+            .HasForeignKey(item => item.EventId)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<EventCommunication>()
+            .HasIndex(item => new { item.EventId, item.SentAtUtc });
 
         modelBuilder.Entity<ServiceCase>()
             .HasOne(item => item.Member).WithMany().HasForeignKey(item => item.MemberId).OnDelete(DeleteBehavior.Restrict);

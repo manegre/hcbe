@@ -261,6 +261,106 @@ public sealed class EventRegistrationService(
         return (Encoding.UTF8.GetBytes(builder.ToString()), $"hcbe-{Slug(item.Title)}.ics");
     }
 
+    public async Task<ApiResponse<EventAttendanceStatsDto>> GetStatsAsync(Guid eventId)
+    {
+        if (!await context.Events.AnyAsync(item => item.Id == eventId))
+            return ApiResponse<EventAttendanceStatsDto>.ErrorResponse("Event not found");
+        var statuses = await context.EventRegistrations.AsNoTracking()
+            .Where(item => item.EventId == eventId)
+            .GroupBy(item => item.Status)
+            .Select(group => new { Status = group.Key, Count = group.Count() })
+            .ToDictionaryAsync(item => item.Status, item => item.Count);
+        var ratings = await context.EventSurveyResponses.AsNoTracking()
+            .Where(item => item.EventRegistration.EventId == eventId)
+            .Select(item => item.Rating).ToListAsync();
+        int Count(string status) => statuses.GetValueOrDefault(status);
+        var eligible = Count("Attended") + Count("NoShow");
+        var rate = eligible == 0 ? 0 : Math.Round(Count("Attended") * 100d / eligible, 1);
+        return ApiResponse<EventAttendanceStatsDto>.SuccessResponse(new(
+            statuses.Values.Sum(), Count("Confirmed"), Count("Waitlisted"), Count("Attended"),
+            Count("NoShow"), Count("Cancelled"), rate,
+            ratings.Count == 0 ? 0 : Math.Round(ratings.Average(), 1), ratings.Count));
+    }
+
+    public async Task<ApiResponse<EventSurveyResponseDto>> SubmitSurveyAsync(Guid userId, Guid eventId, SubmitEventSurveyRequest request)
+    {
+        var memberId = await GetMemberIdAsync(userId);
+        if (memberId is null) return ApiResponse<EventSurveyResponseDto>.ErrorResponse("Member account not found");
+        var registration = await context.EventRegistrations.Include(item => item.Event).Include(item => item.SurveyResponse)
+            .FirstOrDefaultAsync(item => item.EventId == eventId && item.MemberId == memberId);
+        if (registration is null || registration.Status != "Attended")
+            return ApiResponse<EventSurveyResponseDto>.ErrorResponse("Attendance is required before submitting the survey");
+        if (registration.Event!.Date > DateTime.UtcNow)
+            return ApiResponse<EventSurveyResponseDto>.ErrorResponse("The survey opens after the event starts");
+        var response = registration.SurveyResponse ?? new EventSurveyResponse { EventRegistrationId = registration.Id };
+        response.Rating = request.Rating;
+        response.Feedback = Normalize(request.Feedback);
+        response.ConsentToQuote = request.ConsentToQuote;
+        response.UpdatedAtUtc = DateTime.UtcNow;
+        if (registration.SurveyResponse is null) context.EventSurveyResponses.Add(response);
+        await context.SaveChangesAsync();
+        return ApiResponse<EventSurveyResponseDto>.SuccessResponse(MapSurvey(response));
+    }
+
+    public async Task<ApiResponse<EventSurveyResponseDto>> GetMySurveyAsync(Guid userId, Guid eventId)
+    {
+        var memberId = await GetMemberIdAsync(userId);
+        var response = memberId is null ? null : await context.EventSurveyResponses.AsNoTracking()
+            .FirstOrDefaultAsync(item => item.EventRegistration.EventId == eventId && item.EventRegistration.MemberId == memberId);
+        return response is null
+            ? ApiResponse<EventSurveyResponseDto>.ErrorResponse("Survey response not found")
+            : ApiResponse<EventSurveyResponseDto>.SuccessResponse(MapSurvey(response));
+    }
+
+    public async Task<(byte[]? Content, string? FileName)> BuildCertificateAsync(Guid userId, Guid eventId)
+    {
+        var memberId = await GetMemberIdAsync(userId);
+        var registration = memberId is null ? null : await Query().FirstOrDefaultAsync(item =>
+            item.EventId == eventId && item.MemberId == memberId && item.Status == "Attended");
+        if (registration is null) return (null, null);
+        return (ReceiptPdfRenderer.RenderEventCertificate(registration), $"HCBE-attestation-{registration.ConfirmationCode}.pdf");
+    }
+
+    public async Task<ApiResponse<EventCommunicationDto>> SendCommunicationAsync(Guid userId, Guid eventId, SendEventCommunicationRequest request)
+    {
+        var allowed = new[] { "Active", "Confirmed", "Waitlisted", "Attended", "NoShow", "Cancelled" };
+        var audience = allowed.FirstOrDefault(item => item.Equals(request.Audience.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (audience is null) return ApiResponse<EventCommunicationDto>.ErrorResponse("Unsupported audience");
+        var eventEntity = await context.Events.FirstOrDefaultAsync(item => item.Id == eventId);
+        if (eventEntity is null) return ApiResponse<EventCommunicationDto>.ErrorResponse("Event not found");
+        var query = context.EventRegistrations.Include(item => item.Member).Where(item => item.EventId == eventId);
+        query = audience == "Active"
+            ? query.Where(item => item.Status == "Confirmed" || item.Status == "Waitlisted" || item.Status == "Attended")
+            : query.Where(item => item.Status == audience);
+        var recipients = await query.ToListAsync();
+        var communication = new EventCommunication
+        {
+            EventId = eventId, SentByUserId = userId, Audience = audience,
+            Subject = request.Subject.Trim(), Body = request.Body.Trim(), RecipientCount = recipients.Count
+        };
+        context.EventCommunications.Add(communication);
+        var eventUrl = $"{PublicAppUrl()}/actualites/evenements/{eventId}";
+        foreach (var recipient in recipients.Where(item => item.Member is not null))
+        {
+            var email = emailTemplates.EventMessage(recipient.Member!.FirstName, eventEntity.Title, communication.Subject, communication.Body, eventUrl);
+            emailOutbox.Enqueue(recipient.Member.Email, email.Subject, email.HtmlBody, nameof(EventCommunication), communication.Id);
+        }
+        await context.SaveChangesAsync();
+        return ApiResponse<EventCommunicationDto>.SuccessResponse(MapCommunication(communication));
+    }
+
+    public async Task<ApiResponse<List<EventCommunicationDto>>> GetCommunicationsAsync(Guid eventId)
+    {
+        var items = await context.EventCommunications.AsNoTracking().Where(item => item.EventId == eventId)
+            .OrderByDescending(item => item.SentAtUtc).Take(20).ToListAsync();
+        return ApiResponse<List<EventCommunicationDto>>.SuccessResponse(items.Select(MapCommunication).ToList());
+    }
+
+    private static EventSurveyResponseDto MapSurvey(EventSurveyResponse item) => new(
+        item.Id, item.EventRegistrationId, item.Rating, item.Feedback, item.ConsentToQuote, item.SubmittedAtUtc, item.UpdatedAtUtc);
+    private static EventCommunicationDto MapCommunication(EventCommunication item) => new(
+        item.Id, item.Audience, item.Subject, item.Body, item.RecipientCount, item.SentAtUtc);
+
     private IQueryable<EventRegistration> Query(bool tracking = false)
     {
         var query = context.EventRegistrations

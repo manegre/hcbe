@@ -221,6 +221,20 @@ export interface EventRegistration {
   meetingLink?: string;
 }
 
+export interface EventAttendanceStats {
+  total: number; confirmed: number; waitlisted: number; attended: number; noShow: number;
+  cancelled: number; attendanceRate: number; averageRating: number; surveyResponses: number;
+}
+
+export interface EventSurveyResponse {
+  id: string; eventRegistrationId: string; rating: number; feedback?: string;
+  consentToQuote: boolean; submittedAtUtc: string; updatedAtUtc: string;
+}
+
+export interface EventCommunication {
+  id: string; audience: string; subject: string; body: string; recipientCount: number; sentAtUtc: string;
+}
+
 export interface ServiceCaseMessage { id: string; authorUserId: string; authorName: string; body: string; isInternal: boolean; createdAt: string; }
 export interface ServiceCaseAttachment { id: string; fileName: string; url: string; contentType: string; sizeBytes: number; isInternal: boolean; createdAt: string; }
 export interface ServiceCase {

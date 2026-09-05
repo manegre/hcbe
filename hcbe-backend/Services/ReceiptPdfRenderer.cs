@@ -80,6 +80,45 @@ public static class ReceiptPdfRenderer
         return BuildPdf(content.ToString(), certificate.CertificateNumber);
     }
 
+    public static byte[] RenderEventCertificate(EventRegistration registration)
+    {
+        ArgumentNullException.ThrowIfNull(registration.Event);
+        ArgumentNullException.ThrowIfNull(registration.Member);
+        var item = registration.Event;
+        var number = $"HCBE-EVT-{item.Date:yyyy}-{registration.ConfirmationCode}";
+        var content = new StringBuilder();
+        Fill(content, "0.969 0.976 0.957", 0, 0, PageWidth, PageHeight);
+        Stroke(content, "0.043 0.231 0.129", 26, 26, 543, 790, 2);
+        Stroke(content, "0.961 0.773 0.094", 34, 34, 527, 774, 0.8);
+        RoundedFill(content, "0.043 0.231 0.129", 48, 666, 499, 112, 18);
+        Fill(content, "0.961 0.773 0.094", 48, 666, 5, 112);
+        CircleStroke(content, "0.149 0.365 0.235", 520, 768, 52, 18);
+        DrawLogo(content, 72, 746);
+        Text(content, "ATTESTATION DE PRÉSENCE", 74, 630, 10, true, "0.043 0.231 0.129", 1.2);
+        Text(content, "CERTIFICATE OF ATTENDANCE", 74, 610, 8, true, "0.435 0.478 0.443", 0.8);
+        Text(content, "Le HCBE Canada atteste la participation de / HCBE Canada certifies the attendance of", 74, 562, 8.5, false, "0.310 0.353 0.318");
+        Text(content, $"{registration.Member.FirstName} {registration.Member.LastName}".Trim(), 74, 515, 28, true, "0.043 0.231 0.129");
+        Line(content, "0.827 0.859 0.820", 74, 493, 521, 493, 0.9);
+        Text(content, "à l’événement / at the event", 74, 458, 8.5, false, "0.435 0.478 0.443");
+        var titleLines = Wrap(item.Title, 48);
+        for (var index = 0; index < Math.Min(2, titleLines.Count); index++)
+            Text(content, titleLines[index], 74, 425 - index * 24, 17, true, "0.086 0.145 0.106");
+        RoundedFill(content, "1 1 1", 74, 220, 447, 92, 12);
+        RoundedStroke(content, "0.827 0.859 0.820", 74, 220, 447, 92, 12, 0.8);
+        Text(content, "DATE DE L’ÉVÉNEMENT / EVENT DATE", 96, 281, 7, true, "0.435 0.478 0.443", 0.65);
+        Text(content, item.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), 96, 254, 11, true, "0.086 0.145 0.106");
+        Line(content, "0.827 0.859 0.820", 286, 237, 286, 295, 0.7);
+        Text(content, "FORMAT / FORMAT", 310, 281, 7, true, "0.435 0.478 0.443", 0.65);
+        Text(content, item.Format, 310, 254, 11, true, "0.086 0.145 0.106");
+        Text(content, "HCBE Canada", 74, 142, 11, true, "0.043 0.231 0.129");
+        Text(content, "Haut Conseil des Burkinabè du Canada", 74, 123, 8, false, "0.310 0.353 0.318");
+        Text(content, "contact@hcbe.ca  |  hcbe.ca", 74, 105, 8, false, "0.310 0.353 0.318");
+        Text(content, "N° / NO.", 377, 142, 6.8, true, "0.435 0.478 0.443", 0.5);
+        Text(content, number, 377, 122, 8.2, true, "0.043 0.231 0.129");
+        Text(content, "Document vérifiable émis électroniquement / Verifiable electronically issued document", 74, 65, 7, false, "0.435 0.478 0.443");
+        return BuildPdf(content.ToString(), number);
+    }
+
     private static string TypeLabel(string? type) => type switch
     {
         "Job" => "Emploi / Employment",

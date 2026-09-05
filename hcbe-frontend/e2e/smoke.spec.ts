@@ -144,3 +144,21 @@ test('cancelled contribution checkout explains that no charge was made', async (
   await page.goto('/contribuer?payment=cancelled');
   await expect(page.getByRole('status')).toContainText(/aucun montant n’a été débité|nothing was charged/i);
 });
+
+test('event details offer Google, Outlook and Apple calendar actions', async ({ page }) => {
+  const eventId = '33333333-3333-3333-3333-333333333333';
+  await page.route(`**/api/events/${eventId}`, (route) => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: {
+      id: eventId, title: 'Forum HCBE', titleEn: 'HCBE Forum', description: 'Rencontre communautaire',
+      descriptionEn: 'Community gathering', date: '2026-11-12T18:00:00Z', endDate: '2026-11-12T20:00:00Z',
+      timeZone: 'America/Toronto', location: 'Montréal', locationEn: 'Montreal', type: 'Conference', format: 'InPerson',
+      status: 'Active', createdAt: '2026-09-01T00:00:00Z', updatedAt: '2026-09-01T00:00:00Z', speakers: [], organizers: [],
+      registrationMode: 'External', registrationUrl: 'https://example.com/register', allowWaitlist: true,
+      restrictMeetingLinkToRegistrants: false, confirmedRegistrationCount: 0, waitlistCount: 0, remainingCapacity: 100,
+    } }),
+  }));
+  await page.goto(`/actualites/evenements/${eventId}`);
+  await expect(page.getByRole('link', { name: /google/i })).toHaveAttribute('href', /calendar\.google\.com/);
+  await expect(page.getByRole('link', { name: /outlook/i })).toHaveAttribute('href', /outlook\.live\.com/);
+  await expect(page.getByRole('link', { name: /apple/i })).toHaveAttribute('href', /calendar\.ics/);
+});

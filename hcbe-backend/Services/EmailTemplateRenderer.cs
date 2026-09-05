@@ -175,6 +175,16 @@ public sealed class EmailTemplateRenderer(IConfiguration configuration) : IEmail
             Layout(explanation, eyebrow, title, body, "Voir l’événement", eventUrl));
     }
 
+    public RenderedEmail EventMessage(string? firstName, string eventTitle, string subject, string body, string eventUrl)
+    {
+        var content = $"""
+            <p style="margin:0 0 18px;font-size:16px;line-height:1.75;color:{Ink};">Bonjour {GreetingName(firstName)},</p>
+            {Callout(eventTitle, body)}
+            <p style="margin:20px 0 0;font-size:13px;line-height:1.65;color:{Muted};">This message concerns your participation in an HCBE Canada community event.</p>
+            """;
+        return new RenderedEmail($"[HCBE Canada] {subject}", Layout(subject, "Événement · Event", subject, content, "Voir l’événement", eventUrl));
+    }
+
     public RenderedEmail ServiceCaseUpdate(string? firstName, string ticketNumber, string subject, string status, string? message, string caseUrl)
     {
         var name = GreetingName(firstName);

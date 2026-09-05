@@ -33,5 +33,6 @@ public class Event
     public ICollection<EventMedia> Media { get; set; } = new List<EventMedia>();
     public ICollection<EventAttachment> Attachments { get; set; } = new List<EventAttachment>();
     public ICollection<EventRegistration> Registrations { get; set; } = new List<EventRegistration>();
+    public ICollection<EventCommunication> Communications { get; set; } = new List<EventCommunication>();
 }
 

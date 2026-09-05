@@ -16,4 +16,5 @@ public class EventRegistration
     public DateTime? CancelledAt { get; set; }
     public DateTime? CheckedInAt { get; set; }
     public DateTime? ReminderSentAt { get; set; }
+    public EventSurveyResponse? SurveyResponse { get; set; }
 }

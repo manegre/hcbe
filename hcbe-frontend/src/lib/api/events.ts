@@ -8,6 +8,9 @@ import type {
   EventMedia,
   EventAttachment,
   EventRegistration,
+  EventAttendanceStats,
+  EventSurveyResponse,
+  EventCommunication,
   MediaUpload,
 } from './types';
 
@@ -134,4 +137,19 @@ export const eventsApi = {
 
   checkInByCode: (eventId: string, confirmationCode: string): Promise<ApiResponse<EventRegistration>> =>
     apiClient.post<EventRegistration>(`/api/events/admin/${eventId}/registrations/check-in/${encodeURIComponent(confirmationCode)}`),
+
+  getAttendanceStats: (eventId: string): Promise<ApiResponse<EventAttendanceStats>> =>
+    apiClient.get<EventAttendanceStats>(`/api/events/admin/${eventId}/attendance/stats`),
+
+  getMySurvey: (eventId: string): Promise<ApiResponse<EventSurveyResponse>> =>
+    apiClient.get<EventSurveyResponse>(`/api/events/${eventId}/survey/me`),
+
+  submitSurvey: (eventId: string, rating: number, feedback?: string, consentToQuote = false): Promise<ApiResponse<EventSurveyResponse>> =>
+    apiClient.put<EventSurveyResponse>(`/api/events/${eventId}/survey/me`, { rating, feedback, consentToQuote }),
+
+  getCommunications: (eventId: string): Promise<ApiResponse<EventCommunication[]>> =>
+    apiClient.get<EventCommunication[]>(`/api/events/admin/${eventId}/communications`),
+
+  sendCommunication: (eventId: string, audience: string, subject: string, body: string): Promise<ApiResponse<EventCommunication>> =>
+    apiClient.post<EventCommunication>(`/api/events/admin/${eventId}/communications`, { audience, subject, body }),
 };

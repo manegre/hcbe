@@ -23,6 +23,29 @@ public static class EventEndpoints
         .WithName("DownloadEventCalendar")
         .Produces(404);
 
+        group.MapGet("/{id:guid}/certificate.pdf", async (Guid id, HttpContext context, IEventRegistrationService registrationService) =>
+        {
+            if (context.GetUserId() is not Guid userId) return Results.Unauthorized();
+            var certificate = await registrationService.BuildCertificateAsync(userId, id);
+            return certificate.Content is null ? Results.NotFound() : Results.File(certificate.Content, "application/pdf", certificate.FileName);
+        })
+        .WithName("DownloadEventCertificate")
+        .RequireAuthorization("Authenticated");
+
+        group.MapGet("/{id:guid}/survey/me", async (Guid id, HttpContext context, IEventRegistrationService registrationService) =>
+            context.GetUserId() is Guid userId
+                ? (await registrationService.GetMySurveyAsync(userId, id)).HandleServiceResponse()
+                : Results.Unauthorized())
+        .WithName("GetMyEventSurvey")
+        .RequireAuthorization("Authenticated");
+
+        group.MapPut("/{id:guid}/survey/me", async (Guid id, SubmitEventSurveyRequest request, HttpContext context, IEventRegistrationService registrationService) =>
+            context.GetUserId() is Guid userId
+                ? (await registrationService.SubmitSurveyAsync(userId, id, request)).HandleServiceResponse()
+                : Results.Unauthorized())
+        .WithName("SubmitEventSurvey")
+        .RequireAuthorization("Authenticated");
+
         group.MapGet("/registrations/me", async (HttpContext context, IEventRegistrationService registrationService) =>
             context.GetUserId() is Guid userId
                 ? (await registrationService.GetMineAsync(userId)).HandleServiceResponse()
@@ -94,6 +117,31 @@ public static class EventEndpoints
             return (await registrationService.GetForAdminAsync(id, status, search)).HandleServiceResponse();
         })
         .WithName("GetEventRegistrationsForAdmin")
+        .RequireAuthorization();
+
+        group.MapGet("/admin/{id:guid}/attendance/stats", async (Guid id, HttpContext context, IEventRegistrationService registrationService) =>
+        {
+            if (!context.HasPermission(AdminPermissions.EventsManage)) return Results.Forbid();
+            return (await registrationService.GetStatsAsync(id)).HandleServiceResponse();
+        })
+        .WithName("GetEventAttendanceStats")
+        .RequireAuthorization();
+
+        group.MapGet("/admin/{id:guid}/communications", async (Guid id, HttpContext context, IEventRegistrationService registrationService) =>
+        {
+            if (!context.HasPermission(AdminPermissions.EventsManage)) return Results.Forbid();
+            return (await registrationService.GetCommunicationsAsync(id)).HandleServiceResponse();
+        })
+        .WithName("GetEventCommunications")
+        .RequireAuthorization();
+
+        group.MapPost("/admin/{id:guid}/communications", async (Guid id, SendEventCommunicationRequest request, HttpContext context, IEventRegistrationService registrationService) =>
+        {
+            if (!context.HasPermission(AdminPermissions.EventsManage)) return Results.Forbid();
+            if (context.GetUserId() is not Guid userId) return Results.Unauthorized();
+            return (await registrationService.SendCommunicationAsync(userId, id, request)).HandleServiceResponse();
+        })
+        .WithName("SendEventCommunication")
         .RequireAuthorization();
 
         group.MapPatch("/admin/{id:guid}/registrations/{registrationId:guid}", async (

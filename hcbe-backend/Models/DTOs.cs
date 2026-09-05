@@ -264,6 +264,27 @@ public record UpdateEventRegistrationRequest(
     [Required] string Status,
     [MaxLength(1000)] string? AdminNotes = null);
 
+public record EventAttendanceStatsDto(
+    int Total, int Confirmed, int Waitlisted, int Attended, int NoShow, int Cancelled,
+    double AttendanceRate, double AverageRating, int SurveyResponses);
+
+public record EventSurveyResponseDto(
+    Guid Id, Guid EventRegistrationId, int Rating, string? Feedback, bool ConsentToQuote,
+    DateTime SubmittedAtUtc, DateTime UpdatedAtUtc);
+
+public record SubmitEventSurveyRequest(
+    [Range(1, 5)] int Rating,
+    [MaxLength(2000)] string? Feedback = null,
+    bool ConsentToQuote = false);
+
+public record SendEventCommunicationRequest(
+    [Required, MaxLength(30)] string Audience,
+    [Required, MaxLength(180)] string Subject,
+    [Required, MaxLength(5000)] string Body);
+
+public record EventCommunicationDto(
+    Guid Id, string Audience, string Subject, string Body, int RecipientCount, DateTime SentAtUtc);
+
 public record ServiceCaseMessageDto(Guid Id, Guid AuthorUserId, string AuthorName, string Body, bool IsInternal, DateTime CreatedAt);
 public record ServiceCaseAttachmentDto(Guid Id, string FileName, string Url, string ContentType, long SizeBytes, bool IsInternal, DateTime CreatedAt);
 public record ServiceCaseDto(

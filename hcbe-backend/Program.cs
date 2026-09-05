@@ -808,6 +808,20 @@ using (var scope = app.Services.CreateScope())
         context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_EventRegistrations_EventId_MemberId ON EventRegistrations(EventId, MemberId)");
         context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_EventRegistrations_EventId_Status_RegisteredAt ON EventRegistrations(EventId, Status, RegisteredAt)");
         context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_EventRegistrations_MemberId ON EventRegistrations(MemberId)");
+        context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS EventSurveyResponses (
+            Id TEXT PRIMARY KEY, EventRegistrationId TEXT NOT NULL, Rating INTEGER NOT NULL,
+            Feedback TEXT, ConsentToQuote INTEGER NOT NULL DEFAULT 0,
+            SubmittedAtUtc TEXT NOT NULL, UpdatedAtUtc TEXT NOT NULL,
+            FOREIGN KEY (EventRegistrationId) REFERENCES EventRegistrations(Id) ON DELETE CASCADE
+        )");
+        context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_EventSurveyResponses_EventRegistrationId ON EventSurveyResponses(EventRegistrationId)");
+        context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS EventCommunications (
+            Id TEXT PRIMARY KEY, EventId TEXT NOT NULL, SentByUserId TEXT NOT NULL,
+            Audience TEXT NOT NULL, Subject TEXT NOT NULL, Body TEXT NOT NULL,
+            RecipientCount INTEGER NOT NULL, SentAtUtc TEXT NOT NULL,
+            FOREIGN KEY (EventId) REFERENCES Events(Id) ON DELETE CASCADE
+        )");
+        context.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_EventCommunications_EventId_SentAtUtc ON EventCommunications(EventId, SentAtUtc)");
 
         context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS ServiceCases (
             Id TEXT PRIMARY KEY, TicketNumber TEXT NOT NULL, MemberId TEXT NOT NULL,

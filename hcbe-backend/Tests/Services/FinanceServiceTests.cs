@@ -311,6 +311,7 @@ public sealed class FinanceServiceTests : IDisposable
         public RenderedEmail MembershipDecision(string? firstName, bool approved, string actionUrl) => Email("decision");
         public RenderedEmail Newsletter(string subject, string body, string unsubscribeUrl, bool useEnglish) => Email(subject);
         public RenderedEmail EventRegistrationUpdate(string? firstName, string eventTitle, DateTime eventDate, string status, string confirmationCode, string eventUrl) => Email("event");
+        public RenderedEmail EventMessage(string? firstName, string eventTitle, string subject, string body, string eventUrl) => Email(subject);
         public RenderedEmail ServiceCaseUpdate(string? firstName, string ticketNumber, string subject, string status, string? message, string caseUrl) => Email("service");
         public RenderedEmail MembershipReminder(string? firstName, DateTime expiresAtUtc, string renewalUrl, bool expired) => Email("renewal");
         public RenderedEmail PaymentReceipt(string? name, string kind, long amountCents, string currency, string receiptNumber, string receiptUrl) => Email("receipt");
