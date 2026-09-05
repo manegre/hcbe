@@ -86,6 +86,7 @@ export interface MemberPreference {
 export interface OnboardingStep {
   key: string;
   title: string;
+  titleEn: string;
   completed: boolean;
   actionUrl: string;
 }
@@ -119,11 +120,21 @@ export interface MemberDashboardOpportunity {
   location?: string; isRemote: boolean; deadlineUtc?: string;
 }
 
+export interface MemberRecommendation {
+  id: string; kind: 'Event' | 'Opportunity' | 'Association' | 'Consultation' | 'Service' | 'News';
+  title: string; titleEn?: string; subtitle?: string; occursAtUtc?: string;
+  actionUrl: string; reason: string; reasonEn: string;
+}
+
+export interface MemberDeadline {
+  key: string; title: string; titleEn: string; occursAtUtc: string; actionUrl: string; priority: 'High' | 'Normal';
+}
+
 export interface MemberEngagementDashboard {
   memberName: string; membershipStatus: string; unreadNotifications: number; unreadMessages: number;
   openServiceCases: number; upcomingEvents: MemberDashboardEvent[];
   opportunities: MemberDashboardOpportunity[]; savedItems: SavedMemberItem[];
-  recentNotifications: AppNotification[];
+  recentNotifications: AppNotification[]; recommendations: MemberRecommendation[]; deadlines: MemberDeadline[];
 }
 
 export interface MemberBlock { id: string; memberId: string; memberName: string; createdAtUtc: string; }
@@ -572,7 +583,9 @@ export interface MentorshipCheckIn { id: string; matchId: string; memberId: stri
 export interface MentorshipJourney { matchId: string; goals: MentorshipGoal[]; checkIns: MentorshipCheckIn[]; }
 export interface ImpactMetric { key: string; label: string; value: number; changePercent?: number; unit: string; }
 export interface ImpactPeriod { period: string; newMembers: number; eventRegistrations: number; serviceRequests: number; opportunityApplications: number; }
-export interface ImpactDashboard { generatedAtUtc: string; metrics: ImpactMetric[]; periods: ImpactPeriod[]; }
+export interface ActivationStage { key: string; label: string; count: number; percentage: number; }
+export interface MemberDimension { key: string; label: string; count: number; percentage: number; }
+export interface ImpactDashboard { generatedAtUtc: string; metrics: ImpactMetric[]; periods: ImpactPeriod[]; activationFunnel: ActivationStage[]; activitySegments: MemberDimension[]; provinceBreakdown: MemberDimension[]; }
 
 export interface UpdateTeamMemberRequest {
   name?: string;
@@ -1295,6 +1308,10 @@ export interface MembershipStanding {
   currentPeriodStartUtc?: string; currentPeriodEndUtc?: string; graceEndsAtUtc?: string;
   autoRenew: boolean; hasBillingAccount: boolean; hasActiveSubscription: boolean;
   plan?: MembershipPlan; verificationCode?: string; verificationUrl?: string;
+}
+export interface MembershipWallet {
+  appleWalletAvailable: boolean; appleWalletUrl?: string;
+  googleWalletAvailable: boolean; googleWalletUrl?: string;
 }
 
 export interface DonationCampaign {

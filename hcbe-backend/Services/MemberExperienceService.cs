@@ -20,10 +20,10 @@ public sealed class MemberExperienceService(ApplicationDbContext context) : IMem
             && !string.IsNullOrWhiteSpace(member.Phone) && !string.IsNullOrWhiteSpace(member.City) && !string.IsNullOrWhiteSpace(member.Province);
         var steps = new List<OnboardingStepDto>
         {
-            new("member-profile", "Compléter mes coordonnées", profileComplete, "/espace-membre?section=profile"),
-            new("preferences", "Choisir mes communications", preferences.HasCompletedPreferences, "/espace-membre?section=preferences"),
-            new("community-profile", "Créer ma carte communautaire", hasCommunityProfile, "/espace-membre?section=profile"),
-            new("first-event", "Découvrir un événement", hasEventRegistration, "/actualites/evenements")
+            new("member-profile", "Compléter mes coordonnées", "Complete my contact details", profileComplete, "/espace-membre?section=profile"),
+            new("preferences", "Choisir mes communications", "Choose my communications", preferences.HasCompletedPreferences, "/espace-membre?section=preferences"),
+            new("community-profile", "Créer ma carte communautaire", "Create my community profile", hasCommunityProfile, "/espace-membre?section=profile"),
+            new("first-event", "Découvrir un événement", "Discover an event", hasEventRegistration, "/actualites/evenements")
         };
         var percent = (int)Math.Round(steps.Count(item => item.Completed) * 100d / steps.Count);
         return ApiResponse<MemberOnboardingDto>.SuccessResponse(new(percent, percent == 100, steps, Map(preferences)));

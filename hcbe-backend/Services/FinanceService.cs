@@ -110,6 +110,40 @@ public sealed class FinanceService(
             MapStanding(standing, user, standing.Plan), plans.Select(MapPlan).ToList(), transactions.Select(MapTransaction).ToList()));
     }
 
+    public async Task<ApiResponse<MembershipCardDto>> GetMembershipCardAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var user = await context.Users.AsNoTracking().Include(item => item.Member)
+            .SingleOrDefaultAsync(item => item.Id == userId && item.IsActive && item.MemberId != null, cancellationToken);
+        if (user?.Member is null) return ApiResponse<MembershipCardDto>.ErrorResponse("Active membership not found");
+        var standing = await GetOrCreateStandingAsync(userId, cancellationToken);
+        RefreshStandingStatus(standing);
+        await context.SaveChangesAsync(cancellationToken);
+        var status = EffectiveStatus(standing);
+        if (status is not (MembershipStatuses.Active or MembershipStatuses.GracePeriod))
+            return ApiResponse<MembershipCardDto>.ErrorResponse("Membership card is available only to active members");
+        var code = EncodeVerificationCode(user.Id);
+        return ApiResponse<MembershipCardDto>.SuccessResponse(new(
+            $"{user.Member.FirstName} {user.Member.LastName}".Trim(), user.Email, status,
+            standing.Plan?.Name ?? "Membre communautaire", standing.Plan?.NameEn ?? "Community member",
+            user.Member.CreatedAt, standing.CurrentPeriodEndUtc, code, $"{PublicAppUrl}/adhesion/verifier/{code}"));
+    }
+
+    public async Task<ApiResponse<MembershipWalletDto>> GetMembershipWalletAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var card = await GetMembershipCardAsync(userId, cancellationToken);
+        if (!card.Success || card.Data is null) return ApiResponse<MembershipWalletDto>.ErrorResponse(card.Message ?? "Membership card unavailable");
+        static string? Resolve(string? template, MembershipCardDto value)
+        {
+            if (string.IsNullOrWhiteSpace(template)) return null;
+            var candidate = template.Replace("{code}", Uri.EscapeDataString(value.VerificationCode), StringComparison.Ordinal)
+                .Replace("{verificationUrl}", Uri.EscapeDataString(value.VerificationUrl), StringComparison.Ordinal);
+            return Uri.TryCreate(candidate, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps ? candidate : null;
+        }
+        var apple = Resolve(configuration["WalletPasses:AppleAddUrlTemplate"], card.Data);
+        var google = Resolve(configuration["WalletPasses:GoogleAddUrlTemplate"], card.Data);
+        return ApiResponse<MembershipWalletDto>.SuccessResponse(new(apple != null, apple, google != null, google));
+    }
+
     public async Task<ApiResponse<MembershipStandingDto>> RenewCommunityMembershipAsync(Guid userId, CancellationToken cancellationToken)
     {
         var user = await context.Users.Include(item => item.Member)

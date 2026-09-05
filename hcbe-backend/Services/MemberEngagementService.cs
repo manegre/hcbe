@@ -20,6 +20,10 @@ public sealed class MemberEngagementService(
         if (user?.Member is null) return ApiResponse<MemberEngagementDashboardDto>.ErrorResponse("Member account not found");
 
         var now = DateTime.UtcNow;
+        var member = user.Member;
+        var registeredEventIds = await context.EventRegistrations.AsNoTracking()
+            .Where(item => item.MemberId == user.MemberId && item.Status != "Cancelled")
+            .Select(item => item.EventId).ToListAsync();
         var events = await context.EventRegistrations.AsNoTracking()
             .Include(item => item.Event)
             .Where(item => item.MemberId == user.MemberId && item.Event!.Date >= now && item.Status != "Cancelled")
@@ -28,11 +32,14 @@ public sealed class MemberEngagementService(
                 item.Event.Date, item.Event.Location, item.Status, item.ConfirmationCode))
             .ToListAsync();
         var appliedIds = context.OpportunityApplications.AsNoTracking().Where(item => item.MemberId == user.MemberId).Select(item => item.OpportunityId);
-        var opportunities = await context.Opportunities.AsNoTracking()
+        var opportunityCandidates = await context.Opportunities.AsNoTracking()
             .Where(item => item.Status == "Published" && (!item.DeadlineUtc.HasValue || item.DeadlineUtc >= now) && !appliedIds.Contains(item.Id))
-            .OrderBy(item => item.DeadlineUtc ?? DateTime.MaxValue).Take(4)
+            .OrderBy(item => item.DeadlineUtc ?? DateTime.MaxValue).Take(30).ToListAsync();
+        var opportunities = opportunityCandidates
+            .OrderByDescending(item => MatchScore(member, item.Title, item.TitleEn, item.Description, item.DescriptionEn, item.Location, item.Type))
+            .ThenBy(item => item.DeadlineUtc ?? DateTime.MaxValue).Take(4)
             .Select(item => new MemberDashboardOpportunityDto(item.Id, item.Title, item.TitleEn, item.Type,
-                item.Organization, item.Location, item.IsRemote, item.DeadlineUtc)).ToListAsync();
+                item.Organization, item.Location, item.IsRemote, item.DeadlineUtc)).ToList();
         var saved = await ResolveSavedAsync(userId);
         var notifications = await context.Notifications.AsNoTracking().Where(item => item.UserId == userId)
             .OrderByDescending(item => item.CreatedAt).Take(5)
@@ -46,10 +53,65 @@ public sealed class MemberEngagementService(
         var openCases = await context.ServiceCases.AsNoTracking()
             .CountAsync(item => item.MemberId == user.MemberId && item.Status != "Resolved" && item.Status != "Closed");
         var standing = await context.MembershipStandings.AsNoTracking().Where(item => item.UserId == userId)
-            .Select(item => item.Status).FirstOrDefaultAsync() ?? MembershipStatuses.Active;
+            .Select(item => new { item.Status, item.CurrentPeriodEndUtc }).FirstOrDefaultAsync();
+        var recommendedEvents = await context.Events.AsNoTracking()
+            .Where(item => item.Date >= now && item.Status != "Draft" && item.Status != "Cancelled" && !registeredEventIds.Contains(item.Id))
+            .OrderBy(item => item.Date).Take(30).ToListAsync();
+        var recommendedAssociations = await context.Associations.AsNoTracking()
+            .Where(item => item.IsActive).Take(30).ToListAsync();
+        var openConsultations = await context.Consultations.AsNoTracking()
+            .Where(item => item.IsActive && (!item.OpensAtUtc.HasValue || item.OpensAtUtc <= now) && (!item.ClosesAtUtc.HasValue || item.ClosesAtUtc >= now))
+            .OrderBy(item => item.ClosesAtUtc ?? DateTime.MaxValue).Take(8).ToListAsync();
+        var recentNews = await context.News.AsNoTracking()
+            .Where(item => item.Status.ToLower() == "published")
+            .OrderByDescending(item => item.PublishedDate ?? item.CreatedAt).Take(4).ToListAsync();
+        var recommendedServices = await context.ServiceContents.AsNoTracking()
+            .Where(item => item.IsActive).OrderBy(item => item.DisplayOrder).Take(6).ToListAsync();
+
+        var recommendations = new List<MemberRecommendationDto>();
+        recommendations.AddRange(recommendedEvents
+            .OrderByDescending(item => MatchScore(member, item.Title, item.TitleEn, item.Description, item.DescriptionEn, item.Location, item.Zone, item.Type))
+            .ThenBy(item => item.Date).Take(3)
+            .Select(item => new MemberRecommendationDto(item.Id, "Event", item.Title, item.TitleEn,
+                item.Location, item.Date, $"/actualites/evenements/{item.Id}",
+                EventReason(member, item, false), EventReason(member, item, true))));
+        recommendations.AddRange(opportunityCandidates
+            .OrderByDescending(item => MatchScore(member, item.Title, item.TitleEn, item.Description, item.DescriptionEn, item.Location, item.Type))
+            .ThenBy(item => item.DeadlineUtc ?? DateTime.MaxValue).Take(3)
+            .Select(item => new MemberRecommendationDto(item.Id, "Opportunity", item.Title, item.TitleEn,
+                item.Organization, item.DeadlineUtc, "/espace-membre?section=opportunities",
+                OpportunityReason(member, item, false), OpportunityReason(member, item, true))));
+        recommendations.AddRange(recommendedAssociations
+            .OrderByDescending(item => MatchScore(member, item.Name, item.NameEn, item.Description, item.DescriptionEn, item.Province, item.City, string.Join(' ', item.Domains)))
+            .Take(2).Select(item => new MemberRecommendationDto(item.Id, "Association", item.Name, item.NameEn,
+                $"{item.City}, {item.Province}", null, "/espace-membre?section=associations",
+                SamePlace(member, item.Province) ? "Dans votre province" : "Selon vos intérêts",
+                SamePlace(member, item.Province) ? "In your province" : "Based on your interests")));
+        recommendations.AddRange(openConsultations.Take(2).Select(item => new MemberRecommendationDto(item.Id, "Consultation",
+            item.Title, item.TitleEn, item.Description, item.ClosesAtUtc, "/engagement/consultations",
+            "Consultation ouverte aux membres", "Consultation open to members")));
+        recommendations.AddRange(recommendedServices.Take(2).Select(item => new MemberRecommendationDto(item.Id, "Service",
+            item.Title, item.TitleEn, item.Category, null, "/services",
+            "Service communautaire disponible", "Community service available")));
+        recommendations.AddRange(recentNews.Take(2).Select(item => new MemberRecommendationDto(item.Id, "News",
+            item.Title, item.TitleEn, item.Excerpt, item.PublishedDate ?? item.CreatedAt, $"/actualites/annonces/{item.Id}",
+            "Publié récemment", "Recently published")));
+        recommendations = recommendations.OrderBy(item => item.OccursAtUtc ?? DateTime.MaxValue).Take(10).ToList();
+
+        var deadlines = new List<MemberDeadlineDto>();
+        deadlines.AddRange(opportunityCandidates.Where(item => item.DeadlineUtc.HasValue && item.DeadlineUtc <= now.AddDays(30)).Take(3)
+            .Select(item => new MemberDeadlineDto($"opportunity-{item.Id}", $"Candidature — {item.Title}", $"Application — {item.TitleEn ?? item.Title}", item.DeadlineUtc!.Value, "/espace-membre?section=opportunities", item.DeadlineUtc <= now.AddDays(7) ? "High" : "Normal")));
+        deadlines.AddRange(recommendedEvents.Where(item => item.RegistrationDeadline.HasValue && item.RegistrationDeadline >= now && item.RegistrationDeadline <= now.AddDays(30)).Take(3)
+            .Select(item => new MemberDeadlineDto($"event-{item.Id}", $"Inscription — {item.Title}", $"Registration — {item.TitleEn ?? item.Title}", item.RegistrationDeadline!.Value, $"/actualites/evenements/{item.Id}", item.RegistrationDeadline <= now.AddDays(7) ? "High" : "Normal")));
+        deadlines.AddRange(openConsultations.Where(item => item.ClosesAtUtc.HasValue && item.ClosesAtUtc <= now.AddDays(30)).Take(2)
+            .Select(item => new MemberDeadlineDto($"consultation-{item.Id}", $"Consultation — {item.Title}", $"Consultation — {item.TitleEn ?? item.Title}", item.ClosesAtUtc!.Value, "/engagement/consultations", item.ClosesAtUtc <= now.AddDays(7) ? "High" : "Normal")));
+        if (standing?.CurrentPeriodEndUtc is DateTime membershipEnd && membershipEnd <= now.AddDays(30))
+            deadlines.Add(new MemberDeadlineDto("membership-renewal", "Renouveler mon adhésion", "Renew my membership", membershipEnd,
+                "/espace-membre?section=membership", membershipEnd <= now.AddDays(7) ? "High" : "Normal"));
+        deadlines = deadlines.OrderBy(item => item.OccursAtUtc).Take(6).ToList();
         var name = $"{user.Member.FirstName} {user.Member.LastName}".Trim();
-        return ApiResponse<MemberEngagementDashboardDto>.SuccessResponse(new(name, standing, unreadNotifications,
-            unreadMessages, openCases, events, opportunities, saved, notifications));
+        return ApiResponse<MemberEngagementDashboardDto>.SuccessResponse(new(name, standing?.Status ?? MembershipStatuses.Active, unreadNotifications,
+            unreadMessages, openCases, events, opportunities, saved, notifications, recommendations, deadlines));
     }
 
     public async Task<ApiResponse<List<SavedMemberItemDto>>> GetSavedAsync(Guid userId) =>
@@ -204,7 +266,24 @@ public sealed class MemberEngagementService(
                 processed++;
             }
 
-            var lastActivity = user.LastLoginAtUtc ?? user.CreatedAt;
+            var essentialProfileComplete = user.Member is not null && !string.IsNullOrWhiteSpace(user.Member.Phone) &&
+                !string.IsNullOrWhiteSpace(user.Member.City) && !string.IsNullOrWhiteSpace(user.Member.Province) &&
+                !string.IsNullOrWhiteSpace(user.Member.Interests);
+            var recentActivity = user.LastLoginAtUtc ?? user.CreatedAt;
+            if (!essentialProfileComplete && user.CreatedAt <= now.AddDays(-7) && recentActivity >= now.AddDays(-30) &&
+                !states.Any(item => item.UserId == user.Id && item.JourneyType == "ProfileCompletion"))
+            {
+                var body = english
+                    ? "Add your region, interests, skills and availability to receive more relevant community recommendations. These details remain under your control."
+                    : "Ajoutez votre région, vos intérêts, vos compétences et vos disponibilités pour recevoir des recommandations communautaires plus pertinentes. Ces renseignements restent sous votre contrôle.";
+                var email = emailTemplates.Newsletter(english ? "Personalize your HCBE member space" : "Personnalisez votre espace membre HCBE", body, $"{PublicAppUrl()}/espace-membre?section=profile", english);
+                emailOutbox.Enqueue(user.Email, email.Subject, email.HtmlBody, "CommunityJourney", user.Id);
+                context.Notifications.Add(new Notification { UserId = user.Id, Type = "ProfileReminder", Title = "Personnalisez votre espace", Message = "Complétez votre profil pour améliorer vos recommandations.", Link = "/espace-membre?section=profile" });
+                states.Add(AddJourney(user.Id, "ProfileCompletion", now));
+                processed++;
+            }
+
+            var lastActivity = recentActivity;
             var lastReactivation = states.FirstOrDefault(item => item.UserId == user.Id && item.JourneyType == "Reactivation");
             if (preference?.EmailNewsletter == true && lastActivity <= now.AddDays(-60) &&
                 (lastReactivation is null || lastReactivation.LastTriggeredAtUtc <= now.AddDays(-90)))
@@ -251,5 +330,25 @@ public sealed class MemberEngagementService(
         ? await context.Events.AnyAsync(item => item.Id == id && item.Status != "Draft" && item.Status != "Cancelled")
         : await context.Opportunities.AnyAsync(item => item.Id == id && item.Status == "Published");
     private static string? NormalizeType(string value) => SupportedTypes.FirstOrDefault(item => item.Equals(value.Trim(), StringComparison.OrdinalIgnoreCase));
+    private static IEnumerable<string> Tokens(Member member) => string.Join(' ', new[] { member.Province, member.City, member.Zone, member.Profession, member.Expertise, member.Interests, member.Availability })
+        .Split([' ', ',', ';', '/', '-', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Where(item => item.Length >= 3).Distinct(StringComparer.OrdinalIgnoreCase);
+    private static int MatchScore(Member member, params string?[] values)
+    {
+        var haystack = string.Join(' ', values.Where(value => !string.IsNullOrWhiteSpace(value))).ToLowerInvariant();
+        var score = Tokens(member).Count(token => haystack.Contains(token, StringComparison.OrdinalIgnoreCase));
+        if (values.Any(value => SamePlace(member, value))) score += 4;
+        return score;
+    }
+    private static bool SamePlace(Member member, string? value) => !string.IsNullOrWhiteSpace(value) &&
+        ((!string.IsNullOrWhiteSpace(member.Province) && value.Contains(member.Province, StringComparison.OrdinalIgnoreCase)) ||
+         (!string.IsNullOrWhiteSpace(member.City) && value.Contains(member.City, StringComparison.OrdinalIgnoreCase)) ||
+         (!string.IsNullOrWhiteSpace(member.Zone) && value.Contains(member.Zone, StringComparison.OrdinalIgnoreCase)));
+    private static string EventReason(Member member, Event item, bool english) => SamePlace(member, $"{item.Location} {item.Zone}")
+        ? english ? "Near you" : "Près de chez vous"
+        : english ? "Based on your profile" : "Selon votre profil";
+    private static string OpportunityReason(Member member, Opportunity item, bool english) => SamePlace(member, item.Location) || item.IsRemote
+        ? english ? item.IsRemote ? "Available remotely" : "In your region" : item.IsRemote ? "Accessible à distance" : "Dans votre région"
+        : english ? "Matches your interests" : "Correspond à vos intérêts";
     private string PublicAppUrl() => (configuration["PublicAppUrl"] ?? "http://localhost:3000").TrimEnd('/');
 }

@@ -37,6 +37,24 @@ public sealed class MemberEngagementServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Dashboard_PrioritizesRecommendationsMatchingMemberRegionAndInterests()
+    {
+        _user.Member!.Province = "Québec";
+        _user.Member.City = "Montréal";
+        _user.Member.Interests = "entrepreneuriat technologie";
+        var relevant = new Opportunity { Title = "Réseau technologie Montréal", Description = "Entrepreneuriat", Type = "Business", Organization = "HCBE", Location = "Montréal, Québec", Status = "Published", CreatedByUserId = Guid.NewGuid() };
+        var generic = new Opportunity { Title = "Activité générale", Description = "Information", Type = "Volunteer", Organization = "HCBE", Location = "Vancouver", Status = "Published", CreatedByUserId = Guid.NewGuid() };
+        _context.Opportunities.AddRange(generic, relevant);
+        await _context.SaveChangesAsync();
+
+        var result = await _service.GetDashboardAsync(_user.Id);
+
+        result.Success.Should().BeTrue();
+        result.Data!.Opportunities.First().Id.Should().Be(relevant.Id);
+        result.Data.Recommendations.Should().Contain(item => item.Id == relevant.Id && item.Kind == "Opportunity");
+    }
+
+    [Fact]
     public async Task BlockAsync_IsExplicitAndReversible()
     {
         var other = new Member { FirstName = "Issa", LastName = "Traoré", Email = "issa@engagement.test" };

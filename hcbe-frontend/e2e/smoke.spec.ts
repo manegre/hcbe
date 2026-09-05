@@ -154,10 +154,14 @@ test('administrator can authenticate and reach the protected dashboard', async (
 
   await expect(page).toHaveURL(/\/admin\/dashboard$/);
   await expect(page.locator('main')).toBeVisible();
+  await page.goto('/admin/impact');
+  await expect(page.getByRole('heading', { name: /du compte à la première participation|from account to first participation/i })).toBeVisible();
+  await expect(page.getByRole('button', { name: /exporter les données|export data/i })).toBeEnabled();
 });
 
 test('member can register and enter the member portal', async ({ page }) => {
   const memberEmail = `awa.e2e.${Date.now()}@hcbe.invalid`;
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/espace-membre');
   await page.getByRole('tab', { name: /créer un compte|create account|sign up/i }).click();
   await page.locator('#prenom').fill('Awa');
@@ -173,10 +177,13 @@ test('member can register and enter the member portal', async ({ page }) => {
 
   await expect(page.getByRole('navigation', { name: /communauté des membres|member community/i })).toBeVisible();
   await expect(page.getByRole('heading', { name: /votre espace est prêt|your space is ready/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /choisi selon votre profil|selected for your profile/i })).toBeVisible();
   await page.getByRole('tab', { name: /mon adhésion|my membership/i }).click();
   await expect(page.getByRole('heading', { name: /membre communautaire — gratuit|community member — free/i })).toBeVisible();
   await expect(page.getByRole('main')).toContainText(/aucun paiement n’est requis|no payment is required/i);
   await expect(page.getByRole('button', { name: /déjà renouvelée|already renewed/i })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /télécharger en pdf|download pdf/i })).toBeEnabled();
+  await expect(page.getByRole('button', { name: /imprimer la carte|print card/i })).toBeEnabled();
   await page.getByRole('tab', { name: /^associations$/i }).click();
   await expect(page.getByRole('heading', { name: /votre organisation, au même endroit|your organization, all in one place/i })).toBeVisible();
   await expect(page.getByRole('heading', { name: /rejoindre ou représenter une organisation|join or represent an organization/i })).toBeVisible();

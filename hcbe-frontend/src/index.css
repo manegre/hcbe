@@ -39,6 +39,22 @@
   :focus-visible { @apply outline outline-2 outline-green outline-offset-2; }
 }
 
+@media print {
+  body * { visibility: hidden !important; }
+  .membership-card-print,
+  .membership-card-print * { visibility: visible !important; }
+  .membership-card-print {
+    position: fixed !important;
+    inset: 18mm !important;
+    width: calc(100% - 36mm) !important;
+    height: auto !important;
+    box-shadow: none !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  @page { size: landscape; margin: 0; }
+}
+
 @layer components {
   .container-page { @apply mx-auto w-full max-w-container px-margin-mobile md:px-margin-desktop; }
   .public-surface {

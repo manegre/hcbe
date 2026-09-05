@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { AdminMembership, ApiResponse, CheckoutResult, CheckoutSession, DonationCampaign, FinanceDashboard, FinancialTransaction, MemberFinanceSummary, MembershipPlan, MembershipStanding, MembershipVerification } from './types';
+import type { AdminMembership, ApiResponse, CheckoutResult, CheckoutSession, DonationCampaign, FinanceDashboard, FinancialTransaction, MemberFinanceSummary, MembershipPlan, MembershipStanding, MembershipVerification, MembershipWallet } from './types';
 
 export type MembershipPlanInput = Omit<MembershipPlan, 'id' | 'benefits'> & { benefits: string[]; stripePriceId?: string };
 export type CampaignInput = Omit<DonationCampaign, 'id' | 'raisedAmountCents' | 'supporterCount'>;
@@ -10,6 +10,8 @@ export const financeApi = {
   getMemberSummary: (): Promise<ApiResponse<MemberFinanceSummary>> => apiClient.get('/api/finance/member/summary'),
   createMembershipCheckout: (planId: string): Promise<ApiResponse<CheckoutSession>> => apiClient.post('/api/finance/member/membership/checkout', { planId }),
   renewCommunityMembership: (): Promise<ApiResponse<MembershipStanding>> => apiClient.post('/api/finance/member/membership/renew'),
+  downloadMembershipCard: () => apiClient.download('/api/finance/member/membership/card'),
+  getMembershipWallet: (): Promise<ApiResponse<MembershipWallet>> => apiClient.get('/api/finance/member/membership/wallet'),
   createDonationCheckout: (data: { campaignId?: string; amountCents: number; currency: string; email: string; name?: string; isAnonymous: boolean; allowPublicRecognition: boolean; message?: string; isRecurring: boolean }): Promise<ApiResponse<CheckoutSession>> => apiClient.post('/api/finance/donations/checkout', data),
   getCheckoutResult: (sessionId: string): Promise<ApiResponse<CheckoutResult>> => apiClient.get(`/api/finance/checkout/${encodeURIComponent(sessionId)}`),
   createBillingPortal: (): Promise<ApiResponse<{ url: string }>> => apiClient.post('/api/finance/member/billing-portal'),

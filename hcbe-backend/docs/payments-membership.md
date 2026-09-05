@@ -81,3 +81,13 @@ Copy the temporary `whsec_...` value into `Finance__WebhookSecret`, use Stripe t
 - Account deletion anonymizes payer identity while preserving the minimal accounting entry required for reconciliation and legal retention.
 
 Reconcile the HCBE ledger against Stripe at least monthly and after any dispute. Investigate unmatched amounts, missing webhook events, failed email receipts, and refunds before closing the period.
+# Digital membership card and wallets
+
+Active members can download a bilingual PDF card, print the responsive card shown in the member portal, and verify their standing through the signed QR URL. The PDF and wallet endpoints require an authenticated member session and return `Cache-Control: private, no-store` where a document is generated.
+
+Apple Wallet and Google Wallet are intentionally disabled until the organization owns the required issuer accounts and signing credentials. Configure HTTPS provider URLs without storing certificates in source control:
+
+- `WalletPasses__AppleAddUrlTemplate=https://wallet-provider.example/apple/{code}`
+- `WalletPasses__GoogleAddUrlTemplate=https://wallet-provider.example/google/{code}`
+
+`{code}` and `{verificationUrl}` are the only supported placeholders. The API rejects non-HTTPS results and the portal shows a neutral “activation pending” state when a provider is not configured.

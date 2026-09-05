@@ -12,6 +12,8 @@ public interface IFinanceService
     Task<ApiResponse<DonationCampaignDto>> CreateCampaignAsync(UpsertDonationCampaignRequest request, CancellationToken cancellationToken);
     Task<ApiResponse<DonationCampaignDto>> UpdateCampaignAsync(Guid id, UpsertDonationCampaignRequest request, CancellationToken cancellationToken);
     Task<ApiResponse<MemberFinanceSummaryDto>> GetMemberSummaryAsync(Guid userId, CancellationToken cancellationToken);
+    Task<ApiResponse<MembershipCardDto>> GetMembershipCardAsync(Guid userId, CancellationToken cancellationToken);
+    Task<ApiResponse<MembershipWalletDto>> GetMembershipWalletAsync(Guid userId, CancellationToken cancellationToken);
     Task<ApiResponse<CheckoutSessionDto>> CreateMembershipCheckoutAsync(Guid userId, CreateMembershipCheckoutRequest request, CancellationToken cancellationToken);
     Task<ApiResponse<CheckoutSessionDto>> CreateDonationCheckoutAsync(Guid? userId, CreateDonationCheckoutRequest request, CancellationToken cancellationToken);
     Task<ApiResponse<CheckoutResultDto>> GetCheckoutResultAsync(string sessionId, CancellationToken cancellationToken);

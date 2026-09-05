@@ -119,6 +119,45 @@ public static class ReceiptPdfRenderer
         return BuildPdf(content.ToString(), number);
     }
 
+    public static byte[] RenderMembershipCard(MembershipCardDto card)
+    {
+        ArgumentNullException.ThrowIfNull(card);
+        var content = new StringBuilder();
+        Fill(content, "0.969 0.976 0.957", 0, 0, PageWidth, PageHeight);
+        RoundedFill(content, "0.043 0.231 0.129", 44, 398, 507, 320, 24);
+        CircleStroke(content, "0.149 0.365 0.235", 524, 700, 92, 26);
+        CircleStroke(content, "0.149 0.365 0.235", 524, 700, 55, 18);
+        Fill(content, "0.961 0.773 0.094", 44, 398, 6, 320);
+        DrawLogo(content, 74, 681);
+        RoundedFill(content, "0.961 0.773 0.094", 405, 657, 112, 30, 15);
+        Text(content, card.Status == MembershipStatuses.GracePeriod ? "GRÂCE / GRACE" : "ACTIVE / ACTIVE", 421, 668, 7.3, true, "0.043 0.231 0.129", 0.45);
+
+        Text(content, "CARTE DE MEMBRE  /  MEMBERSHIP CARD", 74, 619, 8, true, "0.788 0.851 0.808", 1.1);
+        Text(content, card.MemberName, 74, 568, 27, true, "1 1 1");
+        Text(content, card.Email, 74, 541, 10, false, "0.788 0.851 0.808");
+        Line(content, "0.149 0.365 0.235", 74, 512, 521, 512, 0.8);
+        Text(content, "FORMULE / PLAN", 74, 480, 7, true, "0.788 0.851 0.808", 0.65);
+        Text(content, $"{card.PlanName} / {card.PlanNameEn}", 74, 454, 10.5, true, "1 1 1");
+        Text(content, "VALIDE JUSQU’AU / VALID UNTIL", 350, 480, 7, true, "0.788 0.851 0.808", 0.5);
+        Text(content, card.ValidUntilUtc?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "—", 350, 454, 10.5, true, "1 1 1");
+
+        RoundedFill(content, "1 1 1", 44, 182, 507, 184, 18);
+        RoundedStroke(content, "0.827 0.859 0.820", 44, 182, 507, 184, 18, 0.8);
+        Text(content, "VÉRIFICATION OFFICIELLE  /  OFFICIAL VERIFICATION", 70, 329, 8, true, "0.043 0.231 0.129", 0.75);
+        Text(content, "Présentez le code QR de votre carte numérique ou utilisez l’adresse sécurisée ci-dessous.", 70, 301, 8.4, false, "0.310 0.353 0.318");
+        Text(content, "Show the QR code on your digital card or use the secure address below.", 70, 282, 8.4, false, "0.310 0.353 0.318");
+        RoundedFill(content, "0.925 0.945 0.918", 70, 218, 455, 44, 10);
+        Text(content, card.VerificationUrl, 84, 235, 7.2, true, "0.043 0.231 0.129");
+        Text(content, $"CODE : {card.VerificationCode}", 70, 198, 6.8, true, "0.435 0.478 0.443", 0.35);
+
+        Text(content, "HCBE Canada", 44, 128, 11, true, "0.043 0.231 0.129");
+        Text(content, "Haut Conseil des Burkinabè du Canada", 44, 107, 8.5, false, "0.310 0.353 0.318");
+        Text(content, "contact@hcbe.ca  |  hcbe.ca", 44, 88, 8.5, false, "0.310 0.353 0.318");
+        Text(content, "DOCUMENT PERSONNEL — NE PAS PARTAGER PUBLIQUEMENT", 309, 112, 6.8, true, "0.435 0.478 0.443", 0.45);
+        Text(content, "PERSONAL DOCUMENT — DO NOT SHARE PUBLICLY", 329, 92, 6.8, true, "0.435 0.478 0.443", 0.45);
+        return BuildPdf(content.ToString(), $"HCBE membership card - {card.MemberName}");
+    }
+
     private static string TypeLabel(string? type) => type switch
     {
         "Job" => "Emploi / Employment",

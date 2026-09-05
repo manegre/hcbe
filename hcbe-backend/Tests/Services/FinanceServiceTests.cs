@@ -37,6 +37,23 @@ public sealed class FinanceServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task ActiveMember_CanDownloadVerifiableBilingualCard()
+    {
+        var member = new Member { FirstName = "Awa", LastName = "Sawadogo", Email = "card@example.com", CreatedAt = DateTime.UtcNow.AddYears(-2) };
+        var user = new User { Email = member.Email, Member = member, MemberId = member.Id, IsActive = true };
+        var plan = FreeCommunityPlan();
+        context.AddRange(user, plan, CommunityMembership.CreateStanding(user.Id, DateTime.UtcNow));
+        await context.SaveChangesAsync();
+
+        var result = await CreateService().GetMembershipCardAsync(user.Id, default);
+
+        result.Success.Should().BeTrue();
+        result.Data!.MemberName.Should().Be("Awa Sawadogo");
+        result.Data.VerificationUrl.Should().StartWith("https://hcbe.ca/adhesion/verifier/");
+        ReceiptPdfRenderer.RenderMembershipCard(result.Data).Should().StartWith(System.Text.Encoding.ASCII.GetBytes("%PDF-1.4"));
+    }
+
+    [Fact]
     public async Task FreeCommunityMembership_DoesNotCreateStripeCheckout()
     {
         var member = new Member { FirstName = "Awa", LastName = "Sawadogo", Email = "free-checkout@example.com" };

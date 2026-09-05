@@ -3,7 +3,7 @@ import QRCode from 'qrcode';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { financeApi } from '../../../lib/api/finance';
-import type { MemberDto, MemberFinanceSummary } from '../../../lib/api/types';
+import type { MemberDto, MemberFinanceSummary, MembershipWallet } from '../../../lib/api/types';
 
 const money = (cents: number, currency: string, locale: string) => new Intl.NumberFormat(locale, { style: 'currency', currency: currency.toUpperCase() }).format(cents / 100);
 const date = (value: string | undefined, locale: string) => value ? new Intl.DateTimeFormat(locale, { dateStyle: 'long' }).format(new Date(value)) : '—';
@@ -13,11 +13,19 @@ export default function MemberFinancePanel({ member }: { member: MemberDto }) {
   const fr = !i18n.language.startsWith('en');
   const locale = fr ? 'fr-CA' : 'en-CA';
   const [summary, setSummary] = useState<MemberFinanceSummary | null>(null);
+  const [wallet, setWallet] = useState<MembershipWallet | null>(null);
   const [qr, setQr] = useState('');
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
 
-  const load = () => financeApi.getMemberSummary().then((response) => response.data && setSummary(response.data)).catch((reason) => setError(reason instanceof Error ? reason.message : 'Error'));
+  const load = async () => {
+    try {
+      const summaryResponse = await financeApi.getMemberSummary();
+      if (summaryResponse.data) setSummary(summaryResponse.data);
+      const walletResponse = await financeApi.getMembershipWallet();
+      if (walletResponse.data) setWallet(walletResponse.data);
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Error'); }
+  };
   useEffect(() => { void load(); }, []);
   useEffect(() => {
     if (!summary?.membership.verificationUrl) { setQr(''); return; }
@@ -41,6 +49,15 @@ export default function MemberFinancePanel({ member }: { member: MemberDto }) {
       window.location.assign(response.data.url);
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Portal unavailable'); setBusy(''); }
   };
+  const downloadCard = async () => {
+    setBusy('card'); setError('');
+    try {
+      const result = await financeApi.downloadMembershipCard();
+      const url = URL.createObjectURL(result.blob); const link = document.createElement('a');
+      link.href = url; link.download = result.fileName || 'HCBE-carte-membre.pdf'; link.click(); URL.revokeObjectURL(url);
+    } catch (reason) { setError(reason instanceof Error ? reason.message : (fr ? 'Carte indisponible' : 'Card unavailable')); }
+    finally { setBusy(''); }
+  };
 
   if (!summary) return <div className="h-72 animate-pulse rounded-[28px] bg-surface" />;
   const standing = summary.membership;
@@ -52,7 +69,7 @@ export default function MemberFinancePanel({ member }: { member: MemberDto }) {
     : ({ Active: 'Member in good standing', GracePeriod: 'Grace period', Expired: 'Renewal required', Inactive: 'Inactive membership' } as Record<string, string>)[standing.status];
 
   return <div className="space-y-7" data-testid="member-finance-panel">
-    <section className="relative overflow-hidden rounded-[30px] bg-green-deep text-white shadow-[0_24px_70px_rgba(0,45,22,.18)]">
+    <section id="membership-card" className="membership-card-print relative overflow-hidden rounded-[30px] bg-green-deep text-white shadow-[0_24px_70px_rgba(0,45,22,.18)]">
       <div className="absolute inset-0 opacity-40 [background-image:linear-gradient(rgba(255,255,255,.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.04)_1px,transparent_1px)] [background-size:44px_44px]" />
       <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full border-[50px] border-gold/10" />
       <div className="relative grid gap-8 p-6 sm:p-9 lg:grid-cols-[1fr_260px] lg:items-center">
@@ -60,9 +77,16 @@ export default function MemberFinancePanel({ member }: { member: MemberDto }) {
           <div className="mt-7 flex flex-wrap gap-5 border-t border-white/10 pt-5"><div><span className="block text-[9px] uppercase tracking-[.14em] text-green-dim">{fr ? 'Formule' : 'Plan'}</span><strong className="mt-1 block text-sm">{fr ? standing.plan?.name || 'Membre communautaire — Gratuit' : standing.plan?.nameEn || 'Community member — Free'}</strong></div><div><span className="block text-[9px] uppercase tracking-[.14em] text-green-dim">{fr ? 'Valide jusqu’au' : 'Valid until'}</span><strong className="mt-1 block text-sm">{date(standing.currentPeriodEndUtc, locale)}</strong></div><div><span className="block text-[9px] uppercase tracking-[.14em] text-green-dim">{fr ? 'Cotisation' : 'Membership fee'}</span><strong className="mt-1 block text-sm">{fr ? 'Gratuite' : 'Free'}</strong></div></div>
           {standing.hasBillingAccount && <button onClick={portal} disabled={busy === 'portal'} className="mt-6 rounded-xl border border-white/20 px-4 py-3 text-[10px] font-bold uppercase tracking-[.12em] transition hover:border-gold hover:text-gold">{fr ? 'Gérer la facturation' : 'Manage billing'} ↗</button>}
         </div>
-        <div className="rounded-[24px] border border-white/15 bg-white/[.07] p-4 backdrop-blur-sm">{valid && qr ? <><div className="mx-auto w-fit rounded-2xl bg-white p-3"><img src={qr} alt={fr ? 'Code QR de vérification' : 'Verification QR code'} className="h-40 w-40" /></div><p className="mt-3 text-center text-[9px] font-bold uppercase tracking-[.15em] text-green-dim">{fr ? 'Carte de membre vérifiable' : 'Verifiable member card'}</p></> : <div className="flex min-h-48 flex-col items-center justify-center text-center"><i className="ri-qr-code-line text-5xl text-gold" /><p className="mt-3 text-xs text-green-dim">{fr ? 'La carte numérique sera disponible après l’activation.' : 'Your digital card will appear after activation.'}</p></div>}</div>
+        <div className="rounded-[24px] border border-white/15 bg-white/[.07] p-4 backdrop-blur-sm">{valid && qr ? <><div className="mx-auto w-fit rounded-2xl bg-white p-3"><img src={qr} alt={fr ? 'Code QR de vérification' : 'Verification QR code'} className="h-40 w-40" /></div><p className="mt-3 text-center text-[9px] font-bold uppercase tracking-[.15em] text-green-dim">{fr ? 'Carte de membre vérifiable' : 'Verifiable member card'}</p><p className="mt-1 truncate text-center font-mono text-[8px] text-white/45">{standing.verificationCode}</p></> : <div className="flex min-h-48 flex-col items-center justify-center text-center"><i className="ri-qr-code-line text-5xl text-gold" /><p className="mt-3 text-xs text-green-dim">{fr ? 'La carte numérique sera disponible après l’activation.' : 'Your digital card will appear after activation.'}</p></div>}</div>
       </div>
     </section>
+
+    {valid && <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label={fr ? 'Actions de la carte membre' : 'Membership card actions'}>
+      <button type="button" onClick={() => void downloadCard()} disabled={Boolean(busy)} className="group flex min-h-16 items-center gap-3 rounded-2xl border border-line bg-surface p-4 text-left transition hover:border-green/25"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-green/8 text-lg text-green"><i className={busy === 'card' ? 'ri-loader-4-line animate-spin' : 'ri-file-pdf-2-line'} /></span><span><strong className="block text-xs text-green-deep">{fr ? 'Télécharger en PDF' : 'Download PDF'}</strong><small className="text-[10px] text-ink-variant">{fr ? 'Format officiel' : 'Official format'}</small></span></button>
+      <button type="button" onClick={() => window.print()} className="group flex min-h-16 items-center gap-3 rounded-2xl border border-line bg-surface p-4 text-left transition hover:border-green/25"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-green/8 text-lg text-green"><i className="ri-printer-line" /></span><span><strong className="block text-xs text-green-deep">{fr ? 'Imprimer la carte' : 'Print card'}</strong><small className="text-[10px] text-ink-variant">{fr ? 'Mise en page optimisée' : 'Optimized layout'}</small></span></button>
+      {wallet?.appleWalletAvailable && wallet.appleWalletUrl ? <a href={wallet.appleWalletUrl} className="flex min-h-16 items-center gap-3 rounded-2xl border border-line bg-surface p-4 transition hover:border-green/25"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-black text-lg text-white"><i className="ri-apple-fill" /></span><strong className="text-xs text-green-deep">Apple Wallet</strong></a> : <div className="flex min-h-16 items-center gap-3 rounded-2xl border border-dashed border-line bg-canvas/30 p-4 opacity-70"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-ink/5 text-lg text-ink-variant"><i className="ri-apple-fill" /></span><span><strong className="block text-xs text-green-deep">Apple Wallet</strong><small className="text-[10px] text-ink-variant">{fr ? 'Activation à venir' : 'Activation pending'}</small></span></div>}
+      {wallet?.googleWalletAvailable && wallet.googleWalletUrl ? <a href={wallet.googleWalletUrl} className="flex min-h-16 items-center gap-3 rounded-2xl border border-line bg-surface p-4 transition hover:border-green/25"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-green text-lg text-gold"><i className="ri-wallet-3-line" /></span><strong className="text-xs text-green-deep">Google Wallet</strong></a> : <div className="flex min-h-16 items-center gap-3 rounded-2xl border border-dashed border-line bg-canvas/30 p-4 opacity-70"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-green/8 text-lg text-green"><i className="ri-wallet-3-line" /></span><span><strong className="block text-xs text-green-deep">Google Wallet</strong><small className="text-[10px] text-ink-variant">{fr ? 'Activation à venir' : 'Activation pending'}</small></span></div>}
+    </section>}
 
     {error && <p className="rounded-2xl border border-red-link/20 bg-red-link/5 p-4 text-sm text-red-link">{error}</p>}
 

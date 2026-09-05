@@ -99,17 +99,27 @@ public record MemberDashboardOpportunityDto(
     Guid Id, string Title, string? TitleEn, string Type, string Organization,
     string? Location, bool IsRemote, DateTime? DeadlineUtc);
 
+public record MemberRecommendationDto(
+    Guid Id, string Kind, string Title, string? TitleEn, string? Subtitle,
+    DateTime? OccursAtUtc, string ActionUrl, string Reason, string ReasonEn);
+
+public record MemberDeadlineDto(
+    string Key, string Title, string TitleEn, DateTime OccursAtUtc,
+    string ActionUrl, string Priority);
+
 public record MemberEngagementDashboardDto(
     string MemberName, string MembershipStatus, int UnreadNotifications,
     int UnreadMessages, int OpenServiceCases,
     IReadOnlyList<MemberDashboardEventDto> UpcomingEvents,
     IReadOnlyList<MemberDashboardOpportunityDto> Opportunities,
     IReadOnlyList<SavedMemberItemDto> SavedItems,
-    IReadOnlyList<NotificationDto> RecentNotifications);
+    IReadOnlyList<NotificationDto> RecentNotifications,
+    IReadOnlyList<MemberRecommendationDto> Recommendations,
+    IReadOnlyList<MemberDeadlineDto> Deadlines);
 
 public record MemberBlockDto(Guid Id, Guid MemberId, string MemberName, DateTime CreatedAtUtc);
 
-public record OnboardingStepDto(string Key, string Title, bool Completed, string ActionUrl);
+public record OnboardingStepDto(string Key, string Title, string TitleEn, bool Completed, string ActionUrl);
 public record MemberOnboardingDto(int CompletionPercent, bool IsComplete, IReadOnlyList<OnboardingStepDto> Steps, MemberPreferenceDto Preferences);
 
 public record PrivacyRequestDto(
@@ -601,7 +611,15 @@ public record CreateMentorshipCheckInRequest([Required][StringLength(1500, Minim
 
 public record ImpactMetricDto(string Key, string Label, double Value, double? ChangePercent, string Unit);
 public record ImpactPeriodDto(string Period, int NewMembers, int EventRegistrations, int ServiceRequests, int OpportunityApplications);
-public record ImpactDashboardDto(DateTime GeneratedAtUtc, IReadOnlyList<ImpactMetricDto> Metrics, IReadOnlyList<ImpactPeriodDto> Periods);
+public record ActivationStageDto(string Key, string Label, int Count, double Percentage);
+public record MemberDimensionDto(string Key, string Label, int Count, double Percentage);
+public record ImpactDashboardDto(
+    DateTime GeneratedAtUtc,
+    IReadOnlyList<ImpactMetricDto> Metrics,
+    IReadOnlyList<ImpactPeriodDto> Periods,
+    IReadOnlyList<ActivationStageDto> ActivationFunnel,
+    IReadOnlyList<MemberDimensionDto> ActivitySegments,
+    IReadOnlyList<MemberDimensionDto> ProvinceBreakdown);
 
 public record CreateAssociationRequest(
     [Required] string Name,

@@ -48,3 +48,9 @@ public sealed record AdminMembershipDto(Guid UserId, string MemberName, string E
     string? PlanName, DateTime? CurrentPeriodEndUtc, DateTime? GraceEndsAtUtc, bool AutoRenew);
 public sealed record MembershipVerificationDto(bool IsValid, string Status, string MemberName,
     string? PlanName, string? PlanNameEn, DateTime? ValidUntilUtc, string VerificationCode);
+public sealed record MembershipCardDto(
+    string MemberName, string Email, string Status, string PlanName, string PlanNameEn,
+    DateTime? MemberSinceUtc, DateTime? ValidUntilUtc, string VerificationCode, string VerificationUrl);
+public sealed record MembershipWalletDto(
+    bool AppleWalletAvailable, string? AppleWalletUrl,
+    bool GoogleWalletAvailable, string? GoogleWalletUrl);

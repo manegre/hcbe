@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Button, Field, inputClasses } from '../../../components/ui';
 import { useAuth } from '../../../contexts/AuthContext';
 import { memberAccountApi } from '../../../lib/api/member-account';
-import type { MemberDto } from '../../../lib/api/types';
+import type { MemberDto, UpdateMemberPreferenceRequest } from '../../../lib/api/types';
 import { authApi } from '../../../lib/api/auth';
 import MemberCommunityWorkspace from './MemberCommunityWorkspace';
 import { GoogleSignInButton } from '../../../components/auth/GoogleSignInButton';
@@ -26,7 +26,7 @@ interface MemberLoginFormProps {
 }
 
 const MemberLoginForm = ({ mode = 'login', embedded = false }: MemberLoginFormProps) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { user, login, googleMemberLogin, verifyMfa, logout } = useAuth();
   const [loginData, setLoginData] = useState({ email: '', password: '' });
@@ -40,6 +40,13 @@ const MemberLoginForm = ({ mode = 'login', embedded = false }: MemberLoginFormPr
   const [profileData, setProfileData] = useState({
     firstName: '', lastName: '', phone: '', city: '', province: '', profession: '',
     expertise: '', interests: '', availability: '',
+  });
+  const [onboardingStep, setOnboardingStep] = useState(0);
+  const [onboardingPreferences, setOnboardingPreferences] = useState<UpdateMemberPreferenceRequest>({
+    preferredLanguage: i18n.language.startsWith('en') ? 'en' : 'fr',
+    timeZone: 'America/Toronto', emailEvents: false, emailOpportunities: false,
+    emailMentorship: false, emailServiceUpdates: false, emailNewsletter: false,
+    pushNotifications: false, digestFrequency: 'Off',
   });
   const resetToken = new URLSearchParams(window.location.search).get('resetToken');
   const requestedReturnTo = new URLSearchParams(window.location.search).get('returnTo');
@@ -171,8 +178,20 @@ const MemberLoginForm = ({ mode = 'login', embedded = false }: MemberLoginFormPr
     setSubmitting(false);
   };
 
-  const profileFields = (
-    <div className="space-y-8">
+  const finishOnboarding = async (event: React.FormEvent) => {
+    event.preventDefault(); setSubmitting(true); setStatus(null);
+    try {
+      const profileResponse = await memberAccountApi.updateMe(profileData);
+      if (!profileResponse.success || !profileResponse.data) throw new Error(profileResponse.message || t('public.member.login.error'));
+      const preferenceResponse = await memberAccountApi.updatePreferences(onboardingPreferences);
+      if (!preferenceResponse.success) throw new Error(preferenceResponse.message || t('public.member.login.error'));
+      setMember(profileResponse.data);
+      setStatus(t('public.member.onboarding.complete'));
+    } catch (reason) { setStatus(reason instanceof Error ? reason.message : t('public.member.login.error')); }
+    finally { setSubmitting(false); }
+  };
+
+  const identityFields = (
       <div className="grid gap-5 md:grid-cols-2">
       <Field label={t('public.member.form.fields.firstName')} htmlFor="member-profile-first-name" required>
         <input id="member-profile-first-name" className={inputClasses} required autoComplete="given-name" value={profileData.firstName} onChange={(e) => setProfileData({ ...profileData, firstName: e.target.value })} />
@@ -198,7 +217,9 @@ const MemberLoginForm = ({ mode = 'login', embedded = false }: MemberLoginFormPr
         </Field>
       </div>
       </div>
+  );
 
+  const professionalFields = (
       <fieldset className="rounded-2xl border border-line bg-canvas/45 p-5 sm:p-6">
         <legend className="px-2 text-label-md uppercase text-green">
           {t('public.member.form.sections.professionalOptional')}
@@ -214,8 +235,17 @@ const MemberLoginForm = ({ mode = 'login', embedded = false }: MemberLoginFormPr
               {memberProfessionalDomains.map((domain) => <option key={domain} value={domain}>{domain}</option>)}
             </select>
           </Field>
+          <Field label={t('public.member.login.availability')} htmlFor="member-onboarding-availability" hint={t('public.member.form.optional')}>
+            <input id="member-onboarding-availability" className={inputClasses} value={profileData.availability} onChange={(e) => setProfileData({ ...profileData, availability: e.target.value })} />
+          </Field>
         </div>
       </fieldset>
+  );
+
+  const profileFields = (
+    <div className="space-y-8">
+      {identityFields}
+      {professionalFields}
     </div>
   );
 
@@ -274,35 +304,30 @@ const MemberLoginForm = ({ mode = 'login', embedded = false }: MemberLoginFormPr
             </div>
           </div>
 
-          <div className="grid border-b border-line sm:grid-cols-2">
-            <div className="flex items-center gap-4 border-b border-line px-6 py-5 sm:border-b-0 sm:border-r sm:px-10">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-green text-sm font-bold text-white">
-                <i className="ri-check-line" aria-hidden="true" />
-              </span>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-green">{t('public.member.onboarding.stepOne')}</p>
-                <p className="mt-1 text-sm text-ink-variant">{member.email}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4 bg-gold/[0.07] px-6 py-5 sm:px-10">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gold text-sm font-bold text-green-deep">2</span>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-red-link">{t('public.member.onboarding.stepTwo')}</p>
-                <p className="mt-1 text-sm text-ink-variant">{t('public.member.onboarding.requiredHint')}</p>
-              </div>
-            </div>
+          <div className="grid border-b border-line sm:grid-cols-3">
+            {[
+              [i18n.language.startsWith('en') ? 'Contact details' : 'Coordonnées', i18n.language.startsWith('en') ? 'Your Canadian base' : 'Votre ancrage'],
+              [i18n.language.startsWith('en') ? 'Profile' : 'Profil', i18n.language.startsWith('en') ? 'Skills and availability' : 'Compétences et disponibilité'],
+              [i18n.language.startsWith('en') ? 'Preferences' : 'Préférences', i18n.language.startsWith('en') ? 'Useful updates only' : 'Seulement l’utile'],
+            ].map(([title, hint], index) => <button key={title} type="button" onClick={() => index < onboardingStep && setOnboardingStep(index)} disabled={index > onboardingStep} className={`flex items-center gap-3 border-b border-line px-5 py-4 text-left last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0 ${index === onboardingStep ? 'bg-gold/[.08]' : ''}`}><span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${index < onboardingStep ? 'bg-green text-white' : index === onboardingStep ? 'bg-gold text-green-deep' : 'bg-line text-ink-variant'}`}>{index < onboardingStep ? <i className="ri-check-line" /> : index + 1}</span><span><strong className="block text-[10px] uppercase tracking-[.13em] text-green-deep">{title}</strong><small className="mt-1 hidden text-[10px] text-ink-variant sm:block">{hint}</small></span></button>)}
           </div>
 
-          <form className="px-6 py-8 sm:px-10 sm:py-10" onSubmit={handleProfileSave}>
-            {profileFields}
+          <form className="px-6 py-8 sm:px-10 sm:py-10" onSubmit={onboardingStep < 2 ? (event) => { event.preventDefault(); setOnboardingStep((value) => value + 1); } : finishOnboarding}>
+            {onboardingStep === 0 && identityFields}
+            {onboardingStep === 1 && <div><p className="mb-6 max-w-2xl text-sm leading-6 text-ink-variant">{i18n.language.startsWith('en') ? 'These optional details help us prioritize opportunities, events and associations that fit you.' : 'Ces renseignements facultatifs nous aident à prioriser les occasions, événements et associations qui vous correspondent.'}</p>{professionalFields}</div>}
+            {onboardingStep === 2 && <div className="space-y-6"><div><p className="text-[10px] font-bold uppercase tracking-[.16em] text-red-link">{i18n.language.startsWith('en') ? 'Your communication choices' : 'Vos choix de communication'}</p><h3 className="mt-2 font-display text-2xl font-bold text-green-deep">{i18n.language.startsWith('en') ? 'Stay informed, on your terms.' : 'Restez informé, à vos conditions.'}</h3><p className="mt-2 text-sm leading-6 text-ink-variant">{i18n.language.startsWith('en') ? 'Nothing promotional is enabled automatically. Choose only the operational updates you want.' : 'Aucune communication promotionnelle n’est activée automatiquement. Choisissez seulement les suivis opérationnels souhaités.'}</p></div><div className="grid gap-5 sm:grid-cols-2"><Field label={i18n.language.startsWith('en') ? 'Preferred language' : 'Langue préférée'} htmlFor="onboarding-language"><select id="onboarding-language" className={inputClasses} value={onboardingPreferences.preferredLanguage} onChange={(event) => setOnboardingPreferences({ ...onboardingPreferences, preferredLanguage: event.target.value as 'fr' | 'en' })}><option value="fr">Français</option><option value="en">English</option></select></Field><Field label={i18n.language.startsWith('en') ? 'Time zone' : 'Fuseau horaire'} htmlFor="onboarding-timezone"><select id="onboarding-timezone" className={inputClasses} value={onboardingPreferences.timeZone} onChange={(event) => setOnboardingPreferences({ ...onboardingPreferences, timeZone: event.target.value })}><option value="America/Toronto">Eastern — Toronto / Montréal</option><option value="America/Winnipeg">Central — Winnipeg</option><option value="America/Edmonton">Mountain — Edmonton</option><option value="America/Vancouver">Pacific — Vancouver</option><option value="America/Halifax">Atlantic — Halifax</option></select></Field></div><div className="grid gap-3 sm:grid-cols-2">{[
+              ['emailEvents', 'ri-calendar-event-line', i18n.language.startsWith('en') ? 'Events and registrations' : 'Événements et inscriptions'],
+              ['emailOpportunities', 'ri-briefcase-4-line', i18n.language.startsWith('en') ? 'Opportunities and volunteering' : 'Occasions et bénévolat'],
+              ['emailMentorship', 'ri-user-heart-line', i18n.language.startsWith('en') ? 'Mentorship' : 'Mentorat'],
+              ['emailServiceUpdates', 'ri-customer-service-2-line', i18n.language.startsWith('en') ? 'Service request updates' : 'Suivi des demandes'],
+              ['emailNewsletter', 'ri-mail-star-line', i18n.language.startsWith('en') ? 'Community newsletter' : 'Infolettre communautaire'],
+            ].map(([key, icon, label]) => <label key={key} className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-4 ${onboardingPreferences[key as keyof UpdateMemberPreferenceRequest] ? 'border-green/25 bg-green/[.045]' : 'border-line'}`}><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-green/8 text-lg text-green"><i className={icon} /></span><span className="flex-1 text-sm font-semibold text-green-deep">{label}</span><input type="checkbox" className="h-5 w-5 accent-green" checked={Boolean(onboardingPreferences[key as keyof UpdateMemberPreferenceRequest])} onChange={(event) => setOnboardingPreferences({ ...onboardingPreferences, [key]: event.target.checked })} /></label>)}</div><label className="flex items-start gap-3 rounded-2xl border border-line bg-canvas/40 p-4"><input type="checkbox" className="mt-0.5 h-5 w-5 accent-green" checked={onboardingPreferences.digestFrequency === 'Weekly'} onChange={(event) => setOnboardingPreferences({ ...onboardingPreferences, digestFrequency: event.target.checked ? 'Weekly' : 'Off' })} /><span><strong className="block text-sm text-green-deep">{i18n.language.startsWith('en') ? 'Weekly community digest' : 'Résumé communautaire hebdomadaire'}</strong><small className="mt-1 block leading-5 text-ink-variant">{i18n.language.startsWith('en') ? 'One concise email with upcoming events and opportunities.' : 'Un seul courriel concis avec les événements et occasions à venir.'}</small></span></label></div>}
             {status && <p className="mt-6 border-l-2 border-error bg-error/5 px-4 py-3 text-sm text-error">{status}</p>}
             <div className="mt-8 flex flex-col gap-3 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between">
-              <button type="button" onClick={logout} className="text-left text-[11px] font-bold uppercase tracking-[0.14em] text-ink-variant transition-colors hover:text-red-link">
-                {t('public.member.onboarding.signOut')}
-              </button>
+              <button type="button" onClick={() => onboardingStep > 0 ? setOnboardingStep((value) => value - 1) : logout()} className="text-left text-[11px] font-bold uppercase tracking-[0.14em] text-ink-variant transition-colors hover:text-red-link">{onboardingStep > 0 ? (i18n.language.startsWith('en') ? 'Back' : 'Retour') : t('public.member.onboarding.signOut')}</button>
               <Button type="submit" variant="primary" disabled={submitting} className="sm:min-w-64">
                 {submitting ? <i className="ri-loader-4-line animate-spin" aria-hidden="true" /> : <i className="ri-arrow-right-line" aria-hidden="true" />}
-                {t(submitting ? 'public.member.onboarding.submitting' : 'public.member.onboarding.submit')}
+                {submitting ? t('public.member.onboarding.submitting') : onboardingStep < 2 ? (i18n.language.startsWith('en') ? 'Continue' : 'Continuer') : t('public.member.onboarding.submit')}
               </Button>
             </div>
           </form>
@@ -327,9 +352,6 @@ const MemberLoginForm = ({ mode = 'login', embedded = false }: MemberLoginFormPr
         </div>
         <div className="space-y-6 p-6 sm:p-7">
           {profileFields}
-          <Field label={t('public.member.login.availability')} htmlFor="member-profile-availability" hint={t('public.member.form.optional')}>
-            <input id="member-profile-availability" className={inputClasses} value={profileData.availability} onChange={(e) => setProfileData({ ...profileData, availability: e.target.value })} />
-          </Field>
           {status && <p className="rounded-xl border border-green/15 bg-green/[0.055] px-4 py-3 text-sm text-green">{status}</p>}
           <div className="flex justify-end border-t border-line pt-5">
             <Button type="submit" variant="primary" disabled={submitting} className="w-full sm:w-auto sm:min-w-64">

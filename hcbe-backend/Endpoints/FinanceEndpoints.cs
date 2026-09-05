@@ -40,6 +40,15 @@ public static class FinanceEndpoints
 
         var member = app.MapGroup("/api/finance/member").WithTags("Member finance").RequireAuthorization("Authenticated").WithOpenApi();
         member.MapGet("/summary", async (HttpContext http, IFinanceService service, CancellationToken ct) => http.GetUserId() is Guid userId ? (await service.GetMemberSummaryAsync(userId, ct)).HandleServiceResponse() : Results.Unauthorized());
+        member.MapGet("/membership/card", async (HttpContext http, IFinanceService service, CancellationToken ct) =>
+        {
+            if (http.GetUserId() is not Guid userId) return Results.Unauthorized();
+            var response = await service.GetMembershipCardAsync(userId, ct);
+            if (!response.Success || response.Data is null) return response.HandleServiceResponse();
+            http.Response.Headers.CacheControl = "private, no-store";
+            return Results.File(ReceiptPdfRenderer.RenderMembershipCard(response.Data), "application/pdf", $"HCBE-carte-membre-{DateTime.UtcNow:yyyy}.pdf");
+        });
+        member.MapGet("/membership/wallet", async (HttpContext http, IFinanceService service, CancellationToken ct) => http.GetUserId() is Guid userId ? (await service.GetMembershipWalletAsync(userId, ct)).HandleServiceResponse() : Results.Unauthorized());
         member.MapPost("/membership/checkout", async (CreateMembershipCheckoutRequest request, HttpContext http, IFinanceService service, CancellationToken ct) => http.GetUserId() is Guid userId ? (await service.CreateMembershipCheckoutAsync(userId, request, ct)).HandleServiceResponse() : Results.Unauthorized());
         member.MapPost("/membership/renew", async (HttpContext http, IFinanceService service, CancellationToken ct) => http.GetUserId() is Guid userId ? (await service.RenewCommunityMembershipAsync(userId, ct)).HandleServiceResponse() : Results.Unauthorized());
         member.MapPost("/billing-portal", async (HttpContext http, IFinanceService service, CancellationToken ct) => http.GetUserId() is Guid userId ? (await service.CreateBillingPortalAsync(userId, ct)).HandleServiceResponse() : Results.Unauthorized());
