@@ -23,7 +23,7 @@ const Navbar = () => {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const location = useLocation();
   const { t, i18n } = useTranslation();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [cmsNavigation, setCmsNavigation] = useState<NavigationItemDto[]>([]);
   const [isInstalledApp, setIsInstalledApp] = useState(() => window.matchMedia('(display-mode: standalone)').matches
     || Boolean((navigator as Navigator & { standalone?: boolean }).standalone));
@@ -132,6 +132,8 @@ const Navbar = () => {
   const mainLinks = navLinks.filter((link) => link.path !== '/espace-membre');
   const hasMemberSession = Boolean(user?.memberId);
   const memberCtaLabel = hasMemberSession ? t('public.nav.memberSpace') : t('public.nav.memberAccess');
+  const adminDestination = isAdmin ? '/admin/dashboard' : '/admin/login';
+  const adminCtaLabel = isAdmin ? t('public.nav.adminSpace') : t('public.nav.adminAccess');
   const openMobileMenu = () => {
     const activeParent = mainLinks.find((link) => link.dropdown && location.pathname.startsWith(link.path));
     setOpenDropdown(activeParent?.path || null);
@@ -290,6 +292,20 @@ const Navbar = () => {
                 <i className={hasMemberSession ? 'ri-user-smile-line text-base' : 'ri-user-add-line text-base'} aria-hidden="true" />
                 {memberCtaLabel}
                 <i className="ri-arrow-right-line text-base" aria-hidden="true" />
+              </Link>
+              <Link
+                to={adminDestination}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="mt-2 flex min-h-[48px] w-full items-center gap-3 rounded-xl border border-white/15 bg-white/[.045] px-4 py-2.5 text-white transition-all duration-200 hover:-translate-y-0.5 hover:border-gold/45 hover:bg-white/[.08] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+              >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-gold/30 bg-gold/10 text-gold">
+                  <i className={isAdmin ? 'ri-dashboard-line text-base' : 'ri-shield-keyhole-line text-base'} aria-hidden="true" />
+                </span>
+                <span className="min-w-0 flex-1 text-left">
+                  <strong className="block text-[10px] font-bold uppercase tracking-[.11em]">{adminCtaLabel}</strong>
+                  <span className="mt-0.5 block text-[9px] normal-case tracking-normal text-white/45">{t('public.nav.adminAccessHint')}</span>
+                </span>
+                <i className="ri-arrow-right-line text-base text-gold" aria-hidden="true" />
               </Link>
             </div>
           </div>

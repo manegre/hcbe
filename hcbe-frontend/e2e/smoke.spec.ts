@@ -34,6 +34,7 @@ test('iPhone and Android visitors can open platform-specific installation guidan
       language: 'fr',
       userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1',
       install: /installer l.application/i,
+      admin: /connexion admin/i,
       heading: /installez l.application/i,
       instruction: /sur l’écran d’accueil/i,
     },
@@ -42,6 +43,7 @@ test('iPhone and Android visitors can open platform-specific installation guidan
       language: 'en',
       userAgent: 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/139.0 Mobile Safari/537.36',
       install: /install the app/i,
+      admin: /admin sign-in/i,
       heading: /install the app/i,
       instruction: /add to home screen/i,
     },
@@ -53,6 +55,9 @@ test('iPhone and Android visitors can open platform-specific installation guidan
     const page = await context.newPage();
     await page.goto('/');
     await page.getByRole('button', { name: /ouvrir le menu|open menu/i }).click();
+    const adminAccess = page.getByRole('link', { name: device.admin });
+    await expect(adminAccess).toBeVisible();
+    await expect(adminAccess).toHaveAttribute('href', '/admin/login');
     await page.getByRole('button', { name: device.install }).click();
     const dialog = page.getByRole('dialog');
     await expect(dialog.getByRole('heading', { name: device.heading })).toBeVisible();
@@ -60,6 +65,23 @@ test('iPhone and Android visitors can open platform-specific installation guidan
     await expect(dialog).toContainText(device.instruction);
     await context.close();
   }
+});
+
+test('installed mobile app keeps the admin sign-in accessible', async ({ browser }) => {
+  const context = await browser.newContext({
+    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1',
+    viewport: { width: 390, height: 844 },
+  });
+  await context.addInitScript(() => {
+    localStorage.setItem('i18nextLng', 'fr');
+    Object.defineProperty(navigator, 'standalone', { configurable: true, get: () => true });
+  });
+  const page = await context.newPage();
+  await page.goto('/');
+  await page.getByRole('button', { name: /ouvrir le menu/i }).click();
+  await expect(page.getByRole('link', { name: /connexion admin/i })).toHaveAttribute('href', '/admin/login');
+  await expect(page.getByRole('button', { name: /installer l.application/i })).toHaveCount(0);
+  await context.close();
 });
 
 test('representative public routes meet automated WCAG 2.2 AA checks', async ({ page }) => {
