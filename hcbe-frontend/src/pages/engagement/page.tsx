@@ -51,6 +51,7 @@ const EngagementPage = () => {
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
+      <main>
       <EngagementHero />
 
       <section className="bg-surface-container py-16 md:py-20">
@@ -133,6 +134,7 @@ const EngagementPage = () => {
         </div>
       </section>
 
+      </main>
       <Footer />
     </div>
   );

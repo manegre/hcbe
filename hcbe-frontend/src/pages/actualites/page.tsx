@@ -37,6 +37,7 @@ const ActualitesPage = () => {
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
+      <main>
       <ActualitesHero />
 
       <section className="bg-white py-16 md:py-20">
@@ -113,6 +114,7 @@ const ActualitesPage = () => {
       </section>
 
       <GalerieSection />
+      </main>
 
       <Footer />
     </div>

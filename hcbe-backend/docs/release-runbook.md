@@ -2,26 +2,32 @@
 
 ## Environments
 
-- Pull requests must pass backend and frontend CI.
-- Pushes to `develop` deploy the isolated backend staging app after CI. Configure the GitHub `staging` environment variable `FLY_STAGING_APP_NAME` and its protected `FLY_API_TOKEN` secret.
-- Pushes to `main` deploy production through the protected GitHub `production` environment.
-- Staging and production require separate PostgreSQL databases, buckets, JWT secrets, SMTP credentials, and sender/test domains. Never point staging at production data or storage.
+- GitHub Actions validates every pull request and every push to `main`.
+- Railway hosts isolated `staging` and `production` environments. Each has its own API, frontend, PostgreSQL database, Redis instance, object-storage buckets, secrets, and domains.
+- The four application services follow `main` and have **Wait for CI** enabled. Railway must not deploy a revision until the GitHub checks for that revision succeed.
+- Stripe live payments, Apple/Google Wallet, and WhatsApp remain disabled until their separate launch approvals are complete.
 
 ## Release
 
-1. Confirm the database backup and restore drill are current.
-2. Deploy to staging and verify `/health/live`, `/health/ready`, admin login/refresh/logout, one CMS create/edit/delete flow, one upload, and one outbox email.
-3. Review migration SQL from the CI artifact. Destructive migrations require a compatible two-release expand/contract plan.
-4. Approve the production environment deployment. The Fly release command applies migrations before application rollout.
-5. Confirm `/health/ready`, error rate, request latency, outbox backlog, and representative public/admin flows.
+1. Confirm the latest encrypted PostgreSQL backup completed its isolated restore verification.
+2. Run `npm run restore:backend`, `npm run build:backend`, `npm run verify`, and `npm run test:e2e` locally when the change can affect critical flows.
+3. Review migration SQL. Destructive migrations require a compatible two-release expand/contract plan.
+4. Push the reviewed commit to `main` and wait for the complete **Monorepo CI** workflow. Railway deploys only after it succeeds.
+5. Confirm the staging and production API pre-deploy migration commands succeed, both services become healthy, and `/health/live` plus `/health/ready` return HTTP 200.
+6. On staging, verify admin login/refresh/logout, one CMS create/edit/delete flow, one upload, one outbox email, member login, and the affected business workflow.
+7. On production, perform read-only smoke checks of the public site and administration login page. Exercise money movement only during an approved payment test window.
+8. Review application incidents, request latency, email outbox health, and the production uptime workflow before closing the release.
+
+Staging and production currently follow the same protected branch and therefore begin deployment after the same successful CI run. If HCBE later requires a manual promotion gate, connect staging to a dedicated release-candidate branch and keep production on `main`.
 
 ## Rollback
 
-1. Roll back application code to the previous known-good Fly release.
-2. Do not automatically reverse a database migration. Prefer forward fixes; use `Down` only after verifying no newer data depends on the schema.
-3. If data restoration is necessary, stop writes, create a safety backup, restore into a new database, validate it, and switch the connection secret atomically.
-4. Retain object-storage versions and the legacy volume snapshot through the rollback window.
+1. In Railway, redeploy the previous known-good deployment for the affected service.
+2. Do not automatically reverse a database migration. Prefer a forward fix; use an EF Core `Down` migration only after verifying that no newer data depends on the schema.
+3. If data restoration is necessary, stop writes, create a safety backup, restore into a new isolated database, validate it, and switch the connection reference atomically.
+4. Retain object-storage versions and the prior deployment through the agreed rollback window.
+5. Re-run health checks and the representative read-only flows after rollback.
 
 ## Required alerts
 
-Alert on readiness failures, elevated HTTP 5xx rate, sustained p95 latency, PostgreSQL connection exhaustion, low storage, dead-letter email, oldest pending outbox age over five minutes, and backup/restore verification failure.
+Alert on readiness failures, elevated HTTP 5xx rate, sustained p95 latency, PostgreSQL connection exhaustion, low storage, dead-letter email, oldest pending outbox age over five minutes, and backup/restore verification failure. The operations team must subscribe to GitHub outage issues and monitor **Administration → Surveillance**.

@@ -9,6 +9,7 @@ const ProjetsPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
+      <main>
 
       <PageHeader
         variant="interior"
@@ -23,6 +24,7 @@ const ProjetsPage = () => {
 
       <ProjetsSection />
 
+      </main>
       <Footer />
     </div>
   );

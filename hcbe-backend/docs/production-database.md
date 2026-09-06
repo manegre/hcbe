@@ -12,9 +12,9 @@ Database__Provider=PostgreSQL
 ConnectionStrings__DefaultConnection=Host=...;Port=5432;Database=...;Username=...;Password=...;SSL Mode=Require;Trust Server Certificate=false
 ```
 
-Fly runs `dotnet HcbeApi.dll MigrateDatabase` as a release command before the
-new application version receives traffic. A failed migration blocks the
-release. The web process does not mutate the schema at startup.
+Railway runs `dotnet HcbeApi.dll MigrateDatabase` as the API pre-deploy command
+before the new application version receives traffic. A failed migration blocks
+the deployment. The production web process does not mutate the schema at startup.
 
 ## Backup policy
 

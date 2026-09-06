@@ -156,6 +156,7 @@ const DocumentsOfficielsPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
+      <main>
 
       <PageHeader
         variant="hero"
@@ -283,6 +284,7 @@ const DocumentsOfficielsPage = () => {
         </div>
       </section>
 
+      </main>
       <Footer />
     </div>
   );

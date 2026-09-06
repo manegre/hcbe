@@ -9,6 +9,7 @@ const AnnuairePage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
+      <main>
 
       <PageHeader
         variant="interior"
@@ -23,6 +24,7 @@ const AnnuairePage = () => {
 
       <AnnuaireSection />
 
+      </main>
       <Footer />
     </div>
   );

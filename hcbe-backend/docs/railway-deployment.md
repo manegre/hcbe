@@ -1,6 +1,6 @@
 # Railway production deployment
 
-This project is prepared for a Railway Pro deployment using one GitHub monorepo and production resources in one project and region:
+This project is prepared for Railway using one GitHub monorepo and production resources in one project and region:
 
 - `frontend` with the service root directory `/hcbe-frontend`
 - `api` with the service root directory `/hcbe-backend`
@@ -101,7 +101,7 @@ Vite embeds `VITE_*` variables at build time, so changing one requires a fronten
 
 ## 4. First release
 
-Deploy the API first. The pre-deploy command applies the committed PostgreSQL migrations before Railway activates the new container. Confirm `/health/ready`, then deploy the frontend and exercise login, uploads, document downloads, newsletter subscription, and realtime messaging.
+Keep **Wait for CI** enabled on both API and frontend services in staging and production. The API pre-deploy command applies the committed PostgreSQL migrations before Railway activates the new container. Confirm `/health/ready`, then exercise login, uploads, document downloads, newsletter subscription, and realtime messaging.
 
 Create the first administrator only after the API is healthy. Temporarily set sealed `HCBE_ADMIN_EMAIL` and `HCBE_ADMIN_PASSWORD` variables, then run:
 
@@ -130,4 +130,4 @@ The `/ops/postgres-backup` Railway cron service creates a daily custom-format du
 
 Never test restoration over the production database. Quarterly, perform this procedure in an isolated Railway environment in addition to the automated daily container restore.
 
-Last verified production drill: 2026-09-03. That isolated PostgreSQL 18 restore validated 12 EF Core migrations plus the `Users`, `Members`, and `Events` tables, and the private bucket received the encrypted dump, SHA-256 checksum, and restore-verification report. Run a new isolated restore drill after deploying `AddCommunityFinance` and verify the five finance tables before considering this release recovery-tested.
+Last verified production drill: 2026-09-06. The automated job restored the production dump into an isolated PostgreSQL 18 instance, validated the current EF Core migration history plus `Users`, `Members`, `Events`, `MembershipPlans`, `MembershipStandings`, `DonationCampaigns`, `FinancialTransactions`, and `PaymentWebhookEvents`, then encrypted and uploaded the verified backup with its checksum and report.

@@ -10,6 +10,7 @@ const ComitesPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
+      <main>
 
       <PageHeader
         variant="hero"
@@ -20,6 +21,7 @@ const ComitesPage = () => {
 
       <ComitesSection />
 
+      </main>
       <Footer />
     </div>
   );

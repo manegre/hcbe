@@ -114,6 +114,21 @@ test('keyboard users can skip repeated navigation', async ({ page }) => {
   await expect(page.locator('main#main-content')).toBeFocused();
 });
 
+test('every public workspace exposes a single skip-link target', async ({ page }) => {
+  const routes = [
+    '/', '/services', '/services/bourses', '/services/comites', '/services/documents-officiels',
+    '/actualites', '/actualites/evenements', '/actualites/annonces', '/actualites/souvenirs',
+    '/engagement', '/engagement/annuaire', '/engagement/projets', '/engagement/consultations',
+    '/contact', '/confidentialite', '/contribuer', '/communaute/ressources', '/espace-membre',
+  ];
+
+  for (const route of routes) {
+    await page.goto(route);
+    await expect(page.locator('main#main-content')).toHaveCount(1);
+    await expect(page.getByRole('link', { name: /aller au contenu principal|skip to main content/i })).toHaveAttribute('href', '#main-content');
+  }
+});
+
 test('public services and events pages load against the real API', async ({ page, request }) => {
   const apiUrl = process.env.E2E_API_URL ?? 'http://127.0.0.1:8080';
   const readiness = await request.get(`${apiUrl}/health/ready`);

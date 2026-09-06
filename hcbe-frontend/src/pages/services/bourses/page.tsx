@@ -25,6 +25,7 @@ const BoursesPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
+      <main>
 
       <PageHeader
         variant="hero"
@@ -55,6 +56,7 @@ const BoursesPage = () => {
 
       <BoursesSection />
 
+      </main>
       <Footer />
     </div>
   );

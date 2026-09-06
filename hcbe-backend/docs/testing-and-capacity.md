@@ -5,7 +5,7 @@ Backend CI compiles with warnings as errors, runs unit/integration tests with co
 Run the baseline public API load profile against staging:
 
 ```bash
-docker run --rm -i -e BASE_URL=https://YOUR-STAGING-APP.fly.dev grafana/k6 run - < load-tests/public-api.js
+docker run --rm -i -e BASE_URL=https://api-staging-staging-1dcb.up.railway.app grafana/k6 run - < hcbe-backend/load-tests/public-api.js
 ```
 
 The profile ramps to 100 concurrent virtual users, requires fewer than 1% failed requests, and sets p95/p99 latency budgets. Run it after representative staging data is loaded and before major releases. Do not point load tests at production without an approved window.

@@ -5,8 +5,8 @@
 ## Prerequisites
 
 - .NET 8 SDK (pour le développement local)
-- Azure App Service supporte .NET 10.0 LTS pour le déploiement
-- SQLite (included with .NET)
+- PostgreSQL for production; SQLite is supported for isolated local development and tests
+- Docker for production-image verification
 
 ## Setup
 
@@ -94,47 +94,22 @@ Admin endpoints require the user to have `isAdmin: true` in their JWT claims.
 
 This backend is designed to be deployed independently from the frontend. Common deployment options:
 
-### ⚡ Fly.io (Recommended - Free Tier Available)
+### Railway
 
-**Quickest way to deploy with persistent storage and Docker support.**
+The deployed platform uses Railway with separate staging and production
+environments. The API container is built from this directory, PostgreSQL and
+Redis remain private, uploads use S3-compatible object storage, and
+`dotnet HcbeApi.dll MigrateDatabase` runs as the API pre-deploy command.
 
-```bash
-cd hcbe-backend
-flyctl launch --no-deploy
-flyctl volumes create hcbe_data --size 1 --region yul
-./.fly/configure-secrets.sh
-flyctl deploy
-```
-
-📖 See [.fly/QUICKSTART.md](.fly/QUICKSTART.md) for ultra-fast setup  
-📚 Full guide: [.fly/deploy-guide.md](.fly/deploy-guide.md)
-
-**Why Fly.io?**
-- ✅ 100% Free tier (3 machines, 3GB storage, 160GB bandwidth)
-- ✅ Docker native (uses existing Dockerfile)
-- ✅ Persistent volumes for SQLite + uploads
-- ✅ Montreal/Toronto data centers (low latency)
-- ✅ Auto-sleep on inactivity (cost optimization)
-- ✅ Simple CLI: `flyctl deploy`
-
-### Other Options
-
-- **Azure App Service**: Deploy as a .NET application (see [Azure Deployment Guide](../../docs/azure-app-service-deployment.md))
-- **AWS Elastic Beanstalk**: Deploy as a .NET application  
-- **Docker**: Containerize using `Dockerfile` and deploy to any container service
-- **Heroku**: Use .NET buildpack
-
-### Azure App Service (Free Tier)
-
-Pour déployer sur Azure App Services en utilisant le plan gratuit, consultez:
-- **[Guide de démarrage rapide](../../docs/azure-quick-start.md)** - Déploiement en 5 minutes
-- **[Documentation complète](../../docs/azure-app-service-deployment.md)** - Guide détaillé avec toutes les options
+See [the Railway deployment guide](docs/railway-deployment.md) and
+[the release runbook](docs/release-runbook.md) for the authoritative setup,
+health checks, backup procedure, and rollback process.
 
 ### Important Deployment Notes
 
 1. **CORS**: Ensure CORS is configured to allow requests from your frontend domain
-2. **Database**: SQLite database file must be persistent (consider using a volume/mount in container deployments)
-3. **File Uploads**: `wwwroot/uploads/` directory must be persistent for document storage
+2. **Database**: production must use managed PostgreSQL; SQLite is local-only
+3. **File Uploads**: production files must use the configured private object-storage bucket
 4. **Environment Variables**: Use production environment variables for sensitive configuration
 
 ## Creating Admin User

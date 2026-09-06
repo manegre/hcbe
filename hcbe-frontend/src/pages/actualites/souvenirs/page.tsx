@@ -11,6 +11,7 @@ export const SouvenirsPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
+      <main>
 
       <PageHeader
         variant="hero"
@@ -42,6 +43,7 @@ export const SouvenirsPage = () => {
         </div>
       </section>
 
+      </main>
       <Footer />
     </div>
   );
