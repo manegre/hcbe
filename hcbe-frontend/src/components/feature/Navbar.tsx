@@ -57,6 +57,7 @@ const Navbar = () => {
           { path: '/engagement/annuaire', labelKey: 'public.nav.associations' },
           { path: '/engagement/projets', labelKey: 'public.nav.projects' },
           { path: '/engagement/consultations', labelKey: 'public.nav.consultations' },
+          { path: '/communaute/ressources', labelKey: 'public.nav.communityResources' },
           { path: '/contribuer', labelKey: 'public.nav.contribute' },
         ],
       },

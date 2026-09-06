@@ -328,6 +328,53 @@ public sealed class PrivacyServiceTests
         ad.Status.Should().Be("Paused");
     }
 
+    [Fact]
+    public async Task PrivacyLifecycle_CoversEveryCommunityProgramModule()
+    {
+        await using var context = TestDbContextFactory.CreateInMemoryContext();
+        var user = new User { Email = "programs@example.com", FirstName = "Awa", LastName = "Test", PasswordHash = "hash", IsActive = true };
+        var business = new CommunityBusiness { OwnerUser = user, OwnerUserId = user.Id, Name = "Entreprise privée", Category = "Conseil", Description = "Description personnelle", ContactEmail = user.Email, Status = CommunityProgramStatuses.Approved };
+        var journey = new NewcomerJourney { User = user, UserId = user.Id, City = "Montréal", NeedsJson = "[\"housing\"]" };
+        var household = new FamilyHousehold { OwnerUser = user, OwnerUserId = user.Id, HouseholdName = "Famille Test" };
+        var relative = new FamilyHouseholdMember { Household = household, HouseholdId = household.Id, FullName = "Enfant Test", Relationship = "Enfant", Email = "child@example.com" };
+        var offering = new AppointmentOffering { Title = "Accueil", Description = "Rendez-vous", Category = "Orientation" };
+        var slot = new AppointmentSlot { Offering = offering, OfferingId = offering.Id, StartsAtUtc = DateTime.UtcNow.AddDays(5), EndsAtUtc = DateTime.UtcNow.AddDays(5).AddMinutes(30) };
+        var booking = new AppointmentBooking { User = user, UserId = user.Id, Slot = slot, SlotId = slot.Id, Reason = "Situation personnelle" };
+        var partner = new Partner { Name = "Partenaire" };
+        var benefit = new PartnerBenefit { Partner = partner, PartnerId = partner.Id, Title = "Rabais", Description = "Avantage" };
+        var claim = new PartnerBenefitClaim { Benefit = benefit, BenefitId = benefit.Id, User = user, UserId = user.Id, RedemptionCode = "HCBE-PRIVATE" };
+        var grant = new GrantProgram { Title = "Bourse", Description = "Programme" };
+        var application = new GrantApplication { GrantProgram = grant, GrantProgramId = grant.Id, User = user, UserId = user.Id, ApplicantName = "Awa Test", ApplicantEmail = user.Email, Statement = "Projet personnel", AnswersJson = "{\"need\":\"private\"}", DocumentsJson = "[\"https://example.com/private.pdf\"]" };
+        var package = new SponsorshipPackage { Title = "Partenaire or", Description = "Forfait" };
+        var sponsorship = new SponsorshipRequest { User = user, UserId = user.Id, Package = package, PackageId = package.Id, OrganizationName = "Organisation privée", ContactEmail = user.Email, Objective = "Objectif confidentiel" };
+        context.AddRange(user, business, journey, household, relative, offering, slot, booking, partner, benefit, claim, grant, application, package, sponsorship);
+        await context.SaveChangesAsync();
+
+        var service = CreateService(context);
+        var exported = Encoding.UTF8.GetString((await service.ExportAsync(user.Id, CancellationToken.None))!);
+        exported.Should().Contain("Description personnelle");
+        exported.Should().Contain("Famille Test");
+        exported.Should().Contain("HCBE-PRIVATE");
+        exported.Should().Contain("Objectif confidentiel");
+
+        context.PrivacyRequests.Add(new PrivacyRequest { UserId = user.Id, ExecuteAfterUtc = DateTime.UtcNow.AddMinutes(-1) });
+        await context.SaveChangesAsync();
+        (await service.ProcessDueDeletionsAsync(CancellationToken.None)).Should().Be(1);
+
+        business.Status.Should().Be(CommunityProgramStatuses.Withdrawn);
+        business.Description.Should().Be("[redacted]");
+        (await context.NewcomerJourneys.CountAsync()).Should().Be(0);
+        (await context.FamilyHouseholds.CountAsync()).Should().Be(0);
+        booking.Status.Should().Be(CommunityProgramStatuses.Cancelled);
+        booking.Reason.Should().BeNull();
+        claim.Status.Should().Be(CommunityProgramStatuses.Cancelled);
+        claim.RedemptionCode.Should().NotBe("HCBE-PRIVATE");
+        application.ApplicantEmail.Should().EndWith("@invalid.local");
+        application.DocumentsJson.Should().Be("[]");
+        sponsorship.OrganizationName.Should().Be("Deleted organization");
+        sponsorship.ContactEmail.Should().EndWith("@invalid.local");
+    }
+
     private static PrivacyService CreateService(HcbeApi.Data.ApplicationDbContext context, IFileStorageService? fileStorage = null, IPaymentGateway? paymentGateway = null)
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>

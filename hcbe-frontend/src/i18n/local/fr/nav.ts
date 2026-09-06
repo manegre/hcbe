@@ -24,6 +24,7 @@ export default {
   'public.nav.associations': 'Associations',
   'public.nav.projects': 'Projets',
   'public.nav.consultations': 'Consultations',
+  'public.nav.communityResources': 'Ressources et entreprises',
   'public.nav.contribute': 'Contribuer',
   'public.nav.openMenu': 'Ouvrir le menu',
   'public.nav.closeMenu': 'Fermer le menu',

@@ -88,7 +88,7 @@ test('representative public routes meet automated WCAG 2.2 AA checks', async ({ 
   test.setTimeout(90_000);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const violations: string[] = [];
-  for (const route of ['/', '/services', '/actualites/evenements', '/contact', '/espace-membre', '/admin/login']) {
+  for (const route of ['/', '/services', '/communaute/ressources', '/actualites/evenements', '/contact', '/espace-membre', '/admin/login']) {
     await page.goto(route);
     await page.locator('main').first().waitFor();
     const results = await new AxeBuilder({ page })
@@ -132,7 +132,7 @@ test('public and authentication routes render cleanly in French and English', as
     '/', '/services', '/services/bourses', '/services/comites', '/services/documents-officiels',
     '/actualites', '/actualites/evenements', '/actualites/annonces', '/actualites/souvenirs',
     '/engagement', '/engagement/annuaire', '/engagement/projets', '/engagement/consultations',
-    '/contact', '/confidentialite', '/contribuer', '/espace-membre', '/admin/login',
+    '/contact', '/confidentialite', '/contribuer', '/communaute/ressources', '/espace-membre', '/admin/login',
   ];
 
   for (const language of ['fr', 'en']) {
@@ -287,7 +287,7 @@ test('every administrator workspace remains usable on mobile and tablet in dark 
     '/admin/consultations', '/admin/members', '/admin/membership-applications', '/admin/newsletter',
     '/admin/mentorship', '/admin/message-reports', '/admin/submissions', '/admin/service-cases',
     '/admin/impact', '/admin/monitoring', '/admin/security', '/admin/finance', '/admin/users',
-    '/admin/marketplace', '/admin/partners', '/admin/site-content', '/admin/team-members',
+    '/admin/marketplace', '/admin/community-programs', '/admin/partners', '/admin/site-content', '/admin/team-members',
   ];
 
   await page.setViewportSize({ width: 390, height: 844 });
@@ -348,6 +348,10 @@ test('member can register and enter the member portal', async ({ page }) => {
   await page.getByRole('tab', { name: /organisateur|organizer/i }).click();
   await expect(page.getByRole('heading', { name: /espace organisateur|organizer workspace/i })).toBeVisible();
   await expect(page.locator('#org-name')).toBeVisible();
+  await page.getByRole('tab', { name: /services\+/i }).click();
+  await expect(page.getByRole('heading', { name: /premières étapes au Canada|first steps in Canada/i })).toBeVisible();
+  await expect(page.getByRole('button', { name: /famille|family/i })).toBeVisible();
+  await expect(page.getByRole('button', { name: /rendez-vous|appointments/i })).toBeVisible();
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
   await page.getByRole('tab', { name: /^notifications$/i }).click();
   await expect(page.getByRole('heading', { name: /mes notifications|my notifications/i })).toBeVisible();

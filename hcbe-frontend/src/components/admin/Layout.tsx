@@ -164,6 +164,7 @@ export const AdminLayout = () => {
       items: [
         { nameKey: 'admin.nav.finance', href: '/admin/finance', icon: 'ri-secure-payment-line', permission: 'finance.manage' },
         { nameKey: 'admin.nav.marketplace', href: '/admin/marketplace', icon: 'ri-store-2-line', permission: 'finance.manage' },
+        { nameKey: 'admin.nav.communityPrograms', href: '/admin/community-programs', icon: 'ri-compass-discover-line', permission: 'community.manage' },
         ...(features.adminTeamMembersEnabled
           ? [{ nameKey: 'admin.nav.teamMembers', href: '/admin/team-members', icon: 'ri-team-line', permission: 'content.manage' }]
           : []),

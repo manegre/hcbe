@@ -107,6 +107,20 @@ public class ApplicationDbContext : DbContext
     public DbSet<EventTicketOrderItem> EventTicketOrderItems { get; set; }
     public DbSet<EventTicket> EventTickets { get; set; }
     public DbSet<AdvertisingCampaign> AdvertisingCampaigns { get; set; }
+    public DbSet<CommunityBusiness> CommunityBusinesses { get; set; }
+    public DbSet<NewcomerJourney> NewcomerJourneys { get; set; }
+    public DbSet<FamilyHousehold> FamilyHouseholds { get; set; }
+    public DbSet<FamilyHouseholdMember> FamilyHouseholdMembers { get; set; }
+    public DbSet<AppointmentOffering> AppointmentOfferings { get; set; }
+    public DbSet<AppointmentSlot> AppointmentSlots { get; set; }
+    public DbSet<AppointmentBooking> AppointmentBookings { get; set; }
+    public DbSet<PartnerBenefit> PartnerBenefits { get; set; }
+    public DbSet<PartnerBenefitClaim> PartnerBenefitClaims { get; set; }
+    public DbSet<GrantApplication> GrantApplications { get; set; }
+    public DbSet<SponsorshipPackage> SponsorshipPackages { get; set; }
+    public DbSet<SponsorshipRequest> SponsorshipRequests { get; set; }
+    public DbSet<AnnualCommunityReport> AnnualCommunityReports { get; set; }
+    public DbSet<OperationalAutomationRule> OperationalAutomationRules { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -313,6 +327,54 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<AdvertisingCampaign>().HasIndex(item => new { item.Status, item.StartsAtUtc, item.EndsAtUtc });
         modelBuilder.Entity<AdvertisingCampaign>().Property(item => item.Status).HasMaxLength(30);
         modelBuilder.Entity<AdvertisingCampaign>().Property(item => item.Currency).HasMaxLength(3);
+
+        modelBuilder.Entity<CommunityBusiness>().HasOne(item => item.OwnerUser).WithMany().HasForeignKey(item => item.OwnerUserId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<CommunityBusiness>().HasIndex(item => new { item.Status, item.Category, item.Province });
+        modelBuilder.Entity<CommunityBusiness>().Property(item => item.Status).HasMaxLength(30);
+        modelBuilder.Entity<CommunityBusiness>().Property(item => item.Category).HasMaxLength(80);
+
+        modelBuilder.Entity<NewcomerJourney>().HasOne(item => item.User).WithOne().HasForeignKey<NewcomerJourney>(item => item.UserId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<NewcomerJourney>().HasIndex(item => item.UserId).IsUnique();
+        modelBuilder.Entity<NewcomerJourney>().Property(item => item.PreferredLanguage).HasMaxLength(5);
+
+        modelBuilder.Entity<FamilyHousehold>().HasOne(item => item.OwnerUser).WithOne().HasForeignKey<FamilyHousehold>(item => item.OwnerUserId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<FamilyHousehold>().HasIndex(item => item.OwnerUserId).IsUnique();
+        modelBuilder.Entity<FamilyHousehold>().Property(item => item.Status).HasMaxLength(30);
+        modelBuilder.Entity<FamilyHouseholdMember>().HasOne(item => item.Household).WithMany(item => item.Members).HasForeignKey(item => item.HouseholdId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<FamilyHouseholdMember>().HasIndex(item => new { item.HouseholdId, item.Email });
+
+        modelBuilder.Entity<AppointmentOffering>().HasIndex(item => new { item.IsActive, item.Category });
+        modelBuilder.Entity<AppointmentOffering>().Property(item => item.Mode).HasMaxLength(20);
+        modelBuilder.Entity<AppointmentSlot>().HasOne(item => item.Offering).WithMany(item => item.Slots).HasForeignKey(item => item.OfferingId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<AppointmentSlot>().HasIndex(item => new { item.StartsAtUtc, item.IsCancelled });
+        modelBuilder.Entity<AppointmentBooking>().HasOne(item => item.Slot).WithMany(item => item.Bookings).HasForeignKey(item => item.SlotId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<AppointmentBooking>().HasOne(item => item.User).WithMany().HasForeignKey(item => item.UserId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<AppointmentBooking>().HasIndex(item => new { item.SlotId, item.UserId }).IsUnique();
+        modelBuilder.Entity<AppointmentBooking>().Property(item => item.Status).HasMaxLength(30);
+
+        modelBuilder.Entity<PartnerBenefit>().HasOne(item => item.Partner).WithMany().HasForeignKey(item => item.PartnerId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<PartnerBenefit>().HasIndex(item => new { item.IsActive, item.StartsAtUtc, item.EndsAtUtc });
+        modelBuilder.Entity<PartnerBenefitClaim>().HasOne(item => item.Benefit).WithMany(item => item.Claims).HasForeignKey(item => item.BenefitId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<PartnerBenefitClaim>().HasOne(item => item.User).WithMany().HasForeignKey(item => item.UserId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<PartnerBenefitClaim>().HasIndex(item => new { item.BenefitId, item.UserId }).IsUnique();
+        modelBuilder.Entity<PartnerBenefitClaim>().HasIndex(item => item.RedemptionCode).IsUnique();
+
+        modelBuilder.Entity<GrantApplication>().HasOne(item => item.GrantProgram).WithMany().HasForeignKey(item => item.GrantProgramId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<GrantApplication>().HasOne(item => item.User).WithMany().HasForeignKey(item => item.UserId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<GrantApplication>().HasIndex(item => new { item.GrantProgramId, item.UserId }).IsUnique();
+        modelBuilder.Entity<GrantApplication>().HasIndex(item => new { item.Status, item.SubmittedAtUtc });
+
+        modelBuilder.Entity<SponsorshipPackage>().HasIndex(item => new { item.IsActive, item.DisplayOrder });
+        modelBuilder.Entity<SponsorshipPackage>().Property(item => item.Currency).HasMaxLength(3);
+        modelBuilder.Entity<SponsorshipRequest>().HasOne(item => item.User).WithMany().HasForeignKey(item => item.UserId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<SponsorshipRequest>().HasOne(item => item.Package).WithMany().HasForeignKey(item => item.PackageId).OnDelete(DeleteBehavior.SetNull);
+        modelBuilder.Entity<SponsorshipRequest>().HasIndex(item => new { item.Status, item.CreatedAtUtc });
+        modelBuilder.Entity<SponsorshipRequest>().Property(item => item.Currency).HasMaxLength(3);
+
+        modelBuilder.Entity<AnnualCommunityReport>().HasIndex(item => item.Year).IsUnique();
+        modelBuilder.Entity<AnnualCommunityReport>().HasIndex(item => new { item.Status, item.Year });
+        modelBuilder.Entity<OperationalAutomationRule>().HasIndex(item => item.Key).IsUnique();
+        modelBuilder.Entity<OperationalAutomationRule>().Property(item => item.Cadence).HasMaxLength(30);
 
         modelBuilder.Entity<PasswordResetToken>()
             .HasOne(token => token.User)

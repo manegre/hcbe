@@ -14,6 +14,7 @@ const ContributionPage = lazy(() => import('../pages/contribuer/page'));
 const PaymentThankYouPage = lazy(() => import('../pages/paiement/merci/page'));
 const MembershipVerificationPage = lazy(() => import('../pages/adhesion/verifier/page'));
 const TicketOrderPage = lazy(() => import('../pages/billets/commande/[token]/page'));
+const CommunityResourcesPage = lazy(() => import('../pages/communaute/ressources/page'));
 const NotFound = lazy(() => import('../pages/NotFound'));
 
 // Engagement sub-pages
@@ -86,6 +87,7 @@ const AdminMonitoringPage = lazy(() => import('../pages/admin/monitoring/page'))
 const AdminSecurityPage = lazy(() => import('../pages/admin/security/page'));
 const AdminFinancePage = lazy(() => import('../pages/admin/finance/page'));
 const AdminMarketplacePage = lazy(() => import('../pages/admin/marketplace/page'));
+const AdminCommunityProgramsPage = lazy(() => import('../pages/admin/community-programs/page'));
 
 // Admin Grants Pages
 const AdminGrantsList = lazy(() => import('../pages/admin/grants/page').then(module => ({ default: module.default })));
@@ -188,6 +190,10 @@ const routes: RouteObject[] = [
   {
     path: '/espace-membre',
     element: <EspaceMembrePage />,
+  },
+  {
+    path: '/communaute/ressources',
+    element: <CommunityResourcesPage />,
   },
   {
     path: '/contact',
@@ -388,6 +394,10 @@ const routes: RouteObject[] = [
       {
         path: 'marketplace',
         element: <AdminMarketplacePage />,
+      },
+      {
+        path: 'community-programs',
+        element: <AdminCommunityProgramsPage />,
       },
       {
         path: 'site-content',

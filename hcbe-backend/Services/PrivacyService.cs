@@ -250,6 +250,117 @@ public sealed class PrivacyService(
                     item.EndsAtUtc,
                     item.CreatedAtUtc,
                     item.UpdatedAtUtc
+                }).ToListAsync(cancellationToken),
+            communityBusinesses = await context.CommunityBusinesses.AsNoTracking()
+                .Where(item => item.OwnerUserId == userId)
+                .Select(item => new
+                {
+                    item.Id,
+                    item.Name,
+                    item.NameEn,
+                    item.Category,
+                    item.Description,
+                    item.DescriptionEn,
+                    item.Services,
+                    item.ServicesEn,
+                    item.ContactEmail,
+                    item.ContactPhone,
+                    item.WebsiteUrl,
+                    item.City,
+                    item.Province,
+                    item.ServiceRegions,
+                    item.Status,
+                    item.CreatedAtUtc,
+                    item.UpdatedAtUtc
+                }).ToListAsync(cancellationToken),
+            newcomerJourney = await context.NewcomerJourneys.AsNoTracking()
+                .Where(item => item.UserId == userId)
+                .Select(item => new
+                {
+                    item.ArrivalDate,
+                    item.City,
+                    item.Province,
+                    item.PreferredLanguage,
+                    item.NeedsJson,
+                    item.CompletedStepsJson,
+                    item.MentorRequested,
+                    item.CreatedAtUtc,
+                    item.UpdatedAtUtc
+                }).SingleOrDefaultAsync(cancellationToken),
+            familyHousehold = await context.FamilyHouseholds.AsNoTracking()
+                .Where(item => item.OwnerUserId == userId)
+                .Select(item => new
+                {
+                    item.Id,
+                    item.HouseholdName,
+                    item.Status,
+                    item.CreatedAtUtc,
+                    item.UpdatedAtUtc,
+                    members = item.Members.Select(member => new
+                    {
+                        member.Id,
+                        member.FullName,
+                        member.Relationship,
+                        member.Email,
+                        member.BirthDate,
+                        member.Status,
+                        member.CreatedAtUtc
+                    })
+                }).SingleOrDefaultAsync(cancellationToken),
+            appointmentBookings = await context.AppointmentBookings.AsNoTracking()
+                .Where(item => item.UserId == userId)
+                .Select(item => new
+                {
+                    item.Id,
+                    item.SlotId,
+                    item.Reason,
+                    item.Status,
+                    item.CreatedAtUtc,
+                    item.CancelledAtUtc
+                }).ToListAsync(cancellationToken),
+            partnerBenefitClaims = await context.PartnerBenefitClaims.AsNoTracking()
+                .Where(item => item.UserId == userId)
+                .Select(item => new
+                {
+                    item.Id,
+                    item.BenefitId,
+                    item.RedemptionCode,
+                    item.Status,
+                    item.ClaimedAtUtc,
+                    item.RedeemedAtUtc
+                }).ToListAsync(cancellationToken),
+            grantApplications = await context.GrantApplications.AsNoTracking()
+                .Where(item => item.UserId == userId || item.ApplicantEmail == user.Email)
+                .Select(item => new
+                {
+                    item.Id,
+                    item.GrantProgramId,
+                    item.ApplicantName,
+                    item.ApplicantEmail,
+                    item.Statement,
+                    item.AnswersJson,
+                    item.DocumentsJson,
+                    item.Status,
+                    item.SubmittedAtUtc,
+                    item.UpdatedAtUtc,
+                    item.ReviewedAtUtc
+                }).ToListAsync(cancellationToken),
+            sponsorshipRequests = await context.SponsorshipRequests.AsNoTracking()
+                .Where(item => item.UserId == userId || item.ContactEmail == user.Email)
+                .Select(item => new
+                {
+                    item.Id,
+                    item.PackageId,
+                    item.OrganizationName,
+                    item.ContactEmail,
+                    item.Objective,
+                    item.Notes,
+                    item.ProposedAmountCents,
+                    item.Currency,
+                    item.Status,
+                    item.CreatedAtUtc,
+                    item.UpdatedAtUtc,
+                    item.ReviewedAtUtc
                 }).ToListAsync(cancellationToken)
         };
 
@@ -640,6 +751,78 @@ public sealed class PrivacyService(
             campaign.Status = "Paused";
             campaign.ReviewNotes = null;
             campaign.UpdatedAtUtc = DateTime.UtcNow;
+        }
+        foreach (var business in await context.CommunityBusinesses
+                     .Where(item => item.OwnerUserId == user.Id)
+                     .ToListAsync(cancellationToken))
+        {
+            business.ContactEmail = anonymousEmail;
+            business.ContactPhone = null;
+            business.WebsiteUrl = null;
+            business.LogoUrl = null;
+            business.City = null;
+            business.Province = null;
+            business.ServiceRegions = null;
+            business.Description = "[redacted]";
+            business.DescriptionEn = "[redacted]";
+            business.Services = null;
+            business.ServicesEn = null;
+            business.Status = CommunityProgramStatuses.Withdrawn;
+            business.IsFeatured = false;
+            business.ReviewNotes = null;
+            business.UpdatedAtUtc = DateTime.UtcNow;
+        }
+        context.RemoveRange(await context.NewcomerJourneys
+            .Where(item => item.UserId == user.Id)
+            .ToListAsync(cancellationToken));
+        var household = await context.FamilyHouseholds
+            .Include(item => item.Members)
+            .SingleOrDefaultAsync(item => item.OwnerUserId == user.Id, cancellationToken);
+        if (household != null)
+        {
+            context.RemoveRange(household.Members);
+            context.FamilyHouseholds.Remove(household);
+        }
+        foreach (var booking in await context.AppointmentBookings
+                     .Where(item => item.UserId == user.Id)
+                     .ToListAsync(cancellationToken))
+        {
+            booking.Reason = null;
+            booking.Status = CommunityProgramStatuses.Cancelled;
+            booking.CancelledAtUtc ??= DateTime.UtcNow;
+        }
+        foreach (var claim in await context.PartnerBenefitClaims
+                     .Where(item => item.UserId == user.Id)
+                     .ToListAsync(cancellationToken))
+        {
+            claim.RedemptionCode = $"DELETED-{claim.Id:N}";
+            claim.Status = CommunityProgramStatuses.Cancelled;
+        }
+        foreach (var application in await context.GrantApplications
+                     .Where(item => item.UserId == user.Id || item.ApplicantEmail == originalEmail)
+                     .ToListAsync(cancellationToken))
+        {
+            application.ApplicantName = "Deleted member";
+            application.ApplicantEmail = anonymousEmail;
+            application.Statement = "[redacted]";
+            application.AnswersJson = "{}";
+            application.DocumentsJson = "[]";
+            application.AdminNotes = null;
+            if (application.Status == CommunityProgramStatuses.Submitted)
+                application.Status = CommunityProgramStatuses.Withdrawn;
+            application.UpdatedAtUtc = DateTime.UtcNow;
+        }
+        foreach (var sponsorship in await context.SponsorshipRequests
+                     .Where(item => item.UserId == user.Id || item.ContactEmail == originalEmail)
+                     .ToListAsync(cancellationToken))
+        {
+            sponsorship.OrganizationName = "Deleted organization";
+            sponsorship.ContactEmail = anonymousEmail;
+            sponsorship.Objective = "[redacted]";
+            sponsorship.Notes = null;
+            if (sponsorship.Status == CommunityProgramStatuses.Submitted)
+                sponsorship.Status = CommunityProgramStatuses.Withdrawn;
+            sponsorship.UpdatedAtUtc = DateTime.UtcNow;
         }
         foreach (var item in await context.AuditLogs.Where(item => item.UserId == user.Id || item.UserEmail == originalEmail).ToListAsync(cancellationToken))
         {

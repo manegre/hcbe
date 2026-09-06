@@ -354,6 +354,7 @@ builder.Services.AddScoped<IEventService, EventService>();
 builder.Services.AddScoped<IEventRegistrationService, EventRegistrationService>();
 builder.Services.AddScoped<IEventCommerceService, EventCommerceService>();
 builder.Services.AddScoped<ICommunityMarketplaceService, CommunityMarketplaceService>();
+builder.Services.AddScoped<ICommunityProgramsService, CommunityProgramsService>();
 builder.Services.AddScoped<IStripeConnectGateway, StripeConnectGateway>();
 builder.Services.AddHttpClient("StripeConnect", client =>
 {
@@ -416,6 +417,7 @@ if (financeConfiguration.Enabled &&
 builder.Services.Configure<FinanceOptions>(builder.Configuration.GetSection(FinanceOptions.SectionName));
 builder.Services.AddSingleton<IPaymentGateway, StripePaymentGateway>();
 builder.Services.AddScoped<IFinanceService, FinanceService>();
+builder.Services.AddHostedService<CommunityProgramsWorker>();
 builder.Services.AddHostedService<MembershipReminderWorker>();
 builder.Services.AddHostedService<MemberEngagementWorker>();
 
@@ -1333,6 +1335,7 @@ app.MapNewsletterEndpoints();
 app.MapEventEndpoints();
 app.MapEventCommerceEndpoints();
 app.MapCommunityMarketplaceEndpoints();
+app.MapCommunityProgramsEndpoints();
 app.MapEventCategoryEndpoints();
 app.MapServiceCaseEndpoints();
 app.MapAssociationEndpoints();
@@ -1464,6 +1467,10 @@ static void EnsureSqliteSecuritySchema(ApplicationDbContext context)
     try { context.Database.ExecuteSqlRaw("ALTER TABLE Events ADD COLUMN RegistrationUrl TEXT"); } catch { }
     try { context.Database.ExecuteSqlRaw("ALTER TABLE Events ADD COLUMN CtaLabel TEXT"); } catch { }
     try { context.Database.ExecuteSqlRaw("ALTER TABLE Events ADD COLUMN CtaLabelEn TEXT"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE Events ADD COLUMN CommunityOrganizerId TEXT"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE Events ADD COLUMN PlatformFeePercent INTEGER NOT NULL DEFAULT 0"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE Events ADD COLUMN SalesModel TEXT NOT NULL DEFAULT ''"); } catch { }
+    try { context.Database.ExecuteSqlRaw("ALTER TABLE Events ADD COLUMN TicketingEnabled INTEGER NOT NULL DEFAULT 0"); } catch { }
 
     context.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS EventSpeakers (
         Id TEXT PRIMARY KEY,
@@ -1889,6 +1896,20 @@ static void EnsureSqliteSecuritySchema(ApplicationDbContext context)
         FOREIGN KEY (CmsContentItemId) REFERENCES CmsContentItems(Id) ON DELETE CASCADE
     )");
     context.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_CmsContentRevisions_CmsContentItemId_Version ON CmsContentRevisions(CmsContentItemId, Version)");
+
+    // Ensure newly introduced model tables are also available in long-lived local
+    // SQLite databases. EnsureCreated only handles an empty database and does not
+    // add tables added after the file was first created.
+    var createScript = context.Database.GenerateCreateScript()
+        .Replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS ", StringComparison.Ordinal)
+        .Replace("CREATE UNIQUE INDEX ", "CREATE UNIQUE INDEX IF NOT EXISTS ", StringComparison.Ordinal)
+        .Replace("CREATE INDEX ", "CREATE INDEX IF NOT EXISTS ", StringComparison.Ordinal);
+    foreach (var statement in createScript.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+    {
+        if (statement.Equals("BEGIN TRANSACTION", StringComparison.OrdinalIgnoreCase) ||
+            statement.Equals("COMMIT", StringComparison.OrdinalIgnoreCase)) continue;
+        try { context.Database.ExecuteSqlRaw(statement); } catch { }
+    }
 }
 
 static void SeedSqliteEventCategories(ApplicationDbContext context)
