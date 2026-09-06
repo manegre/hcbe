@@ -74,13 +74,15 @@ Finance__Enabled=true
 Finance__Provider=Stripe
 Finance__SecretKey=<sealed-restricted-stripe-key>
 Finance__WebhookSecret=<sealed-whsec-signing-secret>
+Finance__ConnectWebhookSecret=<sealed-connected-account-whsec-signing-secret>
 Finance__AutomaticTaxEnabled=false
 Finance__MembershipGracePeriodDays=30
 Finance__MinimumDonationCents=500
 Finance__Currency=cad
+CommunityMarketplace__PlatformFeePercent=5
 ```
 
-Create the Stripe webhook at `https://api.hcbe.ca/api/finance/webhooks/stripe` and configure the Customer Portal before enabling payments. See [payments-membership.md](payments-membership.md) for the exact webhook events, first transaction/refund check, tax guardrails, and secret rotation procedure.
+Create the Stripe webhook at `https://api.hcbe.ca/api/finance/webhooks/stripe` and configure the Customer Portal before enabling payments. Connected-account delivery uses the same route with its own signing secret. See [payments-membership.md](payments-membership.md) and [community-commerce.md](community-commerce.md) for the exact webhook events, first transaction/refund check, Connect onboarding, tax guardrails, and secret rotation procedure.
 
 `DataProtection__KeyEncryptionKeys` protects the ASP.NET Data Protection key ring. In production the key ring is shared through the private Redis service, so restarts and multiple API replicas keep cookies and protected payloads valid. Generate this value with a cryptographically secure random source and seal it in Railway. For rotation, prepend the new Base64 key and retain the old one after a comma until every Data Protection key encrypted with it has expired.
 

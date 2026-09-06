@@ -50,33 +50,78 @@ public sealed class PrivacyService(
                 .Where(item => item.MemberId == memberId)
                 .Select(item => new
                 {
-                    item.Id, item.TicketNumber, item.Category, item.Subject, item.Description, item.Status,
-                    item.Priority, item.CreatedAt, item.UpdatedAt, item.LastResponseAt, item.ResolvedAt,
+                    item.Id,
+                    item.TicketNumber,
+                    item.Category,
+                    item.Subject,
+                    item.Description,
+                    item.Status,
+                    item.Priority,
+                    item.CreatedAt,
+                    item.UpdatedAt,
+                    item.LastResponseAt,
+                    item.ResolvedAt,
                     messages = item.Messages.Where(message => !message.IsInternal).Select(message => new
                     {
-                        message.Id, message.AuthorUserId, message.Body, message.CreatedAt
+                        message.Id,
+                        message.AuthorUserId,
+                        message.Body,
+                        message.CreatedAt
                     }),
                     attachments = item.Attachments.Where(attachment => !attachment.IsInternal).Select(attachment => new
                     {
-                        attachment.Id, attachment.FileName, attachment.Url, attachment.ContentType,
-                        attachment.SizeBytes, attachment.CreatedAt
+                        attachment.Id,
+                        attachment.FileName,
+                        attachment.Url,
+                        attachment.ContentType,
+                        attachment.SizeBytes,
+                        attachment.CreatedAt
                     })
                 }).ToListAsync(cancellationToken),
             membershipApplications = await context.MembershipApplications.AsNoTracking().Where(item => item.Email == user.Email).Select(item => new
             {
-                item.Id, item.FirstName, item.LastName, item.Email, item.Phone, item.City, item.Province,
-                item.Profession, item.Expertise, item.Motivation, item.Status, item.MemberId, item.CreatedAt, item.ReviewedAt
+                item.Id,
+                item.FirstName,
+                item.LastName,
+                item.Email,
+                item.Phone,
+                item.City,
+                item.Province,
+                item.Profession,
+                item.Expertise,
+                item.Motivation,
+                item.Status,
+                item.MemberId,
+                item.CreatedAt,
+                item.ReviewedAt
             }).ToListAsync(cancellationToken),
             publicSubmissions = await context.PublicSubmissions.AsNoTracking().Where(item => item.Email == user.Email).Select(item => new
             {
-                item.Id, item.Type, item.FirstName, item.LastName, item.Email, item.Phone,
-                item.Subject, item.City, item.Details, item.MetadataJson, item.Status,
-                item.CreatedAt, item.ReviewedAt
+                item.Id,
+                item.Type,
+                item.FirstName,
+                item.LastName,
+                item.Email,
+                item.Phone,
+                item.Subject,
+                item.City,
+                item.Details,
+                item.MetadataJson,
+                item.Status,
+                item.CreatedAt,
+                item.ReviewedAt
             }).ToListAsync(cancellationToken),
             newsletterSubscriptions = await context.NewsletterSubscriptions.AsNoTracking().Where(item => item.Email == user.Email).Select(item => new
             {
-                item.Id, item.Email, item.FullName, item.PreferredLanguage, item.ConsentAcceptedAt,
-                item.IsActive, item.Source, item.CreatedAt, item.UpdatedAt
+                item.Id,
+                item.Email,
+                item.FullName,
+                item.PreferredLanguage,
+                item.ConsentAcceptedAt,
+                item.IsActive,
+                item.Source,
+                item.CreatedAt,
+                item.UpdatedAt
             }).ToListAsync(cancellationToken),
             communicationConsents = await context.CommunicationConsentEvents.AsNoTracking()
                 .Where(item => item.UserId == userId || item.Email == user.Email)
@@ -86,8 +131,12 @@ public sealed class PrivacyService(
                 .Where(item => item.Recipient == user.Email)
                 .Select(item => new
                 {
-                    item.CampaignId, item.QueuedAtUtc, item.FirstOpenedAtUtc,
-                    item.LastOpenedAtUtc, item.OpenCount, item.UnsubscribedAtUtc
+                    item.CampaignId,
+                    item.QueuedAtUtc,
+                    item.FirstOpenedAtUtc,
+                    item.LastOpenedAtUtc,
+                    item.OpenCount,
+                    item.UnsubscribedAtUtc
                 }).ToListAsync(cancellationToken),
             consultationComments = await context.ConsultationComments.AsNoTracking()
                 .Where(item => item.UserId == userId)
@@ -100,15 +149,108 @@ public sealed class PrivacyService(
                 .Select(item => new { item.ConsultationId, item.OptionId, item.CastAtUtc }).ToListAsync(cancellationToken),
             membershipStanding = await context.MembershipStandings.AsNoTracking().Where(item => item.UserId == userId).Select(item => new
             {
-                item.Status, item.PlanId, item.CurrentPeriodStartUtc, item.CurrentPeriodEndUtc,
-                item.GraceEndsAtUtc, item.AutoRenew, item.UpdatedAtUtc
+                item.Status,
+                item.PlanId,
+                item.CurrentPeriodStartUtc,
+                item.CurrentPeriodEndUtc,
+                item.GraceEndsAtUtc,
+                item.AutoRenew,
+                item.UpdatedAtUtc
             }).SingleOrDefaultAsync(cancellationToken),
             financialTransactions = await context.FinancialTransactions.AsNoTracking().Where(item => item.UserId == userId || item.PayerEmail == user.Email).Select(item => new
             {
-                item.Id, item.Kind, item.Status, item.AmountCents, item.RefundedAmountCents, item.Currency,
-                item.ReceiptNumber, item.MembershipPlanId, item.DonationCampaignId, item.IsRecurring,
-                item.IsAnonymous, item.AllowPublicRecognition, item.CreatedAtUtc, item.PaidAtUtc, item.RefundedAtUtc
-            }).ToListAsync(cancellationToken)
+                item.Id,
+                item.Kind,
+                item.Status,
+                item.AmountCents,
+                item.RefundedAmountCents,
+                item.Currency,
+                item.ReceiptNumber,
+                item.MembershipPlanId,
+                item.DonationCampaignId,
+                item.IsRecurring,
+                item.IsAnonymous,
+                item.AllowPublicRecognition,
+                item.CreatedAtUtc,
+                item.PaidAtUtc,
+                item.RefundedAtUtc
+            }).ToListAsync(cancellationToken),
+            ticketOrders = await context.EventTicketOrders.AsNoTracking()
+                .Where(item => item.UserId == userId || item.BuyerEmail == user.Email)
+                .Select(item => new
+                {
+                    item.Id,
+                    item.EventId,
+                    item.OrderNumber,
+                    item.BuyerName,
+                    item.BuyerEmail,
+                    item.Status,
+                    item.Currency,
+                    item.SubtotalCents,
+                    item.DiscountCents,
+                    item.PlatformFeeCents,
+                    item.TotalCents,
+                    item.RefundedAmountCents,
+                    item.CreatedAtUtc,
+                    item.PaidAtUtc,
+                    item.RefundedAtUtc,
+                    tickets = item.Tickets.Select(ticket => new
+                    {
+                        ticket.Id,
+                        ticket.TierId,
+                        ticket.TicketCode,
+                        ticket.AttendeeName,
+                        ticket.AttendeeEmail,
+                        ticket.Status,
+                        ticket.IssuedAtUtc,
+                        ticket.CheckedInAtUtc,
+                        ticket.TransferredAtUtc
+                    })
+                }).ToListAsync(cancellationToken),
+            organizerProfile = await context.CommunityOrganizers.AsNoTracking()
+                .Where(item => item.UserId == userId)
+                .Select(item => new
+                {
+                    item.Id,
+                    item.DisplayName,
+                    item.DisplayNameEn,
+                    item.ContactEmail,
+                    item.ContactPhone,
+                    item.WebsiteUrl,
+                    item.Description,
+                    item.DescriptionEn,
+                    item.Status,
+                    item.CreatedAtUtc,
+                    item.UpdatedAtUtc,
+                    item.ReviewedAtUtc
+                }).SingleOrDefaultAsync(cancellationToken),
+            advertisingCampaigns = await context.AdvertisingCampaigns.AsNoTracking()
+                .Where(item => item.SubmittedByUserId == userId || item.ContactEmail == user.Email)
+                .Select(item => new
+                {
+                    item.Id,
+                    item.AdvertiserName,
+                    item.ContactEmail,
+                    item.Title,
+                    item.TitleEn,
+                    item.Body,
+                    item.BodyEn,
+                    item.ImageUrl,
+                    item.DestinationUrl,
+                    item.Placements,
+                    item.TargetLanguage,
+                    item.TargetProvince,
+                    item.TargetZone,
+                    item.Status,
+                    item.BudgetCents,
+                    item.Currency,
+                    item.ImpressionCount,
+                    item.ClickCount,
+                    item.StartsAtUtc,
+                    item.EndsAtUtc,
+                    item.CreatedAtUtc,
+                    item.UpdatedAtUtc
+                }).ToListAsync(cancellationToken)
         };
 
         return JsonSerializer.SerializeToUtf8Bytes(export, new JsonSerializerOptions
@@ -458,6 +600,46 @@ public sealed class PrivacyService(
             item.AllowPublicRecognition = false;
             item.ReceiptToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
             item.UpdatedAtUtc = DateTime.UtcNow;
+        }
+        // Ticket accounting is retained for reconciliation and refunds, while all
+        // attendee identifiers and bearer access tokens are irreversibly replaced.
+        var ticketOrders = await context.EventTicketOrders
+            .Include(item => item.Tickets)
+            .Where(item => item.UserId == user.Id || item.BuyerEmail == originalEmail)
+            .ToListAsync(cancellationToken);
+        foreach (var order in ticketOrders)
+        {
+            order.UserId = null;
+            order.BuyerName = "Deleted member";
+            order.BuyerEmail = anonymousEmail;
+            order.AccessToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
+            order.UpdatedAtUtc = DateTime.UtcNow;
+            foreach (var ticket in order.Tickets)
+            {
+                ticket.AttendeeName = "Deleted member";
+                ticket.AttendeeEmail = anonymousEmail;
+            }
+        }
+        var organizer = await context.CommunityOrganizers.SingleOrDefaultAsync(item => item.UserId == user.Id, cancellationToken);
+        if (organizer != null)
+        {
+            organizer.ContactEmail = anonymousEmail;
+            organizer.ContactPhone = null;
+            organizer.Description = null;
+            organizer.DescriptionEn = null;
+            organizer.ReviewNotes = null;
+            organizer.Status = OrganizerStatuses.Suspended;
+            organizer.UpdatedAtUtc = DateTime.UtcNow;
+        }
+        foreach (var campaign in await context.AdvertisingCampaigns
+                     .Where(item => item.SubmittedByUserId == user.Id || item.ContactEmail == originalEmail)
+                     .ToListAsync(cancellationToken))
+        {
+            campaign.SubmittedByUserId = null;
+            campaign.ContactEmail = anonymousEmail;
+            campaign.Status = "Paused";
+            campaign.ReviewNotes = null;
+            campaign.UpdatedAtUtc = DateTime.UtcNow;
         }
         foreach (var item in await context.AuditLogs.Where(item => item.UserId == user.Id || item.UserEmail == originalEmail).ToListAsync(cancellationToken))
         {

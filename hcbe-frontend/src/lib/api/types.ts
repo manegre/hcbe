@@ -241,6 +241,11 @@ export interface Event {
   confirmedRegistrationCount: number;
   waitlistCount: number;
   remainingCapacity?: number;
+  ticketingEnabled: boolean;
+  salesModel: 'HCBE' | 'Community';
+  communityOrganizerId?: string;
+  communityOrganizerName?: string;
+  platformFeePercent: number;
 }
 
 export type EventRegistrationStatus = 'Confirmed' | 'Waitlisted' | 'Cancelled' | 'Attended' | 'NoShow';
@@ -330,6 +335,11 @@ export interface CreateEventRequest {
   registrationMode?: 'Disabled' | 'External' | 'Native';
   allowWaitlist?: boolean;
   restrictMeetingLinkToRegistrants?: boolean;
+  ticketingEnabled?: boolean;
+  salesModel?: 'HCBE' | 'Community';
+  communityOrganizerId?: string;
+  platformFeePercent?: number;
+  clearCommunityOrganizer?: boolean;
 }
 
 export interface UpdateEventRequest {
@@ -358,6 +368,66 @@ export interface UpdateEventRequest {
   registrationMode?: 'Disabled' | 'External' | 'Native';
   allowWaitlist?: boolean;
   restrictMeetingLinkToRegistrants?: boolean;
+  ticketingEnabled?: boolean;
+  salesModel?: 'HCBE' | 'Community';
+  communityOrganizerId?: string;
+  clearCommunityOrganizer?: boolean;
+  platformFeePercent?: number;
+}
+
+export interface EventTicketTier {
+  id: string; eventId: string; name: string; nameEn?: string; description?: string; descriptionEn?: string;
+  priceCents: number; currency: string; quantity: number; soldQuantity: number; reservedQuantity: number; availableQuantity: number;
+  maxPerOrder: number; salesStartUtc?: string; salesEndUtc?: string; isActive: boolean; displayOrder: number;
+}
+
+export interface EventPromoCode {
+  id: string; eventId: string; code: string; percentOff: number; amountOffCents?: number;
+  maxRedemptions?: number; redemptionCount: number; startsAtUtc?: string; endsAtUtc?: string; isActive: boolean;
+}
+
+export interface EventTicket {
+  id: string; ticketCode: string; tierId: string; tierName: string; tierNameEn?: string;
+  attendeeName: string; attendeeEmail: string; status: string; issuedAtUtc: string;
+  checkedInAtUtc?: string; transferredAtUtc?: string;
+}
+
+export interface EventTicketOrderItem {
+  id: string; tierId: string; tierName: string; tierNameEn?: string; quantity: number; unitPriceCents: number; lineTotalCents: number;
+}
+
+export interface EventTicketOrder {
+  id: string; eventId: string; eventTitle: string; eventTitleEn?: string; buyerName: string; buyerEmail: string;
+  status: string; currency: string; subtotalCents: number; discountCents: number; platformFeeCents: number;
+  totalCents: number; refundedAmountCents: number; orderNumber: string; checkoutUrl?: string; ticketPdfUrl?: string;
+  createdAtUtc: string; paidAtUtc?: string; items: EventTicketOrderItem[]; tickets: EventTicket[];
+}
+
+export interface TicketCheckout {
+  orderId: string; status: string; checkoutUrl?: string; sessionId: string; orderNumber: string; accessToken: string; ticketPdfUrl?: string;
+}
+
+export interface TicketingDashboard {
+  orders: number; ticketsSold: number; checkedIn: number; grossRevenueCents: number; refundedAmountCents: number; currency: string; recentOrders: EventTicketOrder[];
+}
+
+export interface CommunityOrganizer {
+  id: string; userId: string; displayName: string; displayNameEn?: string; contactEmail: string; contactPhone?: string;
+  websiteUrl?: string; description?: string; descriptionEn?: string; status: 'Pending' | 'Approved' | 'Rejected' | 'Suspended';
+  reviewNotes?: string; hasStripeAccount: boolean; stripeDetailsSubmitted: boolean; stripeChargesEnabled: boolean;
+  stripePayoutsEnabled: boolean; createdAtUtc: string; updatedAtUtc: string; reviewedAtUtc?: string;
+}
+
+export interface AdvertisingCampaign {
+  id: string; organizerId?: string; advertiserName: string; contactEmail: string; title: string; titleEn?: string;
+  body: string; bodyEn?: string; imageUrl?: string; destinationUrl: string; placements: string[]; targetLanguage?: string;
+  targetProvince?: string; targetZone?: string; status: string; reviewNotes?: string; budgetCents: number; currency: string;
+  impressionCount: number; clickCount: number; startsAtUtc: string; endsAtUtc: string; createdAtUtc: string; updatedAtUtc: string; reviewedAtUtc?: string;
+}
+
+export interface OrganizerEvent {
+  id: string; title: string; titleEn?: string; date: string; location?: string; format: string; status: string;
+  priceCents: number; currency: string; ticketQuantity: number; ticketsSold: number; createdAtUtc: string;
 }
 
 export interface EventCategory {

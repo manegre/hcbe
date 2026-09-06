@@ -3,6 +3,7 @@ import Footer from '../../components/feature/Footer';
 import ServicesHero from './components/ServicesHero';
 import { SectionHeading } from '../../components/ui';
 import { ServiceNav } from './components/ServiceNav';
+import { CommunityAdSlot } from '../../components/feature/CommunityAdSlot';
 
 const ServicesPage = () => {
   const { t } = useTranslation();
@@ -70,6 +71,7 @@ const ServicesPage = () => {
               </Link>
             ))}
           </div>
+          <CommunityAdSlot placement="Services" className="mt-10" />
         </div>
         </section>
       </main>

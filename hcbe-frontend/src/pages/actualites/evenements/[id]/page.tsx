@@ -15,6 +15,7 @@ import { formatEventDateTime } from '../../../../lib/events/timezone';
 import { localized, localizedOptional } from '../../../../lib/i18n/localized';
 import { isImageFile } from '../../../../lib/media/is-image-file';
 import { EventRegistrationPanel } from '../../../../components/events/EventRegistrationPanel';
+import { EventTicketPurchasePanel } from '../../../../components/events/EventTicketPurchasePanel';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { engagementApi } from '../../../../lib/api/engagement';
 
@@ -393,7 +394,7 @@ export const EventDetailPage: React.FC = () => {
 
           <aside className="order-1 lg:order-2 lg:col-span-4">
             <div className="lg:sticky lg:top-24">
-              <section className="relative overflow-hidden bg-green-deep p-6 text-white sm:p-8" aria-labelledby="registration-title">
+              {event.ticketingEnabled && !isPast ? <EventTicketPurchasePanel event={event} /> : <section className="relative overflow-hidden bg-green-deep p-6 text-white sm:p-8" aria-labelledby="registration-title">
                 <div className="absolute right-0 top-0 h-24 w-24 translate-x-8 -translate-y-8 rounded-full border-[18px] border-white/5" aria-hidden="true" />
                 <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-gold">{statusLabel}</p>
                 <h2 id="registration-title" className="mt-2 font-display text-[27px] font-bold leading-tight text-white">{t('public.news.evenements.detail.registration')}</h2>
@@ -405,7 +406,7 @@ export const EventDetailPage: React.FC = () => {
                 )}
                 {isAuthenticated && user?.memberId && <button type="button" onClick={toggleSaved} className={`mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-control border text-[10px] font-bold uppercase tracking-[.11em] transition ${saved ? 'border-gold bg-gold text-green-deep' : 'border-white/20 text-white hover:border-gold hover:text-gold'}`}><i className={saved ? 'ri-bookmark-fill' : 'ri-bookmark-line'} />{saved ? (i18n.language.startsWith('fr') ? 'Événement enregistré' : 'Event saved') : (i18n.language.startsWith('fr') ? 'Enregistrer pour plus tard' : 'Save for later')}</button>}
                 <EventRegistrationPanel event={event} isPast={isPast} externalLabel={actionLabel} />
-              </section>
+              </section>}
 
               <section className="border-x border-b border-line bg-background px-6 py-7 sm:px-8" aria-labelledby="practical-title">
                 <h2 id="practical-title" className="font-display text-[23px] font-bold text-green">{t('public.news.evenements.detail.practical')}</h2>

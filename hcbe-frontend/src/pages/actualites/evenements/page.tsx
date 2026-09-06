@@ -13,6 +13,7 @@ import { localized, localizedOptional } from '../../../lib/i18n/localized';
 import { ArrowLink, EmptyState, PageHeader, StatusChip, Tag } from '../../../components/ui';
 import { getEventCategoryLabel, useEventCategories } from '../../../lib/events/categories';
 import { formatEventDateTime } from '../../../lib/events/timezone';
+import { CommunityAdSlot } from '../../../components/feature/CommunityAdSlot';
 
 type PublicFilter = 'current' | 'past' | 'all';
 
@@ -125,6 +126,7 @@ export const EvenementsPage = () => {
               ))}
             </nav>
           </div>
+          <CommunityAdSlot placement="Events" className="mt-8" />
 
           {error ? (
             <div className="mt-10">

@@ -90,6 +90,7 @@ export default {
   'admin.nav.groups.members': 'Membres',
   'admin.nav.groups.administration': 'Administration',
   'admin.nav.finance': 'Finances et adhésions',
+  'admin.nav.marketplace': 'Organisateurs et publicité',
 
   'admin.nav.dashboard': 'Tableau de bord',
   'admin.nav.monitoring': 'Surveillance',

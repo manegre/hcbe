@@ -12,6 +12,7 @@ import { EventAttachmentsManager } from '../../../../components/admin/EventAttac
 import { getEventCategoryLabel, useEventCategories } from '../../../../lib/events/categories';
 import { formatEventDateTime } from '../../../../lib/events/timezone';
 import { EventRegistrationsManager } from '../../../../components/admin/EventRegistrationsManager';
+import { EventTicketingManager } from '../../../../components/admin/EventTicketingManager';
 
 const eventLifecycleChipStatus = (event: Event): 'published' | 'draft' | 'past' | 'rejected' => {
   const lifecycle = getEventLifecycle(event);
@@ -243,6 +244,7 @@ export const ViewEventPage: React.FC = () => {
           )}
 
           {event.registrationMode === 'Native' && <EventRegistrationsManager eventId={event.id} />}
+          {event.ticketingEnabled && <EventTicketingManager eventId={event.id} />}
 
           <EventAttachmentsManager
             eventId={event.id}

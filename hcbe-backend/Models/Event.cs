@@ -24,6 +24,11 @@ public class Event
     public string RegistrationMode { get; set; } = "External";
     public bool AllowWaitlist { get; set; } = true;
     public bool RestrictMeetingLinkToRegistrants { get; set; }
+    public bool TicketingEnabled { get; set; }
+    public string SalesModel { get; set; } = "HCBE";
+    public Guid? CommunityOrganizerId { get; set; }
+    public CommunityOrganizer? CommunityOrganizer { get; set; }
+    public int PlatformFeePercent { get; set; }
     public string? ImageUrl { get; set; }
     public string Status { get; set; } = "À venir";
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -34,5 +39,8 @@ public class Event
     public ICollection<EventAttachment> Attachments { get; set; } = new List<EventAttachment>();
     public ICollection<EventRegistration> Registrations { get; set; } = new List<EventRegistration>();
     public ICollection<EventCommunication> Communications { get; set; } = new List<EventCommunication>();
+    public ICollection<EventTicketTier> TicketTiers { get; set; } = new List<EventTicketTier>();
+    public ICollection<EventPromoCode> PromoCodes { get; set; } = new List<EventPromoCode>();
+    public ICollection<EventTicketOrder> TicketOrders { get; set; } = new List<EventTicketOrder>();
 }
 

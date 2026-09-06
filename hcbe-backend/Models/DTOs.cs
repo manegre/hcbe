@@ -309,7 +309,12 @@ public record EventDto(
     bool RestrictMeetingLinkToRegistrants,
     int ConfirmedRegistrationCount,
     int WaitlistCount,
-    int? RemainingCapacity);
+    int? RemainingCapacity,
+    bool TicketingEnabled,
+    string SalesModel,
+    Guid? CommunityOrganizerId,
+    string? CommunityOrganizerName,
+    int PlatformFeePercent);
 
 public record EventRegistrationDto(
     Guid Id,
@@ -405,7 +410,11 @@ public record CreateEventRequest(
     List<string>? Organizers = null,
     string? RegistrationMode = null,
     bool AllowWaitlist = true,
-    bool RestrictMeetingLinkToRegistrants = false);
+    bool RestrictMeetingLinkToRegistrants = false,
+    bool TicketingEnabled = false,
+    string? SalesModel = null,
+    Guid? CommunityOrganizerId = null,
+    [Range(0, 25)] int PlatformFeePercent = 0);
 
 public record UpdateEventRequest(
     string? Title, string? Description, DateTime? Date, string? Location,
@@ -424,7 +433,12 @@ public record UpdateEventRequest(
     List<string>? Organizers = null,
     string? RegistrationMode = null,
     bool? AllowWaitlist = null,
-    bool? RestrictMeetingLinkToRegistrants = null);
+    bool? RestrictMeetingLinkToRegistrants = null,
+    bool? TicketingEnabled = null,
+    string? SalesModel = null,
+    Guid? CommunityOrganizerId = null,
+    bool ClearCommunityOrganizer = false,
+    [Range(0, 25)] int? PlatformFeePercent = null);
 
 public record EventCategoryDto(
     Guid Id,

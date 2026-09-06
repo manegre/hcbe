@@ -248,6 +248,86 @@ public sealed class PrivacyServiceTests
         transaction.PayerEmail.Should().EndWith("@invalid.local");
     }
 
+    [Fact]
+    public async Task PrivacyLifecycle_ExportsAndAnonymizesCommerceData()
+    {
+        await using var context = TestDbContextFactory.CreateInMemoryContext();
+        var user = new User { Email = "organizer@example.com", FirstName = "Community", LastName = "Organizer", PasswordHash = "hash", IsActive = true };
+        var organizer = new CommunityOrganizer
+        {
+            User = user,
+            UserId = user.Id,
+            DisplayName = "Festival communautaire",
+            ContactEmail = user.Email,
+            ContactPhone = "5145550100",
+            Description = "Personal organizer biography",
+            Status = OrganizerStatuses.Approved,
+            StripeAccountId = "acct_retained_for_refunds"
+        };
+        var eventEntity = new Event
+        {
+            Title = "Festival test",
+            Date = DateTime.UtcNow.AddMonths(2),
+            Status = "Draft",
+            TicketingEnabled = true,
+            CommunityOrganizer = organizer,
+            CommunityOrganizerId = organizer.Id
+        };
+        var tier = new EventTicketTier { Event = eventEntity, EventId = eventEntity.Id, Name = "Admission", Quantity = 100, PriceCents = 2500 };
+        var order = new EventTicketOrder
+        {
+            Event = eventEntity,
+            EventId = eventEntity.Id,
+            User = user,
+            UserId = user.Id,
+            BuyerName = "Community Organizer",
+            BuyerEmail = user.Email,
+            Status = TicketOrderStatuses.Paid,
+            OrderNumber = "HCBE-COMMERCE-PRIVACY",
+            AccessToken = "personal-access-token",
+            TotalCents = 2500
+        };
+        var ticket = new EventTicket { Order = order, OrderId = order.Id, Tier = tier, TierId = tier.Id, TicketCode = "PERSONAL-QR-CODE", AttendeeName = "Community Organizer", AttendeeEmail = user.Email };
+        var ad = new AdvertisingCampaign
+        {
+            SubmittedByUser = user,
+            SubmittedByUserId = user.Id,
+            Organizer = organizer,
+            OrganizerId = organizer.Id,
+            AdvertiserName = "Festival communautaire",
+            ContactEmail = user.Email,
+            Title = "Festival",
+            Body = "Join us",
+            DestinationUrl = "https://example.com",
+            Status = "Approved",
+            StartsAtUtc = DateTime.UtcNow,
+            EndsAtUtc = DateTime.UtcNow.AddDays(7)
+        };
+        context.AddRange(user, organizer, eventEntity, tier, order, ticket, ad);
+        await context.SaveChangesAsync();
+
+        var service = CreateService(context);
+        var exported = Encoding.UTF8.GetString((await service.ExportAsync(user.Id, CancellationToken.None))!);
+        exported.Should().Contain("HCBE-COMMERCE-PRIVACY");
+        exported.Should().Contain("Festival communautaire");
+
+        context.PrivacyRequests.Add(new PrivacyRequest { UserId = user.Id, ExecuteAfterUtc = DateTime.UtcNow.AddMinutes(-1) });
+        await context.SaveChangesAsync();
+        (await service.ProcessDueDeletionsAsync(CancellationToken.None)).Should().Be(1);
+
+        order.UserId.Should().BeNull();
+        order.BuyerName.Should().Be("Deleted member");
+        order.BuyerEmail.Should().EndWith("@invalid.local");
+        order.AccessToken.Should().NotBe("personal-access-token");
+        ticket.AttendeeName.Should().Be("Deleted member");
+        organizer.Status.Should().Be(OrganizerStatuses.Suspended);
+        organizer.ContactPhone.Should().BeNull();
+        organizer.StripeAccountId.Should().Be("acct_retained_for_refunds");
+        ad.SubmittedByUserId.Should().BeNull();
+        ad.ContactEmail.Should().EndWith("@invalid.local");
+        ad.Status.Should().Be("Paused");
+    }
+
     private static PrivacyService CreateService(HcbeApi.Data.ApplicationDbContext context, IFileStorageService? fileStorage = null, IPaymentGateway? paymentGateway = null)
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>

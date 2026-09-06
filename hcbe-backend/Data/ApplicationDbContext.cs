@@ -100,6 +100,13 @@ public class ApplicationDbContext : DbContext
     public DbSet<SecurityIncident> SecurityIncidents { get; set; }
     public DbSet<AdminAccessReview> AdminAccessReviews { get; set; }
     public DbSet<WebPushSubscription> WebPushSubscriptions { get; set; }
+    public DbSet<CommunityOrganizer> CommunityOrganizers { get; set; }
+    public DbSet<EventTicketTier> EventTicketTiers { get; set; }
+    public DbSet<EventPromoCode> EventPromoCodes { get; set; }
+    public DbSet<EventTicketOrder> EventTicketOrders { get; set; }
+    public DbSet<EventTicketOrderItem> EventTicketOrderItems { get; set; }
+    public DbSet<EventTicket> EventTickets { get; set; }
+    public DbSet<AdvertisingCampaign> AdvertisingCampaigns { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -271,6 +278,41 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<PaymentWebhookEvent>().HasIndex(item => new { item.Status, item.ReceivedAtUtc });
         modelBuilder.Entity<PaymentWebhookEvent>().Property(item => item.ProviderEventId).HasMaxLength(255);
         modelBuilder.Entity<PaymentWebhookEvent>().Property(item => item.EventType).HasMaxLength(120);
+
+        modelBuilder.Entity<CommunityOrganizer>().HasOne(item => item.User).WithOne().HasForeignKey<CommunityOrganizer>(item => item.UserId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<CommunityOrganizer>().HasIndex(item => item.UserId).IsUnique();
+        modelBuilder.Entity<CommunityOrganizer>().HasIndex(item => item.StripeAccountId).IsUnique();
+        modelBuilder.Entity<CommunityOrganizer>().HasIndex(item => item.Status);
+        modelBuilder.Entity<CommunityOrganizer>().Property(item => item.Status).HasMaxLength(30);
+
+        modelBuilder.Entity<Event>().HasOne(item => item.CommunityOrganizer).WithMany(item => item.Events).HasForeignKey(item => item.CommunityOrganizerId).OnDelete(DeleteBehavior.SetNull);
+        modelBuilder.Entity<Event>().Property(item => item.SalesModel).HasMaxLength(20);
+        modelBuilder.Entity<EventTicketTier>().HasOne(item => item.Event).WithMany(item => item.TicketTiers).HasForeignKey(item => item.EventId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<EventTicketTier>().HasIndex(item => new { item.EventId, item.DisplayOrder });
+        modelBuilder.Entity<EventTicketTier>().Property(item => item.Currency).HasMaxLength(3);
+        modelBuilder.Entity<EventPromoCode>().HasOne(item => item.Event).WithMany(item => item.PromoCodes).HasForeignKey(item => item.EventId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<EventPromoCode>().HasIndex(item => new { item.EventId, item.Code }).IsUnique();
+        modelBuilder.Entity<EventTicketOrder>().HasOne(item => item.Event).WithMany(item => item.TicketOrders).HasForeignKey(item => item.EventId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<EventTicketOrder>().HasOne(item => item.User).WithMany().HasForeignKey(item => item.UserId).OnDelete(DeleteBehavior.SetNull);
+        modelBuilder.Entity<EventTicketOrder>().HasOne(item => item.PromoCode).WithMany().HasForeignKey(item => item.PromoCodeId).OnDelete(DeleteBehavior.SetNull);
+        modelBuilder.Entity<EventTicketOrder>().HasIndex(item => item.OrderNumber).IsUnique();
+        modelBuilder.Entity<EventTicketOrder>().HasIndex(item => item.AccessToken).IsUnique();
+        modelBuilder.Entity<EventTicketOrder>().HasIndex(item => item.StripeCheckoutSessionId).IsUnique();
+        modelBuilder.Entity<EventTicketOrder>().HasIndex(item => new { item.EventId, item.Status, item.CreatedAtUtc });
+        modelBuilder.Entity<EventTicketOrder>().Property(item => item.Status).HasMaxLength(30);
+        modelBuilder.Entity<EventTicketOrder>().Property(item => item.Currency).HasMaxLength(3);
+        modelBuilder.Entity<EventTicketOrderItem>().HasOne(item => item.Order).WithMany(item => item.Items).HasForeignKey(item => item.OrderId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<EventTicketOrderItem>().HasOne(item => item.Tier).WithMany(item => item.OrderItems).HasForeignKey(item => item.TierId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<EventTicket>().HasOne(item => item.Order).WithMany(item => item.Tickets).HasForeignKey(item => item.OrderId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<EventTicket>().HasOne(item => item.Tier).WithMany().HasForeignKey(item => item.TierId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<EventTicket>().HasIndex(item => item.TicketCode).IsUnique();
+        modelBuilder.Entity<EventTicket>().HasIndex(item => new { item.OrderId, item.Status });
+
+        modelBuilder.Entity<AdvertisingCampaign>().HasOne(item => item.SubmittedByUser).WithMany().HasForeignKey(item => item.SubmittedByUserId).OnDelete(DeleteBehavior.SetNull);
+        modelBuilder.Entity<AdvertisingCampaign>().HasOne(item => item.Organizer).WithMany().HasForeignKey(item => item.OrganizerId).OnDelete(DeleteBehavior.SetNull);
+        modelBuilder.Entity<AdvertisingCampaign>().HasIndex(item => new { item.Status, item.StartsAtUtc, item.EndsAtUtc });
+        modelBuilder.Entity<AdvertisingCampaign>().Property(item => item.Status).HasMaxLength(30);
+        modelBuilder.Entity<AdvertisingCampaign>().Property(item => item.Currency).HasMaxLength(3);
 
         modelBuilder.Entity<PasswordResetToken>()
             .HasOne(token => token.User)

@@ -352,6 +352,14 @@ builder.Services.AddSingleton<IGoogleIdentityTokenValidator, GoogleIdentityToken
 builder.Services.AddScoped<IMemberService, MemberService>();
 builder.Services.AddScoped<IEventService, EventService>();
 builder.Services.AddScoped<IEventRegistrationService, EventRegistrationService>();
+builder.Services.AddScoped<IEventCommerceService, EventCommerceService>();
+builder.Services.AddScoped<ICommunityMarketplaceService, CommunityMarketplaceService>();
+builder.Services.AddScoped<IStripeConnectGateway, StripeConnectGateway>();
+builder.Services.AddHttpClient("StripeConnect", client =>
+{
+    client.BaseAddress = new Uri("https://api.stripe.com/");
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
 builder.Services.AddScoped<IServiceCaseService, ServiceCaseService>();
 builder.Services.AddScoped<IEventCategoryService, EventCategoryService>();
 builder.Services.AddScoped<IAssociationService, AssociationService>();
@@ -1323,6 +1331,8 @@ app.MapMemberEndpoints();
 app.MapMembershipApplicationEndpoints();
 app.MapNewsletterEndpoints();
 app.MapEventEndpoints();
+app.MapEventCommerceEndpoints();
+app.MapCommunityMarketplaceEndpoints();
 app.MapEventCategoryEndpoints();
 app.MapServiceCaseEndpoints();
 app.MapAssociationEndpoints();

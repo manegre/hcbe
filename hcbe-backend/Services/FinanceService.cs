@@ -546,6 +546,12 @@ public sealed class FinanceService(
 
     private async Task ApplyWebhookAsync(string eventType, JsonElement root, CancellationToken cancellationToken)
     {
+        var ticketOrderIdValue = Nested(root, "metadata", "hcbe_ticket_order_id");
+        if (Guid.TryParse(ticketOrderIdValue, out var ticketOrderId))
+        {
+            await ApplyTicketWebhookAsync(eventType, root, ticketOrderId, cancellationToken);
+            return;
+        }
         if (eventType is "checkout.session.completed" or "checkout.session.async_payment_succeeded")
         {
             var id = Nested(root, "metadata", "hcbe_transaction_id");
@@ -639,7 +645,25 @@ public sealed class FinanceService(
         {
             var intentId = Id(root, "payment_intent");
             var transaction = await context.FinancialTransactions.SingleOrDefaultAsync(item => item.StripePaymentIntentId == intentId, cancellationToken);
-            if (transaction == null) return;
+            if (transaction == null)
+            {
+                var ticketOrder = await context.EventTicketOrders.Include(item => item.Tickets).SingleOrDefaultAsync(item => item.StripePaymentIntentId == intentId, cancellationToken);
+                if (ticketOrder == null) return;
+                if (eventType == "charge.dispute.created")
+                {
+                    ticketOrder.Status = FinanceStatuses.Disputed;
+                    context.Notifications.Add(new Notification { Type = "finance-alert", Title = "Litige de billetterie", Message = $"La commande {ticketOrder.OrderNumber} fait l’objet d’un litige Stripe.", Link = $"/admin/events/{ticketOrder.EventId}", RelatedEntityId = ticketOrder.Id });
+                }
+                else
+                {
+                    ticketOrder.RefundedAmountCents = Long(root, "amount_refunded") ?? ticketOrder.TotalCents;
+                    ticketOrder.Status = ticketOrder.RefundedAmountCents >= ticketOrder.TotalCents ? TicketOrderStatuses.Refunded : TicketOrderStatuses.PartiallyRefunded;
+                    ticketOrder.RefundedAtUtc = DateTime.UtcNow;
+                    if (ticketOrder.Status == TicketOrderStatuses.Refunded) foreach (var ticket in ticketOrder.Tickets.Where(item => item.Status == "Valid")) ticket.Status = "Refunded";
+                }
+                ticketOrder.UpdatedAtUtc = DateTime.UtcNow;
+                return;
+            }
             if (eventType == "charge.dispute.created")
             {
                 transaction.Status = FinanceStatuses.Disputed;
@@ -658,6 +682,40 @@ public sealed class FinanceService(
             }
             transaction.UpdatedAtUtc = DateTime.UtcNow;
         }
+    }
+
+    private async Task ApplyTicketWebhookAsync(string eventType, JsonElement root, Guid orderId, CancellationToken cancellationToken)
+    {
+        var order = await context.EventTicketOrders.Include(item => item.Event).Include(item => item.Items).Include(item => item.Tickets).Include(item => item.PromoCode)
+            .SingleOrDefaultAsync(item => item.Id == orderId, cancellationToken);
+        if (order == null) return;
+        if (eventType is "checkout.session.expired" or "checkout.session.async_payment_failed")
+        {
+            if (order.Status == TicketOrderStatuses.Pending) { order.Status = TicketOrderStatuses.Failed; order.FailureReason = eventType; order.UpdatedAtUtc = DateTime.UtcNow; }
+            return;
+        }
+        if (eventType is not ("checkout.session.completed" or "checkout.session.async_payment_succeeded")) return;
+        if (eventType == "checkout.session.completed" && String(root, "payment_status") is not ("paid" or "no_payment_required"))
+        {
+            order.StripeCheckoutSessionId = String(root, "id") ?? order.StripeCheckoutSessionId; order.UpdatedAtUtc = DateTime.UtcNow; return;
+        }
+        if (order.Status is TicketOrderStatuses.Paid or TicketOrderStatuses.PartiallyRefunded or TicketOrderStatuses.Refunded) return;
+        order.StripeCheckoutSessionId = String(root, "id") ?? order.StripeCheckoutSessionId;
+        order.StripePaymentIntentId = Id(root, "payment_intent");
+        order.TotalCents = Long(root, "amount_total") ?? order.TotalCents;
+        order.Status = TicketOrderStatuses.Paid; order.PaidAtUtc = DateTime.UtcNow; order.UpdatedAtUtc = DateTime.UtcNow;
+        if (order.Tickets.Count == 0)
+        {
+            foreach (var line in order.Items)
+                for (var index = 0; index < line.Quantity; index++)
+                    order.Tickets.Add(new EventTicket { TierId = line.TierId, TicketCode = $"TKT-{Convert.ToHexString(RandomNumberGenerator.GetBytes(6))}", AttendeeName = order.BuyerName, AttendeeEmail = order.BuyerEmail });
+            if (order.PromoCode != null) order.PromoCode.RedemptionCount++;
+        }
+        var ticketUrl = $"{PublicApiUrl}/api/event-commerce/orders/{order.AccessToken}/tickets.pdf";
+        var orderUrl = $"{PublicAppUrl}/billets/commande/{order.AccessToken}";
+        var email = emailRenderer.EventMessage(order.BuyerName, order.Event.Title, "Vos billets / Your tickets", $"Commande {order.OrderNumber} confirmée. Vos billets PDF sont prêts : {ticketUrl}", orderUrl);
+        emailOutbox.Enqueue(order.BuyerEmail, email.Subject, email.HtmlBody, nameof(EventTicketOrder), order.Id);
+        if (order.UserId is Guid userId) context.Notifications.Add(new Notification { UserId = userId, Type = "ticket", Title = "Billets confirmés / Tickets confirmed", Message = $"{order.Event.Title} — {order.OrderNumber}", Link = orderUrl, RelatedEntityId = order.Id });
     }
 
     private async Task CompletePaidTransactionAsync(FinancialTransaction transaction, CancellationToken cancellationToken)

@@ -22,6 +22,13 @@ public sealed class StripePaymentGateway : IPaymentGateway
     public async Task<PaymentCheckoutResult> CreateCheckoutAsync(PaymentCheckoutRequest request, CancellationToken cancellationToken)
     {
         EnsureEnabled();
+        var metadata = new Dictionary<string, string>
+        {
+            ["hcbe_transaction_id"] = request.TransactionId.ToString("N"),
+            ["hcbe_kind"] = request.Kind
+        };
+        if (request.Metadata != null)
+            foreach (var pair in request.Metadata) metadata[pair.Key] = pair.Value;
         var sessionOptions = new SessionCreateOptions
         {
             Mode = request.IsRecurring ? "subscription" : "payment",
@@ -31,14 +38,20 @@ public sealed class StripePaymentGateway : IPaymentGateway
             Customer = request.StripeCustomerId,
             CustomerEmail = string.IsNullOrWhiteSpace(request.StripeCustomerId) ? request.Email : null,
             AutomaticTax = new SessionAutomaticTaxOptions { Enabled = options.AutomaticTaxEnabled },
-            Metadata = new Dictionary<string, string>
-            {
-                ["hcbe_transaction_id"] = request.TransactionId.ToString("N"),
-                ["hcbe_kind"] = request.Kind
-            },
-            LineItems =
-            [
-                new SessionLineItemOptions
+            ExpiresAt = request.ExpiresAtUtc,
+            Metadata = metadata,
+            LineItems = request.Lines?.Count > 0
+                ? request.Lines.Select(line => new SessionLineItemOptions
+                {
+                    Quantity = line.Quantity,
+                    PriceData = new SessionLineItemPriceDataOptions
+                    {
+                        Currency = request.Currency,
+                        UnitAmount = line.UnitAmountCents,
+                        ProductData = new SessionLineItemPriceDataProductDataOptions { Name = line.Name }
+                    }
+                }).ToList()
+                : [new SessionLineItemOptions
                 {
                     Quantity = 1,
                     Price = string.IsNullOrWhiteSpace(request.StripePriceId) ? null : request.StripePriceId,
@@ -53,24 +66,21 @@ public sealed class StripePaymentGateway : IPaymentGateway
                                 : null
                         }
                         : null
-                }
-            ]
+                }]
         };
+        if (request.ApplicationFeeAmountCents > 0)
+            sessionOptions.PaymentIntentData = new SessionPaymentIntentDataOptions { ApplicationFeeAmount = request.ApplicationFeeAmountCents };
         if (request.IsRecurring)
         {
             sessionOptions.SubscriptionData = new SessionSubscriptionDataOptions
             {
-                Metadata = new Dictionary<string, string>
-                {
-                    ["hcbe_transaction_id"] = request.TransactionId.ToString("N"),
-                    ["hcbe_kind"] = request.Kind
-                }
+                Metadata = metadata
             };
         }
 
         var session = await new SessionService(client).CreateAsync(
             sessionOptions,
-            new RequestOptions { IdempotencyKey = $"hcbe-checkout-{request.TransactionId:N}" },
+            new RequestOptions { IdempotencyKey = $"hcbe-checkout-{request.TransactionId:N}", StripeAccount = request.ConnectedAccountId },
             cancellationToken);
         return new PaymentCheckoutResult(session.Id, session.Url, session.CustomerId);
     }
@@ -91,7 +101,7 @@ public sealed class StripePaymentGateway : IPaymentGateway
     }
 
     public async Task<PaymentRefundResult> RefundAsync(string paymentIntentId, long? amountCents, string? reason,
-        string idempotencyKey, CancellationToken cancellationToken)
+        string idempotencyKey, CancellationToken cancellationToken, string? connectedAccountId = null)
     {
         EnsureEnabled();
         var refund = await new RefundService(client).CreateAsync(new RefundCreateOptions
@@ -99,14 +109,22 @@ public sealed class StripePaymentGateway : IPaymentGateway
             PaymentIntent = paymentIntentId,
             Amount = amountCents,
             Metadata = string.IsNullOrWhiteSpace(reason) ? null : new Dictionary<string, string> { ["hcbe_reason"] = reason.Trim() }
-        }, new RequestOptions { IdempotencyKey = idempotencyKey }, cancellationToken);
+        }, new RequestOptions { IdempotencyKey = idempotencyKey, StripeAccount = connectedAccountId }, cancellationToken);
         return new PaymentRefundResult(refund.Id, refund.Status ?? "pending", refund.Amount);
     }
 
     public VerifiedPaymentEvent VerifyWebhook(string payload, string signature)
     {
         if (!IsEnabled) throw new InvalidOperationException("Payments are not configured.");
-        var stripeEvent = EventUtility.ConstructEvent(payload, signature, options.WebhookSecret, throwOnApiVersionMismatch: false);
+        Event stripeEvent;
+        try
+        {
+            stripeEvent = EventUtility.ConstructEvent(payload, signature, options.WebhookSecret, throwOnApiVersionMismatch: false);
+        }
+        catch (StripeException) when (!string.IsNullOrWhiteSpace(options.ConnectWebhookSecret))
+        {
+            stripeEvent = EventUtility.ConstructEvent(payload, signature, options.ConnectWebhookSecret, throwOnApiVersionMismatch: false);
+        }
         using var document = JsonDocument.Parse(payload);
         var objectJson = document.RootElement.GetProperty("data").GetProperty("object").GetRawText();
         return new VerifiedPaymentEvent(stripeEvent.Id, stripeEvent.Type, objectJson);

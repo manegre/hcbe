@@ -5,6 +5,7 @@ import AgendaSection from './components/AgendaSection';
 import AnnoncesExemples from './components/AnnoncesExemples';
 import GalerieSection from './components/GalerieSection';
 import { ArrowLink, SectionHeading } from '../../components/ui';
+import { CommunityAdSlot } from '../../components/feature/CommunityAdSlot';
 
 const ActualitesPage = () => {
   const { t } = useTranslation();
@@ -79,6 +80,7 @@ const ActualitesPage = () => {
               </Link>
             ))}
           </div>
+          <CommunityAdSlot placement="News" className="mt-10" />
         </div>
       </section>
 

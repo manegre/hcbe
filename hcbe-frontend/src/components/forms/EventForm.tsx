@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import type { CreateEventRequest, UpdateEventRequest, Event } from '../../lib/api/types';
-import type { EventCategory } from '../../lib/api/types';
+import type { CommunityOrganizer, EventCategory } from '../../lib/api/types';
 import { useTranslation } from 'react-i18next';
 import {
   AdminLanguageTabs,
@@ -12,6 +12,7 @@ import { AdminFormLayout } from '../admin/AdminFormLayout';
 import { ArrowLink, Button, Field, RichTextEditor, inputClasses } from '../ui';
 import { formatFileSize, resolveMediaUrl } from '../../lib/api/media-url';
 import { eventCategoriesApi } from '../../lib/api/event-categories';
+import { communityMarketplaceApi } from '../../lib/api/community-marketplace';
 import {
   EVENT_TIME_ZONES,
   isoToZonedInput,
@@ -77,11 +78,16 @@ export const EventForm: React.FC<EventFormProps> = ({
     registrationMode: initialValues?.registrationMode || 'Native',
     allowWaitlist: initialValues?.allowWaitlist ?? true,
     restrictMeetingLinkToRegistrants: initialValues?.restrictMeetingLinkToRegistrants ?? true,
+    ticketingEnabled: initialValues?.ticketingEnabled ?? false,
+    salesModel: initialValues?.salesModel ?? 'HCBE',
+    platformFeePercent: initialValues?.platformFeePercent?.toString() ?? '0',
+    communityOrganizerId: initialValues?.communityOrganizerId ?? '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [coverPreviewUrl, setCoverPreviewUrl] = useState('');
   const [categories, setCategories] = useState<EventCategory[]>([]);
+  const [communityOrganizers, setCommunityOrganizers] = useState<CommunityOrganizer[]>([]);
   const initialSnapshotRef = useRef(JSON.stringify(formData));
   const isDirty = JSON.stringify(formData) !== initialSnapshotRef.current;
 
@@ -110,6 +116,12 @@ export const EventForm: React.FC<EventFormProps> = ({
     return () => {
       active = false;
     };
+  }, []);
+
+  useEffect(() => {
+    communityMarketplaceApi.getAdminOrganizers().then((response) => {
+      if (response.data) setCommunityOrganizers(response.data.filter((item) => item.status === 'Approved'));
+    }).catch(() => undefined);
   }, []);
 
   const handleChange = (
@@ -270,6 +282,11 @@ export const EventForm: React.FC<EventFormProps> = ({
       registrationMode: formData.registrationMode as 'Disabled' | 'External' | 'Native',
       allowWaitlist: formData.allowWaitlist,
       restrictMeetingLinkToRegistrants: formData.restrictMeetingLinkToRegistrants,
+      ticketingEnabled: formData.ticketingEnabled,
+      salesModel: formData.salesModel as 'HCBE' | 'Community',
+      platformFeePercent: Number(formData.platformFeePercent || 0),
+      communityOrganizerId: formData.communityOrganizerId || undefined,
+      clearCommunityOrganizer: formData.salesModel === 'HCBE',
     };
 
     await onSubmit(submitData);
@@ -685,7 +702,15 @@ export const EventForm: React.FC<EventFormProps> = ({
               </Field>
               </div>
 
-              {formData.registrationMode === 'Native' && (
+              <div className="mt-6 rounded-2xl border border-gold/35 bg-gold/[.07] p-5">
+                <label className="flex cursor-pointer items-start gap-4">
+                  <input type="checkbox" name="ticketingEnabled" checked={formData.ticketingEnabled} onChange={handleChange} className="mt-1 h-5 w-5 accent-green" />
+                  <span><strong className="block font-display text-xl text-green">{i18n.language.startsWith('fr') ? 'Activer la billetterie HCBE' : 'Enable HCBE ticketing'}</strong><small className="mt-1 block text-sm leading-5 text-ink-variant">{i18n.language.startsWith('fr') ? 'Vendez des billets gratuits ou payants, générez les QR et suivez les entrées.' : 'Sell free or paid tickets, generate QR codes, and track admission.'}</small></span>
+                </label>
+                {formData.ticketingEnabled && <div className="mt-5 grid gap-4 border-t border-gold/25 pt-5 sm:grid-cols-2"><Field label={i18n.language.startsWith('fr') ? 'Compte vendeur' : 'Seller account'} htmlFor="salesModel"><select id="salesModel" name="salesModel" value={formData.salesModel} onChange={handleChange} className={`${inputClasses} cursor-pointer`}><option value="HCBE">HCBE Canada</option><option value="Community">{i18n.language.startsWith('fr') ? 'Organisateur communautaire approuvé' : 'Approved community organizer'}</option></select></Field><Field label={i18n.language.startsWith('fr') ? 'Frais de plateforme (%)' : 'Platform fee (%)'} htmlFor="platformFeePercent"><input id="platformFeePercent" name="platformFeePercent" type="number" min="0" max="25" value={formData.platformFeePercent} onChange={handleChange} className={inputClasses} /></Field>{formData.salesModel === 'Community' && <div className="sm:col-span-2"><Field label={i18n.language.startsWith('fr') ? 'Organisateur bénéficiaire' : 'Beneficiary organizer'} htmlFor="communityOrganizerId"><select id="communityOrganizerId" name="communityOrganizerId" required value={formData.communityOrganizerId} onChange={handleChange} className={`${inputClasses} cursor-pointer`}><option value="">{i18n.language.startsWith('fr') ? 'Sélectionnez un organisateur approuvé' : 'Select an approved organizer'}</option>{communityOrganizers.map((item) => <option key={item.id} value={item.id}>{item.displayName} · {item.contactEmail}</option>)}</select></Field></div>}<p className="sm:col-span-2 text-xs text-ink-variant">{i18n.language.startsWith('fr') ? "Après avoir enregistré l’événement, ajoutez les tarifs depuis sa fiche détaillée." : 'After saving the event, add ticket tiers from its detail page.'}</p></div>}
+              </div>
+
+              {formData.registrationMode === 'Native' && !formData.ticketingEnabled && (
                 <div className="mt-6 grid gap-3 sm:grid-cols-2">
                   <label className="flex min-h-16 cursor-pointer items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3 text-sm text-ink">
                     <input type="checkbox" name="allowWaitlist" checked={formData.allowWaitlist} onChange={handleChange} className="h-4 w-4 accent-green" />

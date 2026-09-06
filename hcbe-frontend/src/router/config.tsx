@@ -13,6 +13,7 @@ const PrivacyPage = lazy(() => import('../pages/confidentialite/page'));
 const ContributionPage = lazy(() => import('../pages/contribuer/page'));
 const PaymentThankYouPage = lazy(() => import('../pages/paiement/merci/page'));
 const MembershipVerificationPage = lazy(() => import('../pages/adhesion/verifier/page'));
+const TicketOrderPage = lazy(() => import('../pages/billets/commande/[token]/page'));
 const NotFound = lazy(() => import('../pages/NotFound'));
 
 // Engagement sub-pages
@@ -84,6 +85,7 @@ const AdminImpactPage = lazy(() => import('../pages/admin/impact/page'));
 const AdminMonitoringPage = lazy(() => import('../pages/admin/monitoring/page'));
 const AdminSecurityPage = lazy(() => import('../pages/admin/security/page'));
 const AdminFinancePage = lazy(() => import('../pages/admin/finance/page'));
+const AdminMarketplacePage = lazy(() => import('../pages/admin/marketplace/page'));
 
 // Admin Grants Pages
 const AdminGrantsList = lazy(() => import('../pages/admin/grants/page').then(module => ({ default: module.default })));
@@ -206,6 +208,10 @@ const routes: RouteObject[] = [
   {
     path: '/adhesion/verifier/:code',
     element: <MembershipVerificationPage />,
+  },
+  {
+    path: '/billets/commande/:token',
+    element: <TicketOrderPage />,
   },
   {
     path: '/admin/login',
@@ -378,6 +384,10 @@ const routes: RouteObject[] = [
       {
         path: 'finance',
         element: <AdminFinancePage />,
+      },
+      {
+        path: 'marketplace',
+        element: <AdminMarketplacePage />,
       },
       {
         path: 'site-content',

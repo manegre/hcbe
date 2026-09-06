@@ -265,7 +265,7 @@ test('every administrator workspace remains usable on mobile and tablet in dark 
     '/admin/consultations', '/admin/members', '/admin/membership-applications', '/admin/newsletter',
     '/admin/mentorship', '/admin/message-reports', '/admin/submissions', '/admin/service-cases',
     '/admin/impact', '/admin/monitoring', '/admin/security', '/admin/finance', '/admin/users',
-    '/admin/partners', '/admin/site-content', '/admin/team-members',
+    '/admin/marketplace', '/admin/partners', '/admin/site-content', '/admin/team-members',
   ];
 
   await page.setViewportSize({ width: 390, height: 844 });
@@ -323,6 +323,10 @@ test('member can register and enter the member portal', async ({ page }) => {
   await page.getByRole('tab', { name: /occasions|opportunities/i }).click();
   await expect(page.getByRole('heading', { name: /mettez votre talent en mouvement|put your talent in motion/i })).toBeVisible();
   await expect(page.getByRole('heading', { name: /mes candidatures|my applications/i })).toBeVisible();
+  await page.getByRole('tab', { name: /organisateur|organizer/i }).click();
+  await expect(page.getByRole('heading', { name: /espace organisateur|organizer workspace/i })).toBeVisible();
+  await expect(page.locator('#org-name')).toBeVisible();
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
   await page.getByRole('tab', { name: /^notifications$/i }).click();
   await expect(page.getByRole('heading', { name: /mes notifications|my notifications/i })).toBeVisible();
   await page.getByRole('tab', { name: /mes préférences|my preferences/i }).click();

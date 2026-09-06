@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using HcbeApi.Models;
+using QRCoder;
 
 namespace HcbeApi.Services;
 
@@ -26,6 +27,57 @@ public static class ReceiptPdfRenderer
         DrawDetails(content, item);
         DrawFooter(content);
         return BuildPdf(content.ToString(), item.ReceiptNumber);
+    }
+
+    public static byte[] RenderEventTickets(EventTicketOrder order)
+    {
+        ArgumentNullException.ThrowIfNull(order.Event);
+        var tickets = order.Tickets.OrderBy(item => item.Tier?.DisplayOrder).ThenBy(item => item.TicketCode).ToList();
+        if (tickets.Count == 0) throw new InvalidOperationException("The order has no issued tickets.");
+        var pages = new List<string>();
+        foreach (var ticket in tickets)
+        {
+            var content = new StringBuilder();
+            Fill(content, "0.969 0.976 0.957", 0, 0, PageWidth, PageHeight);
+            RoundedFill(content, "0.043 0.231 0.129", 30, 610, 535, 202, 22);
+            Fill(content, "0.961 0.773 0.094", 48, 632, 5, 154);
+            CircleStroke(content, "0.149 0.365 0.235", 540, 796, 70, 20);
+            DrawLogo(content, 72, 772);
+            Text(content, "BILLET OFFICIEL  /  OFFICIAL TICKET", 72, 722, 8.5, true, "0.788 0.851 0.808", 1.05);
+            var titleLines = Wrap(order.Event.Title, 48);
+            for (var index = 0; index < Math.Min(2, titleLines.Count); index++)
+                Text(content, titleLines[index], 72, 682 - index * 29, 21, true, "1 1 1");
+            Text(content, $"COMMANDE / ORDER  ·  {order.OrderNumber}", 72, 630, 7.2, true, "0.788 0.851 0.808", 0.45);
+
+            RoundedFill(content, "1 1 1", 44, 222, 507, 356, 18);
+            RoundedStroke(content, "0.827 0.859 0.820", 44, 222, 507, 356, 18, 0.8);
+            Text(content, "PARTICIPANT·E  /  ATTENDEE", 70, 535, 7, true, "0.435 0.478 0.443", 0.55);
+            Text(content, ticket.AttendeeName, 70, 505, 17, true, "0.043 0.231 0.129");
+            Text(content, ticket.AttendeeEmail, 70, 484, 8, false, "0.310 0.353 0.318");
+            Text(content, "CATÉGORIE  /  TICKET TYPE", 70, 446, 7, true, "0.435 0.478 0.443", 0.55);
+            Text(content, ticket.Tier?.Name ?? "Billet", 70, 418, 13, true, "0.086 0.145 0.106");
+            Text(content, "DATE ET HEURE  /  DATE AND TIME", 70, 378, 7, true, "0.435 0.478 0.443", 0.55);
+            Text(content, order.Event.Date.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) + $"  {order.Event.TimeZone}", 70, 352, 9.5, true, "0.086 0.145 0.106");
+            Text(content, "LIEU  /  LOCATION", 70, 314, 7, true, "0.435 0.478 0.443", 0.55);
+            var locationLines = Wrap(order.Event.Location ?? (order.Event.Format == "Online" ? "En ligne / Online" : "À confirmer / To be confirmed"), 35);
+            for (var index = 0; index < Math.Min(2, locationLines.Count); index++) Text(content, locationLines[index], 70, 288 - index * 15, 9, index == 0, "0.086 0.145 0.106");
+
+            RoundedFill(content, "0.925 0.945 0.918", 337, 300, 180, 230, 14);
+            DrawQr(content, ticket.TicketCode, 357, 334, 140);
+            Text(content, "PRÉSENTEZ CE CODE À L’ENTRÉE", 354, 318, 5.8, true, "0.310 0.353 0.318", 0.25);
+            Text(content, "SHOW THIS CODE AT THE ENTRANCE", 350, 305, 5.8, true, "0.310 0.353 0.318", 0.25);
+            Text(content, ticket.TicketCode, 359, 548, 8, true, "0.043 0.231 0.129", 0.35);
+
+            RoundedFill(content, "0.925 0.945 0.918", 44, 82, 507, 110, 14);
+            Fill(content, "0.961 0.773 0.094", 44, 82, 5, 110);
+            Text(content, "INFORMATION IMPORTANTE  /  IMPORTANT INFORMATION", 70, 164, 7, true, "0.043 0.231 0.129", 0.55);
+            Text(content, "Billet personnel et utilisable une seule fois. Une pièce d’identité peut être demandée.", 70, 139, 7.4, false, "0.310 0.353 0.318");
+            Text(content, "Personal, single-use ticket. Identification may be requested at entry.", 70, 120, 7.4, false, "0.310 0.353 0.318");
+            Text(content, "contact@hcbe.ca  |  hcbe.ca", 70, 98, 7.2, true, "0.043 0.231 0.129");
+            Text(content, $"ÉMIS / ISSUED  ·  {ticket.IssuedAtUtc:yyyy-MM-dd HH:mm} UTC", 367, 48, 6.5, true, "0.435 0.478 0.443", 0.35);
+            pages.Add(content.ToString());
+        }
+        return BuildMultiPagePdf(pages, $"HCBE tickets {order.OrderNumber}");
     }
 
     public static byte[] RenderCertificate(OpportunityApplication application)
@@ -521,6 +573,18 @@ public static class ReceiptPdfRenderer
         Polygon(content, color, points);
     }
 
+    private static void DrawQr(StringBuilder content, string value, double x, double y, double size)
+    {
+        using var generator = new QRCodeGenerator();
+        using var data = generator.CreateQrCode(value, QRCodeGenerator.ECCLevel.Q);
+        var modules = data.ModuleMatrix;
+        var cell = size / modules.Count;
+        Fill(content, "1 1 1", x, y, size, size);
+        for (var row = 0; row < modules.Count; row++)
+            for (var column = 0; column < modules[row].Length; column++)
+                if (modules[row][column]) Fill(content, "0.043 0.231 0.129", x + column * cell, y + (modules.Count - row - 1) * cell, cell + 0.05, cell + 0.05);
+    }
+
     private static void Polygon(StringBuilder content, string color, IReadOnlyList<(double X, double Y)> points)
     {
         if (points.Count == 0) return;
@@ -610,6 +674,64 @@ public static class ReceiptPdfRenderer
         Write(output, $"xref\n0 {objects.Length + 1}\n0000000000 65535 f \n");
         foreach (var offset in offsets.Skip(1)) Write(output, $"{offset:0000000000} 00000 n \n");
         Write(output, $"trailer\n<< /Size {objects.Length + 1} /Root 1 0 R /Info 7 0 R >>\nstartxref\n{xref}\n%%EOF\n");
+        return output.ToArray();
+    }
+
+    private static byte[] BuildMultiPagePdf(IReadOnlyList<string> pages, string title)
+    {
+        const string unicodeMap = """
+            /CIDInit /ProcSet findresource begin
+            12 dict begin
+            begincmap
+            /CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def
+            /CMapName /HCBE-WinAnsi def
+            /CMapType 2 def
+            1 begincodespacerange
+            <00> <FF>
+            endcodespacerange
+            2 beginbfrange
+            <20> <7E> <0020>
+            <A0> <FF> <00A0>
+            endbfrange
+            endcmap
+            CMapName currentdict /CMap defineresource pop
+            end
+            end
+            """;
+        var fontRegularId = 3 + pages.Count * 2;
+        var fontBoldId = fontRegularId + 1;
+        var infoId = fontRegularId + 2;
+        var unicodeId = fontRegularId + 3;
+        var kids = string.Join(' ', Enumerable.Range(0, pages.Count).Select(index => $"{3 + index * 2} 0 R"));
+        var objects = new List<string>
+        {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            $"<< /Type /Pages /Kids [{kids}] /Count {pages.Count} >>"
+        };
+        for (var index = 0; index < pages.Count; index++)
+        {
+            var contentId = 4 + index * 2;
+            var content = pages[index];
+            objects.Add($"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 {fontRegularId} 0 R /F2 {fontBoldId} 0 R >> >> /Contents {contentId} 0 R >>");
+            objects.Add($"<< /Length {Encoding.ASCII.GetByteCount(content)} >>\nstream\n{content}endstream");
+        }
+        objects.Add($"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding /ToUnicode {unicodeId} 0 R >>");
+        objects.Add($"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding /ToUnicode {unicodeId} 0 R >>");
+        objects.Add($"<< /Title ({Escape(title)}) /Author (HCBE Canada) /Creator (HCBE ticketing service) >>");
+        objects.Add($"<< /Length {Encoding.ASCII.GetByteCount(unicodeMap)} >>\nstream\n{unicodeMap}endstream");
+
+        using var output = new MemoryStream();
+        Write(output, "%PDF-1.4\n%HCBE\n");
+        var offsets = new List<long> { 0 };
+        for (var index = 0; index < objects.Count; index++)
+        {
+            offsets.Add(output.Position);
+            Write(output, $"{index + 1} 0 obj\n{objects[index]}\nendobj\n");
+        }
+        var xref = output.Position;
+        Write(output, $"xref\n0 {objects.Count + 1}\n0000000000 65535 f \n");
+        foreach (var offset in offsets.Skip(1)) Write(output, $"{offset:0000000000} 00000 n \n");
+        Write(output, $"trailer\n<< /Size {objects.Count + 1} /Root 1 0 R /Info {infoId} 0 R >>\nstartxref\n{xref}\n%%EOF\n");
         return output.ToArray();
     }
 

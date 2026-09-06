@@ -23,6 +23,11 @@ public class EventService : IEventService
         "Disabled", "External", "Native"
     };
 
+    private static readonly HashSet<string> AllowedSalesModels = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "HCBE", "Community"
+    };
+
     private static readonly HashSet<string> AllowedVideoHosts = new(StringComparer.OrdinalIgnoreCase)
     {
         "youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be",
@@ -56,6 +61,7 @@ public class EventService : IEventService
                 .Include(e => e.Media)
                 .Include(e => e.Attachments)
                 .Include(e => e.Registrations)
+                .Include(e => e.CommunityOrganizer)
                 .AsSplitQuery()
                 .Where(e => e.Status != "Draft" && e.Status != "Cancelled"
                     && e.Status != "Brouillon" && e.Status != "Annulé")
@@ -83,6 +89,7 @@ public class EventService : IEventService
                 .Include(e => e.Media)
                 .Include(e => e.Attachments)
                 .Include(e => e.Registrations)
+                .Include(e => e.CommunityOrganizer)
                 .AsSplitQuery()
                 .OrderByDescending(e => e.CreatedAt)
                 .ToListAsync();
@@ -104,6 +111,7 @@ public class EventService : IEventService
                 .Include(e => e.Media)
                 .Include(e => e.Attachments)
                 .Include(e => e.Registrations)
+                .Include(e => e.CommunityOrganizer)
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(e => e.Id == id
                     && e.Status != "Draft" && e.Status != "Cancelled"
@@ -134,6 +142,7 @@ public class EventService : IEventService
                 .Include(e => e.Media)
                 .Include(e => e.Attachments)
                 .Include(e => e.Registrations)
+                .Include(e => e.CommunityOrganizer)
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(e => e.Id == id);
             return eventEntity is null
@@ -194,6 +203,17 @@ public class EventService : IEventService
                 registrationMode = "Disabled";
             }
 
+            var salesModel = NormalizeSalesModel(request.SalesModel);
+            if (salesModel is null)
+            {
+                return ApiResponse<EventDto>.ErrorResponse("Sales model must be HCBE or Community");
+            }
+
+            if (request.TicketingEnabled)
+            {
+                registrationMode = "Disabled";
+            }
+
             if (!IsValidWebUrl(request.MeetingLink) || !IsValidWebUrl(request.RegistrationUrl))
             {
                 return ApiResponse<EventDto>.ErrorResponse("Meeting and registration links must use http or https");
@@ -232,6 +252,10 @@ public class EventService : IEventService
                 RegistrationMode = registrationMode,
                 AllowWaitlist = request.AllowWaitlist,
                 RestrictMeetingLinkToRegistrants = request.RestrictMeetingLinkToRegistrants,
+                TicketingEnabled = request.TicketingEnabled,
+                SalesModel = salesModel,
+                CommunityOrganizerId = request.CommunityOrganizerId,
+                PlatformFeePercent = Math.Clamp(request.PlatformFeePercent, 0, 25),
                 ImageUrl = request.ImageUrl,
                 Status = request.Status,
                 Speakers = speakerValidation.Names
@@ -274,6 +298,7 @@ public class EventService : IEventService
                 .Include(e => e.Media)
                 .Include(e => e.Attachments)
                 .Include(e => e.Registrations)
+                .Include(e => e.CommunityOrganizer)
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(e => e.Id == id);
 
@@ -307,6 +332,12 @@ public class EventService : IEventService
             if (request.RegistrationMode is not null && NormalizeRegistrationMode(request.RegistrationMode) is null)
             {
                 return ApiResponse<EventDto>.ErrorResponse("Registration mode must be Disabled, External, or Native");
+            }
+
+
+            if (request.SalesModel is not null && NormalizeSalesModel(request.SalesModel) is null)
+            {
+                return ApiResponse<EventDto>.ErrorResponse("Sales model must be HCBE or Community");
             }
 
             if (!IsValidWebUrl(request.MeetingLink) || !IsValidWebUrl(request.RegistrationUrl))
@@ -356,6 +387,15 @@ public class EventService : IEventService
             if (request.RegistrationMode != null) eventEntity.RegistrationMode = NormalizeRegistrationMode(request.RegistrationMode)!;
             if (request.AllowWaitlist.HasValue) eventEntity.AllowWaitlist = request.AllowWaitlist.Value;
             if (request.RestrictMeetingLinkToRegistrants.HasValue) eventEntity.RestrictMeetingLinkToRegistrants = request.RestrictMeetingLinkToRegistrants.Value;
+            if (request.TicketingEnabled.HasValue)
+            {
+                eventEntity.TicketingEnabled = request.TicketingEnabled.Value;
+                if (request.TicketingEnabled.Value) eventEntity.RegistrationMode = "Disabled";
+            }
+            if (request.SalesModel is not null) eventEntity.SalesModel = NormalizeSalesModel(request.SalesModel)!;
+            if (request.ClearCommunityOrganizer) eventEntity.CommunityOrganizerId = null;
+            else if (request.CommunityOrganizerId.HasValue) eventEntity.CommunityOrganizerId = request.CommunityOrganizerId;
+            if (request.PlatformFeePercent.HasValue) eventEntity.PlatformFeePercent = Math.Clamp(request.PlatformFeePercent.Value, 0, 25);
             if (request.ImageUrl != null) eventEntity.ImageUrl = request.ImageUrl;
             if (request.Status != null) eventEntity.Status = request.Status;
 
@@ -892,7 +932,12 @@ public class EventService : IEventService
             eventEntity.RestrictMeetingLinkToRegistrants,
             confirmedCount,
             waitlistCount,
-            remainingCapacity
+            remainingCapacity,
+            eventEntity.TicketingEnabled,
+            eventEntity.SalesModel,
+            eventEntity.CommunityOrganizerId,
+            eventEntity.CommunityOrganizer?.DisplayName,
+            eventEntity.PlatformFeePercent
         );
     }
 
@@ -920,4 +965,10 @@ public class EventService : IEventService
 
     private static string? NormalizeOptional(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static string? NormalizeSalesModel(string? value)
+    {
+        var candidate = string.IsNullOrWhiteSpace(value) ? "HCBE" : value.Trim();
+        return AllowedSalesModels.FirstOrDefault(item => item.Equals(candidate, StringComparison.OrdinalIgnoreCase));
+    }
 }

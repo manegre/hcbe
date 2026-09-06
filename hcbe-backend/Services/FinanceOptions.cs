@@ -7,6 +7,7 @@ public sealed class FinanceOptions
     public string Provider { get; set; } = "Stripe";
     public string SecretKey { get; set; } = string.Empty;
     public string WebhookSecret { get; set; } = string.Empty;
+    public string ConnectWebhookSecret { get; set; } = string.Empty;
     public bool AutomaticTaxEnabled { get; set; }
     public int MembershipGracePeriodDays { get; set; } = 30;
     public int MinimumDonationCents { get; set; } = 500;

@@ -403,7 +403,7 @@ public sealed class FinanceServiceTests : IDisposable
             CancelledSubscriptionId = subscriptionId;
             return Task.CompletedTask;
         }
-        public Task<PaymentRefundResult> RefundAsync(string paymentIntentId, long? amountCents, string? reason, string idempotencyKey, CancellationToken cancellationToken)
+        public Task<PaymentRefundResult> RefundAsync(string paymentIntentId, long? amountCents, string? reason, string idempotencyKey, CancellationToken cancellationToken, string? connectedAccountId = null)
         {
             LastRefundIdempotencyKey = idempotencyKey;
             return Task.FromResult(new PaymentRefundResult("re_test", NextRefundStatus, amountCents ?? 5000));
