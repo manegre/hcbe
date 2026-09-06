@@ -7,6 +7,12 @@ test('public home page renders the application shell', async ({ page }) => {
   await expect(page).toHaveTitle(/HCBE Canada/i);
   await expect(page.locator('#root')).toBeVisible();
   await expect(page.locator('body')).not.toHaveText(/unexpected application error/i);
+
+  const contactCta = page.getByRole('link', { name: /écrire au hcbe|write to hcbe/i });
+  await expect(contactCta).toBeVisible();
+  await expect(contactCta).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await expect(contactCta).toHaveCSS('color', 'rgb(0, 59, 27)');
+  if (process.env.E2E_CAPTURE_VISUALS) await page.getByTestId('home-cta').screenshot({ path: 'test-results/home-contact-cta.png' });
 });
 
 test('public page help explains the current feature in both languages', async ({ page }) => {
@@ -226,11 +232,13 @@ test('administrator help centre is searchable, shareable, accessible and respons
   await expect(usersGuide).toBeVisible();
   await usersGuide.click();
   await expect(page).toHaveURL(/article=users/);
-  await expect(page.getByText('users.manage')).toBeVisible();
+  await expect(page.getByText('Gestion des administrateurs')).toBeVisible();
+  await expect(page.getByText('users.manage')).toBeHidden();
 
   await page.getByRole('button', { name: 'English' }).click();
   await search.fill('temporary password');
   await expect(page.getByRole('button', { name: /admin users and roles/i })).toBeVisible();
+  await expect(page.getByText('Administrator management')).toBeVisible();
 
   const results = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])

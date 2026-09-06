@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { getAdminPermissionLabel } from '../../../lib/adminPermissions';
 import { helpArticles, helpCategories, type HelpCategoryId, type HelpLocale } from './content';
 
 const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -13,7 +14,7 @@ const copy = {
     all: 'Tous les sujets', results: 'résultats', result: 'résultat', clear: 'Effacer la recherche',
     noResult: 'Aucun guide ne correspond à votre recherche.', noResultHint: 'Essayez un terme plus général ou retirez le filtre.',
     open: 'Ouvrir cette fonctionnalité', steps: 'Procédure recommandée', tips: 'Points de vigilance',
-    permission: 'Permission requise', updated: 'Documentation intégrée', updatedHint: 'Conçue pour accompagner les opérations quotidiennes du HCBE.',
+    permission: 'Accès requis', updated: 'Documentation intégrée', updatedHint: 'Conçue pour accompagner les opérations quotidiennes du HCBE.',
     select: 'Sélectionnez un guide pour consulter la procédure.', sensitive: 'Avant une action sensible',
     sensitiveText: 'Vérifiez l’identité, le destinataire et l’impact. Ne partagez jamais de mot de passe, code OTP ou clé API.',
   },
@@ -133,7 +134,7 @@ const AdminHelpPage = () => {
               <div><h3 className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.17em] text-green-deep"><span className="h-2 w-2 rounded-full bg-gold" aria-hidden="true" />{c.steps}</h3><ol className="mt-4 space-y-4">{selected.steps[locale].map((step, index) => <li key={step} className="grid grid-cols-[34px_1fr] gap-3 text-sm leading-6 text-ink"><span className="flex h-8 w-8 items-center justify-center rounded-full border border-green/20 bg-green/5 text-xs font-bold text-green">{String(index + 1).padStart(2, '0')}</span><span>{step}</span></li>)}</ol></div>
               <div className="rounded-2xl border border-gold/35 bg-gold/[0.07] p-4"><h3 className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.17em] text-green-deep"><i className="ri-lightbulb-flash-line text-base text-gold-dark" aria-hidden="true" />{c.tips}</h3><ul className="mt-3 space-y-2">{selected.tips[locale].map((tip) => <li key={tip} className="flex gap-2 text-sm leading-5 text-ink-variant"><span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-gold" aria-hidden="true" />{tip}</li>)}</ul></div>
               <div className="flex flex-wrap items-center justify-between gap-4 border-t border-line/60 pt-5">
-                <div>{selected.permission && <><p className="text-[9px] font-bold uppercase tracking-[0.16em] text-ink-variant">{c.permission}</p><code className="mt-1 inline-block rounded-md bg-background px-2 py-1 text-xs text-green">{selected.permission}</code></>}</div>
+                <div>{selected.permission && <><p className="text-[9px] font-bold uppercase tracking-[0.16em] text-ink-variant">{c.permission}</p><span title={selected.permission} className="mt-1 inline-flex min-h-8 items-center rounded-full border border-green/15 bg-green/[0.055] px-3 text-xs font-semibold text-green-deep">{getAdminPermissionLabel(selected.permission, locale)}</span></>}</div>
                 <Link to={selected.path} className="inline-flex min-h-[46px] items-center justify-center gap-2 rounded-xl bg-gold px-5 text-[11px] font-bold uppercase tracking-[0.12em] text-green-deep shadow-[0_8px_18px_rgba(255,205,0,.18)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_rgba(255,205,0,.24)]">{c.open}<i className="ri-arrow-right-up-line text-base" aria-hidden="true" /></Link>
               </div>
             </div>

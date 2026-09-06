@@ -2,24 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usersApi } from '../../lib/api/users';
 import type { AdminRole } from '../../lib/api/types';
+import { getAdminPermissionLabel } from '../../lib/adminPermissions';
 import { Field, inputClasses } from '../ui';
-
-const permissionLabels: Record<string, { fr: string; en: string }> = {
-  'dashboard.view': { fr: 'Voir le tableau de bord', en: 'View dashboard' },
-  'content.manage': { fr: 'Gérer le contenu du site', en: 'Manage website content' },
-  'events.manage': { fr: 'Gérer les événements', en: 'Manage events' },
-  'members.manage': { fr: 'Gérer les membres', en: 'Manage members' },
-  'community.manage': { fr: 'Gérer les programmes communautaires', en: 'Manage community programs' },
-  'communications.manage': { fr: 'Envoyer des communications', en: 'Send communications' },
-  'service-cases.manage': { fr: 'Traiter les demandes de service', en: 'Handle service requests' },
-  'moderation.manage': { fr: 'Modérer les échanges', en: 'Moderate conversations' },
-  'analytics.view': { fr: 'Voir les analyses et rapports', en: 'View analytics and reports' },
-  'users.manage': { fr: 'Gérer les administrateurs', en: 'Manage administrators' },
-  'settings.manage': { fr: 'Gérer les paramètres techniques', en: 'Manage technical settings' },
-  'finance.manage': { fr: 'Gérer les finances', en: 'Manage finance' },
-  'security.manage': { fr: 'Gérer la sécurité et les incidents', en: 'Manage security and incidents' },
-  'privacy.manage': { fr: 'Superviser les contrôles Loi 25', en: 'Oversee Law 25 controls' },
-};
 
 interface AdminRoleFieldsProps {
   role: string;
@@ -92,7 +76,7 @@ export function AdminRoleFields({ role, permissions, onChange }: AdminRoleFields
             return (
               <label key={permission} className={`flex min-h-12 items-center gap-3 rounded-xl border px-4 py-3 text-sm transition-colors ${checked ? 'border-green/30 bg-green/[.045] text-green-deep' : 'border-line bg-surface-container/35 text-ink-variant'}`}>
                 <input type="checkbox" checked={checked} disabled={isSuperAdmin} onChange={() => togglePermission(permission)} className="h-4 w-4 accent-green" />
-                <span>{permissionLabels[permission]?.[language] ?? permission}</span>
+                <span>{getAdminPermissionLabel(permission, language)}</span>
               </label>
             );
           })}

@@ -4,7 +4,7 @@ const CTASection = () => {
   const { t } = useTranslation();
 
   return (
-    <section className="relative bg-background py-16 md:py-20">
+    <section className="relative bg-background py-16 md:py-20" data-testid="home-cta">
       <div className="container-page">
         <div className="public-grid-pattern relative overflow-hidden rounded-[24px] bg-green-deep px-6 py-8 shadow-[0_22px_55px_rgba(0,59,27,.16)] sm:px-9 md:flex md:items-center md:justify-between md:gap-10 lg:px-12">
           <div className="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full border-[48px] border-gold/[0.08]" aria-hidden="true" />
@@ -19,8 +19,7 @@ const CTASection = () => {
           </Button>
           <Button
             to="/contact"
-            variant="secondary"
-            className="border-white text-white hover:bg-white hover:text-green"
+            variant="inverse"
           >
             {t('public.home.cta.contact')}
           </Button>

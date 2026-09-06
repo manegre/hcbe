@@ -1,13 +1,15 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
-type Variant = 'primary' | 'secondary' | 'tertiary' | 'destructive';
+type Variant = 'primary' | 'secondary' | 'inverse' | 'tertiary' | 'destructive';
 
 const variants: Record<Variant, string> = {
   primary:
     'bg-gold text-green-deep hover:bg-gold-dim border border-transparent px-6 py-3 shadow-[0_8px_20px_rgba(255,205,0,.16)] hover:shadow-[0_10px_24px_rgba(255,205,0,.24)] focus-visible:outline-green',
   secondary:
     'bg-surface text-green border border-green/70 hover:bg-green hover:text-white px-6 py-3 shadow-[0_5px_16px_rgba(0,59,27,.06)] focus-visible:outline-green',
+  inverse:
+    'bg-white text-green-deep border border-white hover:border-gold hover:bg-gold hover:text-green-deep px-6 py-3 shadow-[0_8px_20px_rgba(0,0,0,.12)] focus-visible:outline-gold',
   tertiary: 'bg-transparent text-red-link hover:text-green border-0 focus-visible:outline-red-link',
   destructive:
     'bg-error text-white hover:bg-error-deep border border-transparent px-6 py-3 focus-visible:outline-error',
