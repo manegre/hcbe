@@ -88,6 +88,7 @@ const AdminSecurityPage = lazy(() => import('../pages/admin/security/page'));
 const AdminFinancePage = lazy(() => import('../pages/admin/finance/page'));
 const AdminMarketplacePage = lazy(() => import('../pages/admin/marketplace/page'));
 const AdminCommunityProgramsPage = lazy(() => import('../pages/admin/community-programs/page'));
+const AdminHelpPage = lazy(() => import('../pages/admin/help/page'));
 
 // Admin Grants Pages
 const AdminGrantsList = lazy(() => import('../pages/admin/grants/page').then(module => ({ default: module.default })));
@@ -238,6 +239,10 @@ const routes: RouteObject[] = [
       {
         path: 'dashboard',
         element: <AdminDashboard />,
+      },
+      {
+        path: 'help',
+        element: <AdminHelpPage />,
       },
       {
         path: 'events',

@@ -39,6 +39,20 @@ const navLinkClass = (active: boolean, disabled?: boolean) => {
   return 'text-green-dim hover:bg-white/[0.06] hover:text-white';
 };
 
+const helpArticlesByPath: Array<[string, string]> = [
+  ['/admin/membership-applications', 'applications'], ['/admin/association-requests', 'association-requests'],
+  ['/admin/community-programs', 'programs'], ['/admin/message-reports', 'mentorship'],
+  ['/admin/service-cases', 'support'], ['/admin/site-content', 'site-content'], ['/admin/team-members', 'team'],
+  ['/admin/submissions', 'submissions'], ['/admin/newsletter', 'communications'],
+  ['/admin/events', 'events'], ['/admin/news', 'announcements'], ['/admin/documents', 'documents'],
+  ['/admin/partners', 'partners'], ['/admin/associations', 'associations'], ['/admin/projects', 'projects'],
+  ['/admin/opportunities', 'opportunities'], ['/admin/grants', 'grants'], ['/admin/consultations', 'consultations'],
+  ['/admin/members', 'members'], ['/admin/mentorship', 'mentorship'],
+  ['/admin/finance', 'finance'], ['/admin/marketplace', 'marketplace'], ['/admin/users', 'users'],
+  ['/admin/security', 'security'], ['/admin/monitoring', 'monitoring'], ['/admin/impact', 'impact'],
+  ['/admin/dashboard', 'dashboard'],
+];
+
 export const AdminLayout = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
@@ -46,6 +60,7 @@ export const AdminLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const isDashboard = location.pathname === '/admin/dashboard';
+  const contextualHelpArticle = helpArticlesByPath.find(([path]) => location.pathname.startsWith(path))?.[1];
 
   const isActive = (path: string) =>
     location.pathname === path || location.pathname.startsWith(`${path}/`);
@@ -162,6 +177,7 @@ export const AdminLayout = () => {
     {
       headingKey: 'admin.nav.groups.administration',
       items: [
+        { nameKey: 'admin.nav.help', href: '/admin/help', icon: 'ri-book-open-line' },
         { nameKey: 'admin.nav.finance', href: '/admin/finance', icon: 'ri-secure-payment-line', permission: 'finance.manage' },
         { nameKey: 'admin.nav.marketplace', href: '/admin/marketplace', icon: 'ri-store-2-line', permission: 'finance.manage' },
         { nameKey: 'admin.nav.communityPrograms', href: '/admin/community-programs', icon: 'ri-compass-discover-line', permission: 'community.manage' },
@@ -384,6 +400,14 @@ export const AdminLayout = () => {
           </div>
 
           <div className="flex shrink-0 items-center gap-2.5 sm:gap-3">
+            <Link
+              to={contextualHelpArticle ? `/admin/help?article=${contextualHelpArticle}` : '/admin/help'}
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-line/50 bg-surface/75 text-green shadow-[0_5px_18px_rgba(0,59,27,.06)] transition hover:border-green/30 hover:bg-green/5"
+              aria-label={t('admin.nav.help')}
+              title={t('admin.nav.help')}
+            >
+              <i className="ri-question-line text-lg" aria-hidden="true" />
+            </Link>
             <ThemeToggle />
             <LanguageSwitcher />
             <div className="hidden items-center gap-2.5 rounded-full border border-line/50 bg-surface/75 py-1.5 pl-1.5 pr-4 shadow-[0_5px_18px_rgba(0,59,27,.06)] sm:flex">

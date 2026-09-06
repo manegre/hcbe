@@ -11,6 +11,7 @@ import CookieConsent from "./components/feature/CookieConsent";
 import { CmsContentProvider } from "./contexts/CmsContentContext";
 import AccessibilityNavigation from "./components/AccessibilityNavigation";
 import PwaExperience from "./components/feature/PwaExperience";
+import PublicPageHelp from "./components/feature/PublicPageHelp";
 
 
 function App() {
@@ -24,6 +25,7 @@ function App() {
               <AccessibilityNavigation />
               <ScrollToTop />
               <AppRoutes />
+              <PublicPageHelp />
               <BackToTopButton />
               <PwaExperience />
               <CookieConsent />

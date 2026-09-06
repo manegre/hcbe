@@ -9,6 +9,25 @@ test('public home page renders the application shell', async ({ page }) => {
   await expect(page.locator('body')).not.toHaveText(/unexpected application error/i);
 });
 
+test('public page help explains the current feature in both languages', async ({ page }) => {
+  await page.goto('/services');
+  const helpButton = page.getByRole('button', { name: /aide pour cette page|help for this page/i });
+  await expect(helpButton).toBeVisible();
+  await helpButton.click();
+  const dialog = page.getByRole('dialog', { name: /utiliser les services|use hcbe services/i });
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText(/connectez-vous|sign in/i);
+  if (process.env.E2E_CAPTURE_VISUALS) await page.screenshot({ path: 'test-results/public-help-desktop.png', fullPage: true });
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+
+  await page.getByRole('button', { name: 'English' }).click();
+  await helpButton.click();
+  await expect(page.getByRole('dialog', { name: /use hcbe services/i })).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
+});
+
 test('PWA manifest, offline fallback and service worker are production-ready', async ({ page, request }) => {
   const manifestResponse = await request.get('/manifest.webmanifest');
   expect(manifestResponse.ok()).toBeTruthy();
@@ -182,6 +201,49 @@ test('admin login page exposes an accessible sign-in form', async ({ page }) => 
   await expect(page.locator('button[type="submit"]')).toBeEnabled();
 });
 
+test('administrator help centre is searchable, shareable, accessible and responsive', async ({ page }) => {
+  const admin = {
+    id: '99999999-9999-9999-9999-999999999999', email: 'guide@hcbe.invalid', firstName: 'Awa', lastName: 'Guide',
+    isAdmin: true, mustChangePassword: false, adminRole: 'super-admin', permissions: [], mfaEnabled: true,
+  };
+  await page.addInitScript((user) => {
+    localStorage.setItem('i18nextLng', 'fr');
+    localStorage.setItem('hcbe_token', 'e2e-guide-token');
+    localStorage.setItem('hcbe_user', JSON.stringify(user));
+  }, admin);
+  await page.route('**/api/auth/me', (route) => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: admin }),
+  }));
+
+  await page.goto('/admin/help?article=finance');
+  await expect(page.getByRole('heading', { level: 1, name: /centre d’aide administrateur/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /finances, paiements et reçus/i })).toBeVisible();
+  await expect(page).toHaveURL(/article=finance/);
+
+  const search = page.locator('#admin-help-search');
+  await search.fill('mot de passe temporaire');
+  const usersGuide = page.getByRole('button', { name: /utilisateurs admin et rôles/i });
+  await expect(usersGuide).toBeVisible();
+  await usersGuide.click();
+  await expect(page).toHaveURL(/article=users/);
+  await expect(page.getByText('users.manage')).toBeVisible();
+
+  await page.getByRole('button', { name: 'English' }).click();
+  await search.fill('temporary password');
+  await expect(page.getByRole('button', { name: /admin users and roles/i })).toBeVisible();
+
+  const results = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+    .exclude('[aria-hidden="true"]')
+    .analyze();
+  expect(results.violations).toEqual([]);
+  if (process.env.E2E_CAPTURE_VISUALS) await page.screenshot({ path: 'test-results/admin-help-desktop.png', fullPage: true });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
+  if (process.env.E2E_CAPTURE_VISUALS) await page.screenshot({ path: 'test-results/admin-help-mobile.png', fullPage: true });
+});
+
 test('administrator can authenticate and reach the protected dashboard', async ({ page }) => {
   test.setTimeout(90_000);
   test.skip(!process.env.E2E_ADMIN_EMAIL || !process.env.E2E_ADMIN_PASSWORD, 'Admin E2E credentials are not configured');
@@ -192,6 +254,17 @@ test('administrator can authenticate and reach the protected dashboard', async (
 
   await expect(page).toHaveURL(/\/admin\/dashboard$/);
   await expect(page.locator('main')).toBeVisible();
+  await page.goto('/admin/help?article=finance');
+  await expect(page.getByRole('heading', { level: 1, name: /centre d’aide administrateur|administrator help centre/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /finances, paiements et reçus|finance, payments, and receipts/i })).toBeVisible();
+  const adminHelpIsEnglish = (await page.locator('html').getAttribute('lang')) === 'en';
+  await page.locator('#admin-help-search').fill(adminHelpIsEnglish ? 'refund' : 'remboursement');
+  await expect(page.getByRole('button', { name: /finances, paiements et reçus|finance, payments, and receipts/i })).toBeVisible();
+  await page.locator('#admin-help-search').fill(adminHelpIsEnglish ? 'temporary password' : 'mot de passe temporaire');
+  await expect(page.getByRole('button', { name: /utilisateurs admin et rôles|admin users and roles/i })).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
+  await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto('/admin/impact');
   await expect(page.getByRole('heading', { name: /du compte à la première participation|from account to first participation/i })).toBeVisible();
   await expect(page.getByRole('button', { name: /rapport pdf|pdf report/i })).toBeEnabled();
@@ -272,7 +345,7 @@ test('authenticated administration routes meet automated WCAG 2.2 AA checks', as
   await expect(page).toHaveURL(/\/admin\/dashboard$/);
 
   const violations: string[] = [];
-  for (const route of ['/admin/dashboard', '/admin/impact', '/admin/members', '/admin/security']) {
+  for (const route of ['/admin/dashboard', '/admin/help', '/admin/impact', '/admin/members', '/admin/security']) {
     await page.goto(route, { waitUntil: 'domcontentloaded' });
     await page.locator('main').first().waitFor();
     const results = await new AxeBuilder({ page })
@@ -302,7 +375,7 @@ test('every administrator workspace remains usable on mobile and tablet in dark 
     '/admin/consultations', '/admin/members', '/admin/membership-applications', '/admin/newsletter',
     '/admin/mentorship', '/admin/message-reports', '/admin/submissions', '/admin/service-cases',
     '/admin/impact', '/admin/monitoring', '/admin/security', '/admin/finance', '/admin/users',
-    '/admin/marketplace', '/admin/community-programs', '/admin/partners', '/admin/site-content', '/admin/team-members',
+    '/admin/marketplace', '/admin/community-programs', '/admin/partners', '/admin/site-content', '/admin/team-members', '/admin/help',
   ];
 
   await page.setViewportSize({ width: 390, height: 844 });

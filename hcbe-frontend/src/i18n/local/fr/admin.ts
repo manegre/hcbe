@@ -92,6 +92,7 @@ export default {
   'admin.nav.finance': 'Finances et adhésions',
   'admin.nav.marketplace': 'Organisateurs et publicité',
   'admin.nav.communityPrograms': 'Programmes communautaires',
+  'admin.nav.help': 'Centre d’aide',
 
   'admin.nav.dashboard': 'Tableau de bord',
   'admin.nav.monitoring': 'Surveillance',
