@@ -37,7 +37,36 @@ export interface SecurityIncident {
   reportedByUserId: string; lastUpdatedByUserId?: string; reportedAtUtc: string; updatedAtUtc: string;
   containedAtUtc?: string; resolvedAtUtc?: string;
 }
-export interface AuditLog { id: string; userEmail?: string; action: string; entityType: string; entityId?: string; ipAddress?: string; traceId?: string; createdAtUtc: string; }
+export interface AuditLog {
+  id: string;
+  userId?: string;
+  userEmail?: string;
+  action: string;
+  entityType: string;
+  entityId?: string;
+  changesJson?: string;
+  ipAddress?: string;
+  traceId?: string;
+  createdAtUtc: string;
+}
+
+export interface AuditLogPage {
+  items: AuditLog[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  stats: {
+    eventsToday: number;
+    activeActors: number;
+    securityEvents: number;
+    retentionDays: number;
+  };
+  filters: {
+    actions: string[];
+    entityTypes: string[];
+  };
+}
 
 export interface ApiResponse<T> {
   success: boolean;

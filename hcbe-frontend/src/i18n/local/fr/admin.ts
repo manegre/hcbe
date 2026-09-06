@@ -97,6 +97,7 @@ export default {
   'admin.nav.dashboard': 'Tableau de bord',
   'admin.nav.monitoring': 'Surveillance',
   'admin.nav.security': 'Centre de sécurité',
+  'admin.nav.activityLogs': 'Journal des activités',
   'admin.login.mfaTitle': 'Vérification en deux étapes',
   'admin.login.mfaHint': 'Entrez le code de votre application d’authentification ou un code de récupération.',
   'admin.login.mfaEmailHint': 'Nous avons envoyé un code à {{destination}}. Il expire dans 10 minutes.',

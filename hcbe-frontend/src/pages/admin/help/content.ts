@@ -305,6 +305,17 @@ export const helpArticles: HelpArticle[] = [
     keywords: { fr: ['mfa', 'otp', 'session', 'incident', 'loi 25', 'suppression données'], en: ['mfa', 'otp', 'session', 'incident', 'law 25', 'data deletion'] },
   },
   {
+    id: 'activity-logs', category: 'governance', icon: 'ri-history-line', path: '/admin/activity-logs', permission: 'security.manage',
+    title: { fr: 'Journal des activités', en: 'Activity log' },
+    summary: { fr: 'Recherchez et vérifiez les actions administratives, les éléments modifiés et leur traçabilité.', en: 'Search and review administrative actions, affected records, and their traceability.' },
+    steps: {
+      fr: ['Filtrez par acteur, action, module ou période.', 'Ouvrez une entrée pour consulter son horodatage, son adresse IP, sa trace et les champs enregistrés.', 'Utilisez ces informations pour une revue d’accès, une enquête ou le suivi d’un incident.'],
+      en: ['Filter by actor, action, module, or date range.', 'Open an entry to review its timestamp, IP address, trace, and recorded fields.', 'Use this information for access reviews, investigations, or incident follow-up.'],
+    },
+    tips: { fr: ['Les mots de passe, jetons, secrets et données de récupération sont automatiquement masqués.', 'Le journal est conservé selon la période définie par la politique de confidentialité.'], en: ['Passwords, tokens, secrets, and recovery data are automatically redacted.', 'The log is retained for the period defined by the privacy policy.'] },
+    keywords: { fr: ['journal', 'activité', 'audit', 'historique', 'trace', 'acteur', 'modification'], en: ['log', 'activity', 'audit', 'history', 'trace', 'actor', 'change'] },
+  },
+  {
     id: 'monitoring', category: 'governance', icon: 'ri-pulse-line', path: '/admin/monitoring', permission: 'analytics.view',
     title: { fr: 'Surveillance et santé du service', en: 'Monitoring and service health' },
     summary: { fr: 'Contrôlez la disponibilité, les erreurs, les sauvegardes et les signaux opérationnels.', en: 'Monitor availability, errors, backups, and operational signals.' },

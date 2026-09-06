@@ -85,6 +85,7 @@ const AdminOpportunitiesPage = lazy(() => import('../pages/admin/opportunities/p
 const AdminImpactPage = lazy(() => import('../pages/admin/impact/page'));
 const AdminMonitoringPage = lazy(() => import('../pages/admin/monitoring/page'));
 const AdminSecurityPage = lazy(() => import('../pages/admin/security/page'));
+const AdminActivityLogsPage = lazy(() => import('../pages/admin/activity-logs/page'));
 const AdminFinancePage = lazy(() => import('../pages/admin/finance/page'));
 const AdminMarketplacePage = lazy(() => import('../pages/admin/marketplace/page'));
 const AdminCommunityProgramsPage = lazy(() => import('../pages/admin/community-programs/page'));
@@ -391,6 +392,10 @@ const routes: RouteObject[] = [
       {
         path: 'security',
         element: <AdminSecurityPage />,
+      },
+      {
+        path: 'activity-logs',
+        element: <AdminActivityLogsPage />,
       },
       {
         path: 'finance',

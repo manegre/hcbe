@@ -904,7 +904,14 @@ public class ApplicationDbContext : DbContext
     private static bool SensitiveProperty(string name) =>
         name.Contains("Password", StringComparison.OrdinalIgnoreCase) ||
         name.Contains("Token", StringComparison.OrdinalIgnoreCase) ||
-        name.Contains("Secret", StringComparison.OrdinalIgnoreCase);
+        name.Contains("Secret", StringComparison.OrdinalIgnoreCase) ||
+        name.Contains("Credential", StringComparison.OrdinalIgnoreCase) ||
+        name.Contains("ConnectionString", StringComparison.OrdinalIgnoreCase) ||
+        name.Contains("RecoveryCode", StringComparison.OrdinalIgnoreCase) ||
+        name.Contains("CodeHash", StringComparison.OrdinalIgnoreCase) ||
+        name.Contains("PrivateKey", StringComparison.OrdinalIgnoreCase) ||
+        name.Contains("SigningKey", StringComparison.OrdinalIgnoreCase) ||
+        name.Contains("ApiKey", StringComparison.OrdinalIgnoreCase);
 
     private static string? Truncate(string? value) =>
         value is { Length: > 250 } ? value[..250] + "…" : value;

@@ -97,6 +97,7 @@ export default {
   'admin.nav.dashboard': 'Dashboard',
   'admin.nav.monitoring': 'Monitoring',
   'admin.nav.security': 'Security centre',
+  'admin.nav.activityLogs': 'Activity log',
   'admin.login.mfaTitle': 'Two-step verification',
   'admin.login.mfaHint': 'Enter the code from your authenticator app or a recovery code.',
   'admin.login.mfaEmailHint': 'We sent a code to {{destination}}. It expires in 10 minutes.',
